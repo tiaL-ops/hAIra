@@ -3,6 +3,9 @@ import cors from 'cors';
 
 
 import homeRoutes from './routes/HomeRoutes.js';
+import profileRoutes from './routes/ProfileRoutes.js';
+import loginRoutes from './routes/LoginRoutes.js';
+import classroomRoutes from './routes/ClassroomRoutes.js'
 
 const app = express();
 const port = 3002;
@@ -15,6 +18,7 @@ app.use(cors({
 // Middleware to parse JSON
 app.use(express.json());
 
+
 // Logging middleware to debug requests
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`);
@@ -23,7 +27,9 @@ app.use((req, res, next) => {
 
 // add all routes here 
 app.use('/api', homeRoutes);
-
+app.use('/api', profileRoutes);
+app.use('/api/login', loginRoutes);
+app.use('/api', classroomRoutes);
 
 
 app.listen(port, () => {
