@@ -3,6 +3,7 @@ import cors from 'cors';
 
 
 import homeRoutes from './routes/HomeRoutes.js';
+import profileRoutes from './routes/ProfileRoutes.js';
 import loginRoutes from './routes/LoginRoutes.js';
 import classroomRoutes from './routes/ClassroomRoutes.js'
 
@@ -26,9 +27,9 @@ app.use((req, res, next) => {
 
 // add all routes here 
 app.use('/api', homeRoutes);
+app.use('/api', profileRoutes);
 app.use('/api/login', loginRoutes);
 app.use('/api', classroomRoutes);
-
 
 
 app.listen(port, () => {
