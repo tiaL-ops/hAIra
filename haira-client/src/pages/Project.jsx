@@ -1,29 +1,45 @@
-// src/pages/Home.jsx
-import { useEffect, useState } from 'react';
-import React from 'react';
-import axios from 'axios';
+// haira-client/src/pages/Project.jsx
 
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; 
 function Project() {
-    const [message, setMessage] = React.useState('Loading...');
+  // we gonna make our default 1 project
+  const [selectedId, setSelectedId] = useState('1');
 
-    useEffect(() => {
-    axios.get("http://localhost:3002/api/project")
-      .then(response => {
-        setMessage(response.data.message);
-      })
-      .catch(error => {
-        console.error("Error fetching data:", error);
-        setMessage("Could not load message from server.");
-      });
-  }, []);
+  // Get the navigate function from React Router
+  const navigate = useNavigate();
 
+  // This function builds the URL and navigates to it
+  const handleNavigate = (view) => {
+    if (selectedId) {
+      // Example: if view is 'chat', path becomes '/project/1/chat'
+      const path = `/project/${selectedId}/${view}`;
+      navigate(path);
+    } else {
+      alert("Please select a project ID first!");
+    }
+  };
 
   return (
-    <div>
-      <h1>Hello!</h1>
-      <p>This is the project page.</p>
-      <h2>Message from Backend: {message}</h2>
+    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+      <h1>Project Navigation Tester 🧪</h1>
 
+      <div style={{ marginBottom: '20px' }}>
+        <h3>1. Select a Project ID:</h3>
+        {/* These buttons update the 'selectedId' state */}
+        <button onClick={() => setSelectedId('1')}>Project 1</button>
+        <button onClick={() => setSelectedId('2')}>Project 2</button>
+        <button onClick={() => setSelectedId('3')}>Project 3</button>
+        <p>Currently selected ID: <strong>{selectedId}</strong></p>
+      </div>
+
+      <div>
+        <h3>2. Go to a View for Project {selectedId}:</h3>
+        {/* These buttons call handleNavigate with the desired view */}
+        <button onClick={() => handleNavigate('chat')}>Go to Chat</button>
+        <button onClick={() => handleNavigate('board')}>Go to Board</button>
+        <button onClick={() => handleNavigate('submission')}>Go to Submission</button>
+      </div>
     </div>
   );
 }

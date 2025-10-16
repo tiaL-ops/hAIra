@@ -2,9 +2,16 @@ import express from 'express';
 
 const router = express.Router();
 
-// Define the route for the root of this router ('/login cuz now the route is  already/login')
+
+// Root route
 router.get('/', (req, res) => {
   res.json({ message: "Hello from project backend!" });
+});
+
+// Chat route for a specific project
+router.get('/:id/chat', (req, res) => {
+  const { id } = req.params;
+  res.json({ message: `Hi from chat ${id}` });
 });
 
 // Export the router so we can use it in index.js

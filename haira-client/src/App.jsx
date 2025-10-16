@@ -1,8 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Home from './pages/Home'; //des fois ca fais genre erreur masi ca marche
+import Home from './pages/Home';
 import Login from './pages/Login';
 import Classroom from './pages/Classroom';
 import Project from './pages/Project';
+import Chat from './pages/Chat';
 
 function App() {
   return (
@@ -13,7 +14,7 @@ function App() {
         <Route path="/login" element={<Login />} />     
         <Route path="/classroom" element={<Classroom />} />
         <Route path="/project" element={<Project />} />
-       
+        <Route path="/project/:id/chat" element={<Chat />} />
       </Routes>
     </BrowserRouter>
   );
