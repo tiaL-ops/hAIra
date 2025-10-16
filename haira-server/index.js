@@ -3,6 +3,7 @@ import cors from 'cors';
 
 
 import homeRoutes from './routes/HomeRoutes.js';
+import profileRoutes from './routes/ProfileRoutes.js';
 
 const app = express();
 const port = 3002;
@@ -23,6 +24,7 @@ app.use((req, res, next) => {
 
 // add all routes here 
 app.use('/api', homeRoutes);
+app.use('/api', profileRoutes);
 
 
 
