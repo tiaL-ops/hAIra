@@ -1,0 +1,17 @@
+{
+  "name": "haira",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "haira-client",
+    "haira-server"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c magenta.bold,cyan.bold \"npm --prefix haira-server run dev\" \"npm --prefix haira-client run dev\"",
+    "dev:server": "npm --prefix haira-server run dev",
+    "dev:client": "npm --prefix haira-client run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

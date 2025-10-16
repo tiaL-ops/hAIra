@@ -5,6 +5,7 @@ import cors from 'cors';
 import homeRoutes from './routes/HomeRoutes.js';
 import loginRoutes from './routes/LoginRoutes.js';
 import classroomRoutes from './routes/ClassroomRoutes.js'
+import projectRoutes from './routes/ProjectRoutes.js';
 
 const app = express();
 const port = 3002;
@@ -27,7 +28,8 @@ app.use((req, res, next) => {
 // add all routes here 
 app.use('/api', homeRoutes);
 app.use('/api/login', loginRoutes);
-app.use('/api', classroomRoutes);
+app.use('/api/classroom', classroomRoutes);
+app.use('/api/project', projectRoutes);
 
 
 
