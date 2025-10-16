@@ -4,8 +4,9 @@ import cors from 'cors';
 
 import homeRoutes from './routes/HomeRoutes.js';
 import loginRoutes from './routes/LoginRoutes.js';
-import classroomRoutes from './routes/ClassroomRoutes.js'
+import classroomRoutes from './routes/ClassroomRoutes.js';
 import projectRoutes from './routes/ProjectRoutes.js';
+import chatRoutes from './routes/ChatRoutes.js';
 
 const app = express();
 const port = 3002;
@@ -30,6 +31,7 @@ app.use('/api', homeRoutes);
 app.use('/api/login', loginRoutes);
 app.use('/api/classroom', classroomRoutes);
 app.use('/api/project', projectRoutes);
+app.use('/api/chat', chatRoutes);
 
 
 
