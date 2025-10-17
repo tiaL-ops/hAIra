@@ -7,15 +7,45 @@ function Chat() {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState("");
     const [statusMessage, setStatusMessage] = useState("");
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Load existing messages
-    useEffect(() => {
-        axios.get(`http://localhost:3002/api/project/${id}/chat`)
-            .then(response => {
-                setMessages(response.data.messages || []);
-            })
-            .catch(err => console.error(err));
-    }, [id]);
+  
+  // Fetch chats on initial load only
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchChats = async () => {
+      try {
+        setIsLoading(true);
+        console.log(`[Client] Fetching chats for project ${id}`);
+        const response = await axios.get(`http://localhost:3002/api/project/${id}/chat`);
+        
+        if (isMounted) {
+          const newChats = response.data.chats || [];
+          console.log(`[Client] Received ${newChats.length} chats`);
+          
+          // Sort by timestamp (newest first)
+          const sortedChats = newChats.sort((a, b) => b.timestamp - a.timestamp);
+          setMessages(sortedChats);
+        }
+      } catch (err) {
+        console.error('[Client] Error fetching chats:', err);
+        setStatusMessage(`❌ Error loading messages: ${err.message}`);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    // Fetch on mount only
+    fetchChats();
+    
+    // Cleanup
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
 
     // Send a new message
     const sendMessage = async (e) => {
@@ -28,10 +58,15 @@ function Chat() {
             });
             
             // Show success status
-            setStatusMessage(`✅ ${response.data.message}`);
+            setStatusMessage(`✅ Message sent successfully`);
             
-            // Add the new message to the list
-            setMessages([...messages, response.data.data]);
+            // Add the new chat to the beginning of the list (since we sort newest first)
+            const newChats = response.data.chats || [];
+            setMessages(prev => {
+                const updated = [...newChats, ...prev];
+                return updated.sort((a, b) => b.timestamp - a.timestamp);
+            });
+            
             setNewMessage("");
             
             // Clear status after 3 seconds
@@ -42,44 +77,25 @@ function Chat() {
     };
 
     return (
-        <div style={{ padding: '20px' }}>
+        <div>
           <h1>Chat for Project {id}</h1>
           
           {/* Status message */}
           {statusMessage && (
-            <div style={{ 
-              padding: '10px', 
-              marginBottom: '10px', 
-              backgroundColor: statusMessage.includes('✅') ? '#d4edda' : '#f8d7da',
-              border: '1px solid',
-              borderRadius: '5px'
-            }}>
+            <div>
               {statusMessage}
             </div>
           )}
           
           {/* Message form */}
-          <form onSubmit={sendMessage} style={{ marginBottom: '20px' }}>
+          <form onSubmit={sendMessage}>
             <input 
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type your message..."
-              style={{ 
-                padding: '10px', 
-                width: '300px', 
-                marginRight: '10px',
-                fontSize: '14px'
-              }}
             />
-            <button 
-              type="submit"
-              style={{ 
-                padding: '10px 20px',
-                fontSize: '14px',
-                cursor: 'pointer'
-              }}
-            >
+            <button type="submit">
               Send to Firebase
             </button>
           </form>
@@ -87,13 +103,18 @@ function Chat() {
           {/* Messages list */}
           <div>
             <h3>Messages:</h3>
-            {messages.length === 0 ? (
+            {isLoading ? (
+              <p>Loading messages...</p>
+            ) : messages.length === 0 ? (
               <p>No messages yet. Send one!</p>
             ) : (
               <ul>
                 {messages.map((msg, index) => (
-                  <li key={msg.id || index} style={{ marginBottom: '10px' }}>
-                    {msg.content} <small>(at {new Date(msg.timestamp).toLocaleTimeString()})</small>
+                  <li key={msg.id || index}>
+                    <div>{msg.content}</div>
+                    <small>
+                      {new Date(msg.timestamp).toLocaleString()}
+                    </small>
                   </li>
                 ))}
               </ul>

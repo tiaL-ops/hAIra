@@ -1,24 +1,24 @@
 /**
  * Database Schema for hAIra
  * 
- * Collection: messages
+ * Collection: chat
  * Document Structure:
  * {
- *   projectId: string,      // ID of the project this message belongs to
- *   content: string,         // The message content/text
+ *   projectId: string,      // ID of the project this chat belongs to
+ *   content: string,         // The chat content/text
  *   timestamp: number        // Unix timestamp (milliseconds)
  * }
  * 
  * Indexes needed:
- * - projectId (for querying messages by project)
- * - timestamp (for ordering messages chronologically)
+ * - projectId (for querying chats by project)
+ * - timestamp (for ordering chats chronologically)
  */
 
 export const COLLECTIONS = {
-  MESSAGES: 'messages'
+  CHAT: 'chat'
 };
 
-export const MESSAGE_SCHEMA = {
+export const CHAT_SCHEMA = {
   projectId: 'string',
   content: 'string',
   timestamp: 'number'
