@@ -1,42 +1,15 @@
-/**
- * Database Schema for hAIra
- * 
- * Collection: chat
- * Document Structure:
- * {
- *   projectId: string,      // ID of the project this chat belongs to
- *   content: string,         // The chat content/text
- *   timestamp: number        // Unix timestamp (milliseconds)
- * }
- * 
- * Indexes needed:
- * - projectId (for querying chats by project)
- * - timestamp (for ordering chats chronologically)
- */
+// Database Collections and Schema Definitions
 
 export const COLLECTIONS = {
-  CHAT: 'chat',
-  SUMBMISSIONS: 'submissions',
-  PROJECTS: 'projects',
-  USERS: 'users'
+  CHAT: 'chats'
 };
 
+// Schema for Chat documents
 export const CHAT_SCHEMA = {
-  projectId: 'string',
-  content: 'string',
-  timestamp: 'number'
-};
-
-export const SUBMISSION_SCHEMA = {
-  projectId: 'string',
-  userId: 'string',
-  fileUrl: 'string',
-  timestamp: 'number'
-};
-
-export const PROJECT_SCHEMA = {
-  name: 'string',
-  description: 'string',
-  createdBy: 'string',
-  createdAt: 'number'
+  projectId: String,  // ID of the project this chat belongs to
+  senderId: String,   // ID of the sender ('user_1' for users or 'ai_1' for AI)
+  senderName: String, // Name of the sender
+  text: String,       // Message content
+  timestamp: Number,  // Message timestamp
+  systemPrompt: String // System prompt used for AI messages (only stored with AI messages)
 };

@@ -1,5 +1,6 @@
 import express from 'express';
-import { addChat, getChats } from '../services/firebaseService.js';
+import { addUserChat, addChat, getChats } from '../services/firebaseService.js';
+import { generateAIResponse } from '../api/geminiService.js';
 const router = express.Router();
 
 // Get all chats for a project
@@ -30,15 +31,34 @@ router.get('/:id/chat', async (req, res) => {
 // Add a new chat to a project
 router.post('/:id/chat', async (req, res) => {
   const { id } = req.params;
-  const { content } = req.body;
+  const { content, userId = 'user_1', userName = 'hairateam' } = req.body;
+  
   if (!content) return res.status(400).json({ error: 'Content required' });
+  
+  // Fixed system instruction - not exposed to frontend
+  const SYSTEM_INSTRUCTION = "You are a helpful AI assistant named Haira. Keep your responses to one sentence or one short paragraph. Be concise and friendly.";
+  
   try {
-    const chat = await addChat(id, content);
+    // Save user message to Firebase with proper sender info
+    const chat = await addUserChat(id, content, userId, userName);
+    
+    // Get AI response from Gemini with fixed system instruction
+    const aiResponseText = await generateAIResponse(
+      content, 
+      SYSTEM_INSTRUCTION
+    );
+    
+    // Save AI response to Firebase with system prompt
+    const aiChat = await addChat(id, aiResponseText, 'ai_1', 'haira', SYSTEM_INSTRUCTION);
     
     res.status(201).json({
-      chats: [chat]
+      success: true,
+      userMessage: chat,
+      aiResponse: aiChat,
+      chats: [chat, aiChat]
     });
   } catch (err) {
+    console.error('[API] Error in chat:', err);
     res.status(500).json({ 
       success: false,
       error: err.message 

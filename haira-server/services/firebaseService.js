@@ -168,10 +168,18 @@ export async function getDocuments(collectionName, queryObj = {}, orderByField =
   return queryDocuments(collectionName, { filters, orderBy });
 }
 // speciifi wrrapper here"
-// Chat-specific wrappers (consistent naming)
-export async function addChat(projectId, content) {
-  const chat = new Chat(projectId, content);
+// Chat-specific wrappers
+export async function addChat(projectId, text, senderId, senderName, systemPrompt = null) {
+  const chat = new Chat(projectId, text, senderId, senderName, systemPrompt);
   return addDocument(COLLECTIONS.CHAT, chat.toFirestore());
+}
+
+export async function addUserChat(projectId, text, userId = 'user_1', userName = 'hairateam') {
+  return addChat(projectId, text, userId, userName);
+}
+
+export async function addAIChat(projectId, text, systemPrompt, aiId = 'ai_1', aiName = 'haira') {
+  return addChat(projectId, text, aiId, aiName, systemPrompt);
 }
 
 export async function getChats(projectId) {

@@ -17,14 +17,13 @@ function Chat() {
     const fetchChats = async () => {
       try {
         setIsLoading(true);
-       // console.log(`[Client] Fetching chats for project ${id}`);
+      
         const response = await axios.get(`http://localhost:3002/api/project/${id}/chat`);
         
         if (isMounted) {
           const newChats = response.data.chats || [];
           console.log(`[Client] Received ${newChats.length} chats`);
           
-          // Sort by timestamp (newest first)
           const sortedChats = newChats.sort((a, b) => b.timestamp - a.timestamp);
           setMessages(sortedChats);
         }
@@ -54,11 +53,13 @@ function Chat() {
         
         try {
             const response = await axios.post(`http://localhost:3002/api/project/${id}/chat`, {
-                content: newMessage
+                content: newMessage,
+                userId: 'user_1',
+                userName: 'hairateam'
             });
             
             // Show success status
-            setStatusMessage(`✅ Message sent successfully`);
+            setStatusMessage(`✅ Message sent to Gemini AI`);
             
             // Add the new chat to the beginning of the list (since we sort newest first)
             const newChats = response.data.chats || [];
@@ -96,7 +97,7 @@ function Chat() {
               placeholder="Type your message..."
             />
             <button type="submit">
-              Send to Firebase
+              Send to AI
             </button>
           </form>
           
@@ -111,7 +112,8 @@ function Chat() {
               <ul>
                 {messages.map((msg, index) => (
                   <li key={msg.id || index}>
-                    <div>{msg.content}</div>
+                    <div><strong>{msg.senderName || 'Unknown'}:</strong></div>
+                    <div>{msg.text || msg.content}</div>
                     <small>
                       {new Date(msg.timestamp).toLocaleString()}
                     </small>
