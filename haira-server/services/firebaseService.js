@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 
 import Chat from '../models/ChatModels.js';
-import { COLLECTIONS } from '../schema/database.js';
+import { COLLECTIONS, CHAT_SCHEMA, CHAT_MESSAGE_SCHEMA } from '../schema/database.js';
 
 dotenv.config();
 
@@ -61,6 +61,18 @@ export async function addDocument(collectionName, data) {
     return { id: docRef.id, ...data };
   } catch (error) {
     console.error(`[Firebase] Error adding document to '${collectionName}':`, error);
+    throw error;
+  }
+}
+
+// Helper for adding documents to subcollections
+export async function addSubdocument(parentCollection, parentId, subcollection, data) {
+  try {
+    console.log(`[Firebase] Adding document to '${parentCollection}/${parentId}/${subcollection}'`);
+    const docRef = await db.collection(parentCollection).doc(parentId).collection(subcollection).add(data);
+    return { id: docRef.id, ...data };
+  } catch (error) {
+    console.error(`[Firebase] Error adding document to subcollection '${parentCollection}/${parentId}/${subcollection}':`, error);
     throw error;
   }
 }
@@ -167,17 +179,120 @@ export async function getDocuments(collectionName, queryObj = {}, orderByField =
   const orderBy = orderByField ? [{ field: orderByField, direction: 'asc' }] : [];
   return queryDocuments(collectionName, { filters, orderBy });
 }
-// speciifi wrrapper here"
-// Chat-specific wrappers (consistent naming)
-export async function addChat(projectId, content) {
-  const chat = new Chat(projectId, content);
-  return addDocument(COLLECTIONS.CHAT, chat.toFirestore());
+
+// Helper for querying subcollections with the same options as queryDocuments
+export async function querySubcollection(parentCollection, parentId, subcollection, options = {}) {
+  const { filters = [], orderBy = [], limit, startAfter } = options;
+  try {
+    let ref = db.collection(parentCollection).doc(parentId).collection(subcollection);
+
+    // where clauses
+    for (const f of filters) {
+      if (f && f.field && f.op && typeof f.value !== 'undefined') {
+        ref = ref.where(f.field, f.op, f.value);
+      }
+    }
+
+    // order by clauses
+    for (const o of orderBy) {
+      if (o && o.field) {
+        ref = ref.orderBy(o.field, o.direction === 'asc' ? 'asc' : 'desc');
+      }
+    }
+
+    if (typeof limit === 'number') ref = ref.limit(limit);
+    if (typeof startAfter !== 'undefined') ref = ref.startAfter(startAfter);
+
+    const snapshot = await ref.get();
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (error) {
+    console.error(`[Firebase] Error querying subcollection '${parentCollection}/${parentId}/${subcollection}':`, error);
+    throw error;
+  }
 }
 
-export async function getChats(projectId) {
+// Simple helper for getting documents from a subcollection
+export async function getSubdocuments(parentCollection, parentId, subcollection, queryObj = {}, orderByField = 'timestamp') {
+  const filters = Object.entries(queryObj).map(([field, value]) => ({ field, op: '==', value }));
+  const orderBy = orderByField ? [{ field: orderByField, direction: 'desc' }] : [];
+  return querySubcollection(parentCollection, parentId, subcollection, { filters, orderBy });
+}
+
+
+// Chat-specific wrappers
+// Support both legacy mode and new schema with subcollections
+export async function addChat(projectId, text, senderId, senderName, systemPrompt = null, useSubcollection = false) {
+  const chat = new Chat(projectId, text, senderId, senderName, systemPrompt);
+  const chatData = chat.toFirestore();
+  
+  if (useSubcollection) {
+    // New schema: add as subcollection to userProjects
+    return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'chatMessages', {
+      senderId,
+      senderName,
+      text,
+      timestamp: chat.timestamp,
+      ...(systemPrompt && senderId.startsWith('ai_') ? { systemPrompt } : {})
+    });
+  } else {
+    // Legacy mode: use the flat chats collection
+    return addDocument(COLLECTIONS.CHAT, chatData);
+  }
+}
+
+export async function addUserChat(projectId, text, userId = 'user_1', userName = 'hairateam', useSubcollection = false) {
+  return addChat(projectId, text, userId, userName, null, useSubcollection);
+}
+
+export async function addAIChat(projectId, text, systemPrompt, aiId = 'ai_1', aiName = 'haira', useSubcollection = false) {
+  return addChat(projectId, text, aiId, aiName, systemPrompt, useSubcollection);
+}
+
+export async function getChats(projectId, useSubcollection = false) {
   const projectIdString = String(projectId);
-  return queryDocuments(COLLECTIONS.CHAT, {
-    filters: [{ field: 'projectId', op: '==', value: projectIdString }],
-    orderBy: [{ field: 'timestamp', direction: 'desc' }]
-  });
+  
+  if (useSubcollection) {
+    // Check if project exists first
+    const projectDoc = await db.collection(COLLECTIONS.USER_PROJECTS).doc(projectIdString).get();
+    
+    if (!projectDoc.exists) {
+      console.log(`[Firebase] Project ${projectIdString} not found, creating it`);
+      // Create project if it doesn't exist (placeholder for now)
+      await db.collection(COLLECTIONS.USER_PROJECTS).doc(projectIdString).set({
+        userId: 'default_user',
+        templateId: 'default_template',
+        title: `Project ${projectIdString}`,
+        status: 'in-progress',
+        startDate: Date.now()
+      });
+    }
+    
+    // Get chats from subcollection
+    return getSubdocuments(COLLECTIONS.USER_PROJECTS, projectIdString, 'chatMessages');
+  } else {
+    // Legacy mode: query the flat chats collection
+    return queryDocuments(COLLECTIONS.CHAT, {
+      filters: [{ field: 'projectId', op: '==', value: projectIdString }],
+      orderBy: [{ field: 'timestamp', direction: 'desc' }]
+    });
+  }
+}
+
+// Create a UserProject document if it doesn't exist
+export async function ensureProjectExists(projectId, userId = 'default_user', templateId = 'default_template', title = null) {
+  const projectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc(projectId);
+  const doc = await projectRef.get();
+  
+  if (!doc.exists) {
+    await projectRef.set({
+      userId,
+      templateId,
+      title: title || `Project ${projectId}`,
+      status: 'in-progress',
+      startDate: Date.now()
+    });
+    return { id: projectId, created: true };
+  }
+  
+  return { id: projectId, created: false };
 }
