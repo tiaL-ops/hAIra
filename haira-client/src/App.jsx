@@ -5,6 +5,8 @@ import Login from './pages/Login';
 import Classroom from './pages/Classroom';
 import Project from './pages/Project';
 import Chat from './pages/Chat';
+import Submission from './pages/Submission';
+import Kanban from './pages/Kanban';
 
 function App() {
   return (
@@ -17,6 +19,8 @@ function App() {
         <Route path="/classroom" element={<Classroom />} />
         <Route path="/project" element={<Project />} />
         <Route path="/project/:id/chat" element={<Chat />} />
+        <Route path="/project/:id/submission" element={<Submission />} />
+        <Route path="/project/:id/kanban" element={<Kanban />} />
       </Routes>
     </BrowserRouter>
   );
