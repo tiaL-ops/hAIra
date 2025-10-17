@@ -37,7 +37,7 @@ function Project() {
         <h3>2. Go to a View for Project {selectedId}:</h3>
         {/* These buttons call handleNavigate with the desired view */}
         <button onClick={() => handleNavigate('chat')}>Go to Chat</button>
-        <button onClick={() => handleNavigate('board')}>Go to Board</button>
+        <button onClick={() => handleNavigate('kanban')}>Go to Kanban</button>
         <button onClick={() => handleNavigate('submission')}>Go to Submission</button>
       </div>
     </div>
