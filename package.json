@@ -12,6 +12,8 @@
     "dev:client": "npm --prefix haira-client run dev"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "chai": "^6.2.0",
+    "concurrently": "^9.1.2",
+    "mocha": "^11.7.4"
   }
 }
