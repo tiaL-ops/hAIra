@@ -13,14 +13,6 @@ router.get('/:id/chat', async (req, res) => {
       console.log(`[API] No chats found for project ${id}`);
       return res.json({ chats: [] });
     }
-
-<<<<<<< HEAD
-=======
-    // Detailed logging of all chats
-    console.log('[API] All chats found:', JSON.stringify(chats, null, 2));
-    console.log(`[API] Found ${chats.length} chats for project ${id}`);
->>>>>>> 612e979d76d57beda6ea9bc076bb4d52d898408c
-    
     res.json({ 
       chats,
       debug: {
@@ -42,11 +34,7 @@ router.post('/:id/chat', async (req, res) => {
   if (!content) return res.status(400).json({ error: 'Content required' });
   try {
     const chat = await addChat(id, content);
-<<<<<<< HEAD
     
-=======
-    console.log(`[DEBUG] POST /api/project/${id}/chat ->`, chat);
->>>>>>> 612e979d76d57beda6ea9bc076bb4d52d898408c
     res.status(201).json({
       chats: [chat]
     });
