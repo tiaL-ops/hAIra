@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@rollup/rollup-win32-x64-msvc": "^4.52.4",
+    "rollup": "^4.52.4",
     "axios": "^1.12.2",
     "firebase": "^12.4.0",
     "pixi.js": "^8.14.0",
