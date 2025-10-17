@@ -1,29 +1,47 @@
 import express from 'express';
-import { addMessage, getMessages } from '../services/firebaseService.js';
+import { addChat, getChats } from '../services/firebaseService.js';
 const router = express.Router();
 
-// Get all messages for a project
-router.get('/project/:id/chat', async (req, res) => {
-	const { id } = req.params;
-	try {
-		const messages = await getMessages(id);
-		res.json({ messages });
-	} catch (err) {
-		res.status(500).json({ error: err.message });
-	}
+// Get all chats for a project
+router.get('/:id/chat', async (req, res) => {
+  const { id } = req.params;
+  try {
+    console.log(`[API] Fetching chats for project ${id}, param type:`, typeof id);
+    const chats = await getChats(id);
+    
+    if (!chats || chats.length === 0) {
+      console.log(`[API] No chats found for project ${id}`);
+      return res.json({ chats: [] });
+    }
+
+    // Detailed logging of all chats
+    console.log('[API] All chats found:', JSON.stringify(chats, null, 2));
+    console.log(`[API] Found ${chats.length} chats for project ${id}`);
+    
+    res.json({ 
+      chats,
+      debug: {
+        projectId: id,
+        chatCount: chats.length,
+        timestamp: Date.now()
+      }
+    });
+  } catch (err) {
+    console.error(`[API] Error fetching chats for project ${id}:`, err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Add a new message to a project
-router.post('/project/:id/chat', async (req, res) => {
+// Add a new chat to a project
+router.post('/:id/chat', async (req, res) => {
   const { id } = req.params;
   const { content } = req.body;
   if (!content) return res.status(400).json({ error: 'Content required' });
   try {
-    const result = await addMessage(id, content);
+    const chat = await addChat(id, content);
+    console.log(`[DEBUG] POST /api/project/${id}/chat ->`, chat);
     res.status(201).json({
-      success: true,
-      message: 'Message sent to Firebase',
-      data: result
+      chats: [chat]
     });
   } catch (err) {
     res.status(500).json({ 
@@ -31,4 +49,6 @@ router.post('/project/:id/chat', async (req, res) => {
       error: err.message 
     });
   }
-});export default router;
+});
+
+export default router;
