@@ -33,7 +33,7 @@ app.use('/api', profileRoutes);
 app.use('/api/login', loginRoutes);
 app.use('/api/classroom', classroomRoutes);
 app.use('/api/project', projectRoutes);
-app.use('/api/chat', chatRoutes);
+app.use('/api', chatRoutes);
 
 
 app.listen(port, () => {
