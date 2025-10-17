@@ -13,10 +13,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 function buildCredential() {
-  // Prefer explicit env vars when available
+  // Prefer explicit env vars
   const { FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY } = process.env;
   if (FIREBASE_PROJECT_ID && FIREBASE_CLIENT_EMAIL && FIREBASE_PRIVATE_KEY) {
-    // Handle escaped newlines in env value
     const privateKey = FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
     return admin.credential.cert({
       projectId: FIREBASE_PROJECT_ID,
@@ -34,62 +33,16 @@ function buildCredential() {
     return admin.credential.cert(json);
   }
 
-  // Last resort: application default credentials (e.g., GOOGLE_APPLICATION_CREDENTIALS)
+  // Last resort: application default credentials
   return admin.credential.applicationDefault();
 }
+
 
 // Initialize Firebase Admin SDK once
 if (!admin.apps.length) {
   try {
     admin.initializeApp({ credential: buildCredential() });
     console.log('Firebase initialized');
-
-    // Create required indexes
-    const db = admin.firestore();
-    
-    // Create composite index for chat collection
-    async function createRequiredIndexes() {
-      try {
-        // Check if collection exists first
-        const chatCollection = db.collection(COLLECTIONS.CHAT);
-        const doc = await chatCollection.limit(1).get();
-        
-        if (!doc.empty) {
-          console.log('Creating composite index for chat collection...');
-          await db.collection(COLLECTIONS.CHAT)
-            .listIndexes()
-            .then(async (indexes) => {
-              // Check if our required index already exists
-              const hasRequiredIndex = indexes.some(index => 
-                index.fields.length === 2 &&
-                index.fields.some(f => f.fieldPath === 'projectId') &&
-                index.fields.some(f => f.fieldPath === 'timestamp')
-              );
-
-              if (!hasRequiredIndex) {
-                await db.collection(COLLECTIONS.CHAT).doc('__dummy__').set({
-                  projectId: 'dummy',
-                  timestamp: Date.now()
-                });
-
-                console.log('Composite index creation triggered. Please wait a few minutes for it to be ready.');
-                
-                // Clean up dummy document
-                await db.collection(COLLECTIONS.CHAT).doc('__dummy__').delete();
-              } else {
-                console.log('Required index already exists');
-              }
-            });
-        } else {
-          console.log('Chat collection is empty, index will be created when first document is added');
-        }
-      } catch (error) {
-        console.error('Error creating index:', error);
-      }
-    }
-
-    // Run the index creation
-    createRequiredIndexes();
   } catch (error) {
     console.error('Firebase initialization error:', error.message);
   }
@@ -97,26 +50,14 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+// Export db for reuse in other services if needed
+export { db };
+
 // Generic helpers
 export async function addDocument(collectionName, data) {
   try {
-    console.log(`[Firebase] Adding document to '${collectionName}':`, data);
-    
-    // Validate required fields for chat documents
-    if (collectionName === COLLECTIONS.CHAT) {
-      if (!data.projectId || !data.content || !data.timestamp) {
-        throw new Error('Missing required fields for chat document');
-      }
-    }
-    
-    // Add document
-    const docRef = await db.collection(collectionName).add({
-      ...data,
-      // Ensure timestamp is a number and exists
-      timestamp: data.timestamp || Date.now()
-    });
-    
-    console.log(`[Firebase] Added document with ID: ${docRef.id}`);
+    console.log(`[Firebase] Adding document to '${collectionName}'`);
+    const docRef = await db.collection(collectionName).add(data);
     return { id: docRef.id, ...data };
   } catch (error) {
     console.error(`[Firebase] Error adding document to '${collectionName}':`, error);
@@ -124,81 +65,109 @@ export async function addDocument(collectionName, data) {
   }
 }
 
-export async function getDocuments(collectionName, queryObj = {}, orderByField = 'timestamp') {
+export async function setDocument(collectionName, id, data) {
   try {
-    console.log(`[Firebase] Querying collection '${collectionName}' with filters:`, queryObj);
-    
-    // Validate collection exists
-    const collections = await db.listCollections();
-    const collectionExists = collections.some(col => col.id === collectionName);
-    if (!collectionExists) {
-      console.log(`[Firebase] Collection '${collectionName}' does not exist`);
-      return [];
-    }
-
-    // Build query
-    let ref = db.collection(collectionName);
-    
-    // Add filters
-    for (const [field, value] of Object.entries(queryObj)) {
-      if (value !== undefined && value !== null) {
-        console.log(`[Firebase] Adding filter: ${field} == ${value}`);
-        ref = ref.where(field, '==', value);
-      }
-    }
-    
-    try {
-      // Try with ordering first
-      if (orderByField) {
-        console.log(`[Firebase] Attempting query with ordering by ${orderByField} DESC`);
-        ref = ref.orderBy(orderByField, 'desc');
-      }
-      
-      const snapshot = await ref.get();
-      console.log(`[Firebase] Query returned ${snapshot.size} documents (with ordering)`);
-      
-      const docs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: typeof doc.data().timestamp === 'number' ? doc.data().timestamp : Date.now()
-      }));
-      
-      return docs;
-    } catch (orderError) {
-      if (orderError.code === 9 && orderError.message.includes('requires an index')) {
-        console.log('[Firebase] Index not ready yet, falling back to unordered query');
-        // Fall back to unordered query while index is being created
-        ref = db.collection(collectionName);
-        for (const [field, value] of Object.entries(queryObj)) {
-          if (value !== undefined && value !== null) {
-            ref = ref.where(field, '==', value);
-          }
-        }
-        
-        const snapshot = await ref.get();
-        console.log(`[Firebase] Unordered query returned ${snapshot.size} documents`);
-        
-        // Sort in memory as fallback
-        const docs = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          timestamp: typeof doc.data().timestamp === 'number' ? doc.data().timestamp : Date.now()
-        }));
-        
-        if (orderByField) {
-          docs.sort((a, b) => b[orderByField] - a[orderByField]);
-        }
-        
-        return docs;
-      }
-      throw orderError;
-    }
+    await db.collection(collectionName).doc(id).set(data, { merge: true });
+    return { id, ...data };
   } catch (error) {
-    console.error(`[Firebase] Error querying collection '${collectionName}':`, error);
+    console.error(`[Firebase] Error setting document in '${collectionName}/${id}':`, error);
     throw error;
   }
 }
 
+export async function updateDocument(collectionName, id, data) {
+  try {
+    await db.collection(collectionName).doc(id).update(data);
+    return { id, ...data };
+  } catch (error) {
+    console.error(`[Firebase] Error updating document in '${collectionName}/${id}':`, error);
+    throw error;
+  }
+}
+
+export async function deleteDocument(collectionName, id) {
+  try {
+    await db.collection(collectionName).doc(id).delete();
+    return { id };
+  } catch (error) {
+    console.error(`[Firebase] Error deleting document in '${collectionName}/${id}':`, error);
+    throw error;
+  }
+}
+
+export async function getDocumentById(collectionName, id) {
+  try {
+    const snap = await db.collection(collectionName).doc(id).get();
+    return snap.exists ? { id: snap.id, ...snap.data() } : null;
+  } catch (error) {
+    console.error(`[Firebase] Error getting document '${collectionName}/${id}':`, error);
+    throw error;
+  }
+}
+
+// Flexible query utility
+// options: { filters: Array<{field, op, value}>, orderBy: Array<{field, direction}>, limit, startAfter }
+export async function queryDocuments(collectionName, options = {}) {
+  const { filters = [], orderBy = [], limit, startAfter } = options;
+  try {
+    let ref = db.collection(collectionName);
+
+    // where clauses
+    for (const f of filters) {
+      if (f && f.field && f.op && typeof f.value !== 'undefined') {
+        ref = ref.where(f.field, f.op, f.value);
+      }
+    }
+
+    // order by clauses
+    for (const o of orderBy) {
+      if (o && o.field) {
+        ref = ref.orderBy(o.field, o.direction === 'asc' ? 'asc' : 'desc');
+      }
+    }
+
+    if (typeof limit === 'number') ref = ref.limit(limit);
+    if (typeof startAfter !== 'undefined') ref = ref.startAfter(startAfter);
+
+    try {
+      const snapshot = await ref.get();
+      return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (err) {
+      // Fallback for index errors: try without orderBy then sort in memory
+      const needsIndex = ('' + (err.code || '')).includes('9') || (err.message || '').includes('index');
+      if (needsIndex && orderBy.length > 0) {
+        let fallbackRef = db.collection(collectionName);
+        for (const f of filters) {
+          fallbackRef = fallbackRef.where(f.field, f.op, f.value);
+        }
+        const snapshot = await fallbackRef.get();
+        let docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        // In-memory sort using first orderBy as heuristic
+        const first = orderBy[0];
+        if (first && first.field) {
+          docs.sort((a, b) => {
+            const av = a[first.field];
+            const bv = b[first.field];
+            return (first.direction === 'asc' ? 1 : -1) * ((av > bv) - (av < bv));
+          });
+        }
+        return docs;
+      }
+      throw err;
+    }
+  } catch (error) {
+    console.error(`[Firebase] Error querying '${collectionName}':`, error);
+    throw error;
+  }
+}
+
+// Back-compat helper (simple equality filters and single orderBy field)
+export async function getDocuments(collectionName, queryObj = {}, orderByField = 'timestamp') {
+  const filters = Object.entries(queryObj).map(([field, value]) => ({ field, op: '==', value }));
+  const orderBy = orderByField ? [{ field: orderByField, direction: 'asc' }] : [];
+  return queryDocuments(collectionName, { filters, orderBy });
+}
+// speciifi wrrapper here"
 // Chat-specific wrappers (consistent naming)
 export async function addChat(projectId, content) {
   const chat = new Chat(projectId, content);
@@ -206,15 +175,9 @@ export async function addChat(projectId, content) {
 }
 
 export async function getChats(projectId) {
-  try {
-    // Ensure projectId is a string
-    const projectIdString = String(projectId);
-    console.log(`[Firebase] Fetching chats for project ${projectIdString}, type:`, typeof projectIdString);
-    const chats = await getDocuments(COLLECTIONS.CHAT, { projectId: projectIdString });
-    console.log(`[Firebase] Found ${chats.length} chats with data:`, chats);
-    return chats;
-  } catch (error) {
-    console.error('[Firebase] Error fetching chats:', error);
-    throw error;
-  }
+  const projectIdString = String(projectId);
+  return queryDocuments(COLLECTIONS.CHAT, {
+    filters: [{ field: 'projectId', op: '==', value: projectIdString }],
+    orderBy: [{ field: 'timestamp', direction: 'desc' }]
+  });
 }

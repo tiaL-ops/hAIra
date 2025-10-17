@@ -14,9 +14,6 @@ router.get('/:id/chat', async (req, res) => {
       return res.json({ chats: [] });
     }
 
-    // Detailed logging of all chats
-    console.log('[API] All chats found:', JSON.stringify(chats, null, 2));
-    console.log(`[API] Found ${chats.length} chats for project ${id}`);
     
     res.json({ 
       chats,
@@ -39,7 +36,7 @@ router.post('/:id/chat', async (req, res) => {
   if (!content) return res.status(400).json({ error: 'Content required' });
   try {
     const chat = await addChat(id, content);
-    console.log(`[DEBUG] POST /api/project/${id}/chat ->`, chat);
+    
     res.status(201).json({
       chats: [chat]
     });

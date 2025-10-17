@@ -17,7 +17,7 @@ function Chat() {
     const fetchChats = async () => {
       try {
         setIsLoading(true);
-        console.log(`[Client] Fetching chats for project ${id}`);
+       // console.log(`[Client] Fetching chats for project ${id}`);
         const response = await axios.get(`http://localhost:3002/api/project/${id}/chat`);
         
         if (isMounted) {

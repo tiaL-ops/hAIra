@@ -15,11 +15,28 @@
  */
 
 export const COLLECTIONS = {
-  CHAT: 'chat'
+  CHAT: 'chat',
+  SUMBMISSIONS: 'submissions',
+  PROJECTS: 'projects',
+  USERS: 'users'
 };
 
 export const CHAT_SCHEMA = {
   projectId: 'string',
   content: 'string',
   timestamp: 'number'
+};
+
+export const SUBMISSION_SCHEMA = {
+  projectId: 'string',
+  userId: 'string',
+  fileUrl: 'string',
+  timestamp: 'number'
+};
+
+export const PROJECT_SCHEMA = {
+  name: 'string',
+  description: 'string',
+  createdBy: 'string',
+  createdAt: 'number'
 };
