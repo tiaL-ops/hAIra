@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "rollup": "^4.52.4",
     "axios": "^1.12.2",
     "firebase": "^12.4.0",
     "pixi.js": "^8.14.0",
@@ -28,5 +27,8 @@
     "eslint-plugin-react-refresh": "^0.4.22",
     "globals": "^16.4.0",
     "vite": "^7.1.7"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.52.4"
   }
 }
