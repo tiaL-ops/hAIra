@@ -278,6 +278,28 @@ export async function getChats(projectId, useSubcollection = false) {
   }
 }
 
+
+// UserProject-Specific Wrapper
+// User Project Wrapper for Sumbmission (submit final report ==> Update UserProject)
+export async function updateUserProject(projectId, content, grade, status = "submitted") {
+  // final report
+  const finalReport = {
+    content: content,
+    submittedAt: Date.now()
+  }
+
+  // Ensure project exists first
+  await ensureProjectExists(projectId);
+
+  // Update the user project (legacy not required since this is the root project)
+  return updateDocument(COLLECTIONS.USER_PROJECTS, projectId, {
+    finalReport,
+    grade: grade,
+    status,
+  });
+  
+}
+
 // Create a UserProject document if it doesn't exist
 export async function ensureProjectExists(projectId, userId = 'default_user', templateId = 'default_template', title = null) {
   const projectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc(projectId);
