@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 
 import Chat from '../models/ChatModels.js';
+import Task from '../models/KanbanModels.js';
 import { COLLECTIONS, CHAT_SCHEMA, CHAT_MESSAGE_SCHEMA } from '../schema/database.js';
 
 dotenv.config();
@@ -298,6 +299,26 @@ export async function updateUserProject(projectId, content, grade, status = "sub
     status,
   });
   
+}
+
+export async function addTasks(projectId, userId, projectTitle, deliverables) {
+  projectTitle = projectTitle.trim();
+  await ensureProjectExists(projectId);
+
+  const promises = deliverables.map((item) => {
+    let newDeliverable = new Task(
+      projectTitle,
+      userId,
+      "todo",
+      item.deliverable,
+      Date.now(),
+      0
+    );
+    newDeliverable = newDeliverable.toFirestore();
+    return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'tasks', newDeliverable);
+  });
+
+  return await Promise.all(promises);
 }
 
 // Create a UserProject document if it doesn't exist
