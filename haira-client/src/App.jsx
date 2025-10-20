@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import Home from './pages/Home';
+import TopBar from './components/TopBar';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Classroom from './pages/Classroom';
@@ -64,6 +65,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <TopBar />
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
