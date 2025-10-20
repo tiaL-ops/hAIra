@@ -78,7 +78,7 @@ export default function Login() {
       await createUserDocument(userCredential.user, name);
 
       console.log('Sign up successful:', userCredential.user);
-      navigate('/'); // Redirect to home page
+      navigate('/projects'); // Redirect to project selection page
     } catch (err) {
       console.error('Sign up error:', err);
       switch (err.code) {
@@ -112,7 +112,7 @@ export default function Login() {
       await createUserDocument(userCredential.user, userCredential.user.displayName);
 
       console.log('Sign in successful:', userCredential.user);
-      navigate('/'); // Redirect to home page
+      navigate('/projects'); // Redirect to project selection page
     } catch (err) {
       console.error('Sign in error:', err);
       switch (err.code) {
@@ -149,7 +149,7 @@ export default function Login() {
       await createUserDocument(userCredential.user, userCredential.user.displayName);
 
       console.log('Google sign in successful:', userCredential.user);
-      navigate('/'); // Redirect to home page
+      navigate('/projects'); // Redirect to project selection page
     } catch (err) {
       console.error('Google sign in error:', err);
       switch (err.code) {
