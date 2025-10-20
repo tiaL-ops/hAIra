@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 
 import Chat from '../models/ChatModels.js';
+import Task from '../models/KanbanModels.js';
 import { COLLECTIONS, CHAT_SCHEMA, CHAT_MESSAGE_SCHEMA } from '../schema/database.js';
 
 dotenv.config();
@@ -276,6 +277,48 @@ export async function getChats(projectId, useSubcollection = false) {
       orderBy: [{ field: 'timestamp', direction: 'desc' }]
     });
   }
+}
+
+
+// UserProject-Specific Wrapper
+// User Project Wrapper for Sumbmission (submit final report ==> Update UserProject)
+export async function updateUserProject(projectId, content, grade, status = "submitted") {
+  // final report
+  const finalReport = {
+    content: content,
+    submittedAt: Date.now()
+  }
+
+  // Ensure project exists first
+  await ensureProjectExists(projectId);
+
+  // Update the user project (legacy not required since this is the root project)
+  return updateDocument(COLLECTIONS.USER_PROJECTS, projectId, {
+    finalReport,
+    grade: grade,
+    status,
+  });
+  
+}
+
+export async function addTasks(projectId, userId, projectTitle, deliverables) {
+  projectTitle = projectTitle.trim();
+  await ensureProjectExists(projectId);
+
+  const promises = deliverables.map((item) => {
+    let newDeliverable = new Task(
+      projectTitle,
+      userId,
+      "todo",
+      item.deliverable,
+      Date.now(),
+      0
+    );
+    newDeliverable = newDeliverable.toFirestore();
+    return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'tasks', newDeliverable);
+  });
+
+  return await Promise.all(promises);
 }
 
 // Create a UserProject document if it doesn't exist

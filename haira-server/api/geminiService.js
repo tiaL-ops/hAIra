@@ -16,3 +16,46 @@ export async function generateAIResponse(userMessage, systemInstruction) {
   });
   return response.text;
 }
+
+export async function generateGradeResponse(userSubmission, systemInstruction) {
+  // prompt for submission
+  const prompt = `
+${systemInstruction}
+
+Submission:
+${userSubmission}
+`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt, 
+    generationConfig: {
+      maxOutputTokens: 20,
+      temperature: 0.0, // deterministic answer from gemini
+      responseMimeType: "application/json"  // return JSON, easier to handle
+    },
+  });
+
+  return response.text;
+}
+
+export async function generateDeliverablesResponse(title, systemInstruction) {
+  const prompt = `
+${systemInstruction}
+
+Submission:
+${title}
+`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+    generationConfig: {
+      maxOutputTokens: 20,
+      temperature: 0.0,
+      responseMimeType: "application/json"
+    },
+  });
+
+  return response.text;
+}
