@@ -1,24 +1,40 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from 'axios';
+import { getAuth } from 'firebase/auth';
+import { useAuth } from '../App';
 
 function Chat() {
     const { id } = useParams();
+    const { currentUser } = useAuth();
+    const navigate = useNavigate();
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState("");
     const [statusMessage, setStatusMessage] = useState("");
     const [isLoading, setIsLoading] = useState(true);
+    const auth = getAuth();
 
-  
   // Fetch chats on initial load only
   useEffect(() => {
     let isMounted = true;
     
+    // Ensure user is logged in
+    if (!auth.currentUser) {
+      navigate('/login');
+      return;
+    }
+    
     const fetchChats = async () => {
       try {
         setIsLoading(true);
+        
+        const token = await auth.currentUser.getIdToken();
       
-        const response = await axios.get(`http://localhost:3002/api/project/${id}/chat`);
+        const response = await axios.get(`http://localhost:3002/api/project/${id}/chat`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         
         if (isMounted) {
           const newChats = response.data.chats || [];
@@ -52,10 +68,16 @@ function Chat() {
         if (!newMessage.trim()) return;
         
         try {
+            const token = await auth.currentUser.getIdToken();
+            
             const response = await axios.post(`http://localhost:3002/api/project/${id}/chat`, {
                 content: newMessage,
-                userId: 'user_1',
-                userName: 'hairateam'
+                senderId: auth.currentUser.uid,
+                senderName: auth.currentUser.displayName || 'User',
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
             
             // Show success status

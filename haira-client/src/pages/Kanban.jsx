@@ -1,21 +1,55 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from 'axios';
+import { getAuth } from 'firebase/auth';
+import { useAuth } from '../App';
 
 const backend_host = "http://localhost:3002";
 
 function Kanban() {
     const { id } = useParams();
+    const { currentUser } = useAuth();
+    const navigate = useNavigate();
     const [title, setTitle] = useState("");
+    const [projectData, setProjectData] = useState(null);
     const [deliverables, setDeliverables] = useState([]);
-    const [message, setMessage] = useState("...");
+    const [message, setMessage] = useState("Loading project data...");
     const [loading, setLoading] = useState(false);
+    const auth = getAuth();
 
     useEffect(() => {
-        axios.get(`${backend_host}/api/project/${id}/kanban`)
-            .then(response => setMessage(response.data.message || "..."))
-            .catch(err => console.error("Error fetching project info:", err));
-    }, [id]);
+        const fetchProjectData = async () => {
+            // Ensure user is logged in
+            if (!auth.currentUser) {
+                navigate('/login');
+                return;
+            }
+
+            try {
+                // Get Firebase token and fetch project data
+                const token = await auth.currentUser.getIdToken();
+                
+                const response = await axios.get(`${backend_host}/api/project/${id}/kanban`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.data.project) {
+                    setProjectData(response.data.project);
+                    setTitle(response.data.project.title || "");
+                    setMessage(response.data.message || "Project loaded");
+                } else {
+                    setMessage("Project data not found");
+                }
+            } catch (err) {
+                console.error("Error fetching project info:", err);
+                setMessage("Error loading project data");
+            }
+        };
+
+        fetchProjectData();
+    }, [id, navigate, auth]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -24,11 +58,17 @@ function Kanban() {
 
         setLoading(true);
         try {
+            const token = await auth.currentUser.getIdToken();
+            
             const response = await axios.post(
                 `${backend_host}/api/project/${id}/kanban`,
                 {
                     title: title,
-                    userId: "user_1", // replace with logged-in user ID
+                },
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
                 }
             );
 
