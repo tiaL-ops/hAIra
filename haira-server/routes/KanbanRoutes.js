@@ -1,21 +1,43 @@
 import express from 'express';
-import { addTasks, ensureProjectExists } from '../services/firebaseService.js';
+import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
+import { addTasks, ensureProjectExists, getProjectWithTasks } from '../services/firebaseService.js';
 import { generateDeliverablesResponse } from '../api/geminiService.js';
 
 const router = express.Router();
 
-router.get('/:id/kanban', (req, res) => {
-    const { id } = req.params;
-    res.json({ message: `Hi from kanban ${id}` });
+// Get project data with tasks
+router.get('/:id/kanban', verifyFirebaseToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.uid;
+
+        // Get project and tasks data
+        const projectData = await getProjectWithTasks(id, userId);
+        
+        if (!projectData) {
+            return res.status(404).json({ error: 'Project not found or access denied' });
+        }
+
+        res.json({
+            success: true,
+            project: projectData.project,
+            tasks: projectData.tasks,
+            message: `Project ${projectData.project.title} loaded successfully`
+        });
+    } catch (error) {
+        console.error('Error fetching project data:', error);
+        res.status(500).json({ error: 'Failed to fetch project data' });
+    }
 });
 
 
-router.post('/:id/kanban', async (req, res) => {
+router.post('/:id/kanban', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;
-    const { title, userId } = req.body;
+    const { title } = req.body;
+    const userId = req.user.uid;
 
-    if (!title || !userId) {
-        return res.status(400).json({ error: 'Title and userId are required' });
+    if (!title) {
+        return res.status(400).json({ error: 'Title is required' });
     }
 
     const SYSTEM_INSTRUCTION = `You are a project manager.

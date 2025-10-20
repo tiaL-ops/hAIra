@@ -1,4 +1,5 @@
 import express from 'express';
+import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
 import { addUserChat, addChat, getChats, ensureProjectExists } from '../services/firebaseService.js';
 import { generateAIResponse } from '../api/geminiService.js';
 const router = express.Router();
@@ -8,7 +9,7 @@ const router = express.Router();
 const USE_SUBCOLLECTIONS = true;
 
 // Get all chats for a project
-router.get('/:id/chat', async (req, res) => {
+router.get('/:id/chat', verifyFirebaseToken, async (req, res) => {
   const { id } = req.params;
   try {
     console.log(`[API] Fetching chats for project ${id}, param type:`, typeof id);
@@ -41,9 +42,11 @@ router.get('/:id/chat', async (req, res) => {
 });
 
 // Add a new chat to a project
-router.post('/:id/chat', async (req, res) => {
+router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
   const { id } = req.params;
-  const { content, userId = 'user_1', userName = 'hairateam' } = req.body;
+  const { content } = req.body;
+  const userId = req.user.uid;
+  const userName = req.user.name;
   
   if (!content) return res.status(400).json({ error: 'Content required' });
   

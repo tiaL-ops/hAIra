@@ -339,3 +339,85 @@ export async function ensureProjectExists(projectId, userId = 'default_user', te
   
   return { id: projectId, created: false };
 }
+
+// Create a new project
+export async function createProject(userId, userName, title) {
+  const projectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc();
+  
+  const projectData = {
+    userId: userId,
+    title: title,
+    status: 'started',
+    startDate: Date.now(),
+    team: [{
+      id: userId,
+      name: userName,
+      role: 'owner'
+    }]
+  };
+  
+  await projectRef.set(projectData);
+  return projectRef.id;
+}
+
+// Get all projects for a user
+export async function getUserProjects(userId) {
+  const projectsRef = db.collection(COLLECTIONS.USER_PROJECTS);
+  const query = projectsRef.where('userId', '==', userId);
+  const snapshot = await query.get();
+  
+  const projects = [];
+  snapshot.forEach(doc => {
+    projects.push({
+      id: doc.id,
+      ...doc.data()
+    });
+  });
+  
+  return projects;
+}
+
+// Get project with tasks
+export async function getProjectWithTasks(projectId, userId) {
+  const projectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc(projectId);
+  const projectDoc = await projectRef.get();
+  
+  if (!projectDoc.exists) {
+    return null;
+  }
+  
+  const projectData = projectDoc.data();
+  
+  // Verify the user owns this project
+  if (projectData.userId !== userId) {
+    return null;
+  }
+  
+  // Get tasks subcollection
+  const tasksRef = projectRef.collection('tasks');
+  const tasksSnapshot = await tasksRef.get();
+  
+  const tasks = [];
+  tasksSnapshot.forEach(doc => {
+    tasks.push({
+      id: doc.id,
+      ...doc.data()
+    });
+  });
+  
+  return {
+    project: {
+      id: projectId,
+      ...projectData
+    },
+    tasks: tasks
+  };
+}
+
+// Update user's active project
+export async function updateUserActiveProject(userId, projectId) {
+  const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
+  await userRef.update({
+    activeProjectId: projectId
+  });
+}
