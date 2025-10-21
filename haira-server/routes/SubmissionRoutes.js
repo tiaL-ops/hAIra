@@ -11,6 +11,8 @@ import {
     generateGradeResponse,
     generateAIResponse
 } from '../api/geminiService.js';
+import { LALA_SYSTEM_PROMPT } from '../lib/ai/agents/lalaPrompt.js';
+import { MINO_SYSTEM_PROMPT } from '../lib/ai/agents/minoPrompt.js';
 
 const router = express.Router()
 
@@ -377,6 +379,89 @@ router.get('/:id/submission/results', verifyFirebaseToken, async (req, res) => {
     }
 });
 
+// Get contribution data
+router.get('/:id/contributions', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.uid;
+
+    try {
+        // Ensure project exists
+        await ensureProjectExists(id, userId);
+        
+        // Get project data including contributions
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
+        if (!projectData) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        // Initialize default contributions if none exist
+        let contributions = projectData.contributions;
+        if (!contributions) {
+            contributions = [
+                { name: "You", percent: 0, role: "Student" },
+                { name: "Lala", percent: 0, role: "AI Manager" },
+                { name: "Mino", percent: 0, role: "AI Helper" },
+            ];
+            
+            // Save default contributions
+            await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
+                contributions: contributions,
+                contributionUpdatedAt: Date.now()
+            });
+        }
+
+        res.json({
+            success: true,
+            contributions: contributions,
+            totalContribution: contributions.reduce((sum, c) => sum + c.percent, 0)
+        });
+
+    } catch (err) {
+        console.error('Contributions fetch error:', err);
+        res.status(500).json({ 
+            success: false,
+            error: err.message 
+        });
+    }
+});
+
+// Update contribution data
+router.post('/:id/contributions', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const { contributions } = req.body;
+    const userId = req.user.uid;
+
+    if (!contributions || !Array.isArray(contributions)) {
+        return res.status(400).json({ error: 'Contributions array is required' });
+    }
+
+    try {
+        // Ensure project exists
+        await ensureProjectExists(id, userId);
+        
+        // Update contributions
+        await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
+            contributions: contributions,
+            contributionUpdatedAt: Date.now()
+        });
+
+        const totalContribution = contributions.reduce((sum, c) => sum + c.percent, 0);
+
+        res.json({
+            success: true,
+            contributions: contributions,
+            totalContribution: totalContribution
+        });
+
+    } catch (err) {
+        console.error('Contributions update error:', err);
+        res.status(500).json({ 
+            success: false,
+            error: err.message 
+        });
+    }
+});
+
 router.post('/:id/submission', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;
     const { content } = req.body;
@@ -427,6 +512,45 @@ Do not include anything else.
         });
 
     } catch (err) {
+        res.status(500).json({ 
+            success: false,
+            error: err.message 
+        });
+    }
+});
+
+// Multi-agent AI response endpoint
+router.post('/:id/ai/respond', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const { prompt, persona } = req.body;
+    
+    if (!prompt || !persona) {
+        return res.status(400).json({ error: 'Prompt and persona are required' });
+    }
+
+    if (!['lala', 'mino'].includes(persona)) {
+        return res.status(400).json({ error: 'Persona must be either "lala" or "mino"' });
+    }
+
+    try {
+        let systemPrompt;
+        if (persona === 'lala') {
+            systemPrompt = LALA_SYSTEM_PROMPT;
+        } else if (persona === 'mino') {
+            systemPrompt = MINO_SYSTEM_PROMPT;
+        }
+
+        const aiResponse = await generateAIResponse(prompt, systemPrompt);
+
+        res.json({
+            success: true,
+            response: aiResponse,
+            persona: persona,
+            timestamp: Date.now()
+        });
+
+    } catch (err) {
+        console.error('AI Response error:', err);
         res.status(500).json({ 
             success: false,
             error: err.message 

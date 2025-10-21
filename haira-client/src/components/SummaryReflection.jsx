@@ -1,7 +1,5 @@
 // src/components/SummaryReflection.jsx
 import React, { useState, useEffect } from "react";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import { db } from '../../firebase.js';
 import axios from 'axios';
 
 const backend_host = "http://localhost:3002";

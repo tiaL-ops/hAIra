@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getAuth } from "firebase/auth";
 import { useAuth } from '../App';
 import axios from "axios";
+import ContributionTracker from "../components/ContributionTracker";
 
 const backend_host = "http://localhost:3002";
 
@@ -127,6 +128,15 @@ function SubmissionResults() {
               <p>No submission content available.</p>
             )}
           </div>
+        </div>
+
+        {/* Show contribution metrics only in results page */}
+        <div className="contribution-section">
+          <h2>📊 Team Contribution Analysis</h2>
+          <ContributionTracker 
+            projectId={id} 
+            showContributions={true}
+          />
         </div>
 
         <div className="actions-section">

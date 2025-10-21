@@ -1,38 +1,31 @@
 // src/components/ContributionTracker.jsx
 import React, { useState, useEffect } from "react";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "../../firebase";
+import axios from 'axios';
 
-export default function ContributionTracker({ projectId }) {
+const backend_host = "http://localhost:3002";
+
+export default function ContributionTracker({ projectId, showContributions = true }) {
   const [contributions, setContributions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalContribution, setTotalContribution] = useState(0);
 
-  // Load contributions from Firestore
+  // Load contributions from backend API
   useEffect(() => {
     const loadContributions = async () => {
       if (!projectId) return;
       try {
         setIsLoading(true);
-        const docRef = doc(db, "userProjects", projectId);
-        const docSnap = await getDoc(docRef);
+        const token = await getIdTokenSafely();
         
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data.contributions) {
-            setContributions(data.contributions);
-            const total = data.contributions.reduce((sum, c) => sum + c.percent, 0);
-            setTotalContribution(total);
-          } else {
-            // Initialize with default data if none exists
-            const defaultContributions = [
-              { name: "You", percent: 0, role: "Student" },
-              { name: "AI Alex", percent: 0, role: "AI Manager" },
-              { name: "AI Assistant", percent: 0, role: "AI Helper" },
-            ];
-            setContributions(defaultContributions);
-            await setDoc(docRef, { contributions: defaultContributions }, { merge: true });
+        const response = await axios.get(`${backend_host}/api/project/${projectId}/contributions`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
           }
+        });
+        
+        if (response.data.success) {
+          setContributions(response.data.contributions);
+          setTotalContribution(response.data.totalContribution);
         }
       } catch (err) {
         console.error("Error loading contributions:", err);
@@ -50,22 +43,47 @@ export default function ContributionTracker({ projectId }) {
     setContributions(updated);
     
     try {
-      await setDoc(doc(db, "userProjects", projectId), {
-        contributions: updated,
-        contributionUpdatedAt: Date.now(),
-      }, { merge: true });
+      const token = await getIdTokenSafely();
+      const response = await axios.post(`${backend_host}/api/project/${projectId}/contributions`, {
+        contributions: updated
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       
-      const total = updated.reduce((sum, c) => sum + c.percent, 0);
-      setTotalContribution(total);
+      if (response.data.success) {
+        setTotalContribution(response.data.totalContribution);
+      }
     } catch (err) {
       console.error("Error updating contribution:", err);
     }
   };
 
+  // Utility to get token
+  async function getIdTokenSafely() {
+    try {
+      const { getAuth } = await import("firebase/auth");
+      const auth = getAuth();
+      if (auth && auth.currentUser) {
+        return await auth.currentUser.getIdToken();
+      }
+    } catch (err) {
+      // ignore; return null
+    }
+    return null;
+  }
+
   const getContributionColor = (index) => {
     const colors = ['var(--color-teal)', 'var(--color-purple)', 'var(--color-red)', 'var(--color-green)'];
     return colors[index % colors.length];
   };
+
+  // Don't show contributions during submission phase
+  if (!showContributions) {
+    return null;
+  }
 
   if (isLoading) {
     return (

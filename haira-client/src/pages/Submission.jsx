@@ -10,6 +10,7 @@ import EditorArea from "../components/TextEditor/EditorArea";
 import CommentSidebar from "../components/TextEditor/CommentSidebar";
 import ProofreadSuggestion from "../components/ProofreadSuggestion";
 import ChromeAIStatus from "../components/ChromeAIStatus";
+import MultiAgentCollaboration from "../components/MultiAgentCollaboration";
 import { getChromeProofreadSuggestions, getChromeSummary } from "../utils/chromeAPI";
 import "../styles/editor.css";
 import "../styles/global.css";
@@ -437,6 +438,13 @@ function Submission() {
           value={reportContent}
           onChange={setReportContent}
           onSelectionChange={handleTextSelection}
+        />
+
+        {/* Multi-Agent Collaboration */}
+        <MultiAgentCollaboration
+          projectId={id}
+          reportContent={reportContent}
+          onContentUpdate={setReportContent}
         />
 
         <div className="status-row">
