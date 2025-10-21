@@ -9,10 +9,11 @@ import { COLLECTIONS } from '../schema/database.js';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
 import { 
     generateGradeResponse,
-    generateAIResponse
+    generateAIResponse,
+    generateAIContribution
 } from '../api/geminiService.js';
-import { LALA_SYSTEM_PROMPT } from '../lib/ai/agents/lalaPrompt.js';
-import { MINO_SYSTEM_PROMPT } from '../lib/ai/agents/minoPrompt.js';
+import { LALA_CONFIG, LALA_SYSTEM_PROMPT } from '../lib/ai/agents/lalaPrompt.js';
+import { MINO_CONFIG, MINO_SYSTEM_PROMPT } from '../lib/ai/agents/minoPrompt.js';
 
 const router = express.Router()
 
@@ -533,14 +534,16 @@ router.post('/:id/ai/respond', verifyFirebaseToken, async (req, res) => {
     }
 
     try {
-        let systemPrompt;
+        let systemPrompt, personaConfig;
         if (persona === 'lala') {
             systemPrompt = LALA_SYSTEM_PROMPT;
+            personaConfig = LALA_CONFIG;
         } else if (persona === 'mino') {
             systemPrompt = MINO_SYSTEM_PROMPT;
+            personaConfig = MINO_CONFIG;
         }
 
-        const aiResponse = await generateAIResponse(prompt, systemPrompt);
+        const aiResponse = await generateAIContribution(prompt, personaConfig, systemPrompt);
 
         res.json({
             success: true,

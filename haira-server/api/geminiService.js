@@ -59,3 +59,14 @@ ${title}
 
   return response.text;
 }
+
+// AI Call for Reporting Contribution Tracking
+export async function generateAIContribution(userInput, personaConfig, systemInstruction) {
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: userInput,
+    systemInstruction: systemInstruction,
+    generationConfig: personaConfig,
+  });
+  return response.text;
+}

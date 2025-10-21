@@ -10,6 +10,7 @@ export default function MultiAgentCollaboration({ projectId, reportContent, onCo
   const [isLalaTyping, setIsLalaTyping] = useState(false);
   const [isMinoTyping, setIsMinoTyping] = useState(false);
   const [showCollaboration, setShowCollaboration] = useState(false);
+  const [applyingSuggestion, setApplyingSuggestion] = useState(null);
 
   // Auto-trigger AI responses when content changes significantly
   useEffect(() => {
@@ -89,14 +90,158 @@ export default function MultiAgentCollaboration({ projectId, reportContent, onCo
   };
 
   const handleApplyLalaSuggestion = () => {
-    // This would integrate Lala's feedback into the content
-    // For now, just show a message
-    alert("Lala's suggestions would be applied here. This feature can be extended to parse and apply specific suggestions.");
+    if (!lalaResponse) return;
+    
+    setApplyingSuggestion('lala');
+    
+    // Parse Lala's response for actionable suggestions
+    const suggestions = parseAISuggestions(lalaResponse, 'lala');
+    if (suggestions.length > 0) {
+      // Apply the first suggestion to the content
+      const updatedContent = applySuggestionToContent(reportContent, suggestions[0]);
+      onContentUpdate(updatedContent);
+      setLalaResponse(""); // Clear the response after applying
+    } else {
+      // If no specific suggestions found, just add a note
+      const note = "\n\n[Lala's Note: " + lalaResponse + "]";
+      onContentUpdate(reportContent + note);
+      setLalaResponse("");
+    }
+    
+    // Clear applying state after a short delay
+    setTimeout(() => setApplyingSuggestion(null), 1000);
   };
 
   const handleApplyMinoSuggestion = () => {
-    // This would integrate Mino's feedback into the content
-    alert("Mino's suggestions would be applied here. This feature can be extended to parse and apply specific suggestions.");
+    if (!minoResponse) return;
+    
+    setApplyingSuggestion('mino');
+    
+    // Parse Mino's response for suggestions
+    const suggestions = parseAISuggestions(minoResponse, 'mino');
+    if (suggestions.length > 0) {
+      // Apply the first suggestion to the content
+      const updatedContent = applySuggestionToContent(reportContent, suggestions[0]);
+      onContentUpdate(updatedContent);
+      setMinoResponse(""); // Clear the response after applying
+    } else {
+      // If no specific suggestions found, just add a note
+      const note = "\n\n[Mino's Note: " + minoResponse + "]";
+      onContentUpdate(reportContent + note);
+      setMinoResponse("");
+    }
+    
+    // Clear applying state after a short delay
+    setTimeout(() => setApplyingSuggestion(null), 1000);
+  };
+
+  // Parse AI response for actionable suggestions
+  const parseAISuggestions = (response, persona) => {
+    const suggestions = [];
+    
+    // Look for common suggestion patterns
+    const patterns = [
+      { regex: /add more detail to (.+)/i, type: 'detail', action: 'add detail' },
+      { regex: /strengthen (.+)/i, type: 'strength', action: 'strengthen' },
+      { regex: /improve (.+)/i, type: 'improvement', action: 'improve' },
+      { regex: /polish (.+)/i, type: 'polish', action: 'polish' },
+      { regex: /clean up (.+)/i, type: 'cleanup', action: 'clean up' },
+      { regex: /add (.+)/i, type: 'addition', action: 'add' },
+      { regex: /include (.+)/i, type: 'inclusion', action: 'include' },
+      { regex: /expand (.+)/i, type: 'expansion', action: 'expand' },
+      { regex: /we need to (.+)/i, type: 'requirement', action: 'need to' },
+      { regex: /let's (.+)/i, type: 'suggestion', action: 'let\'s' }
+    ];
+    
+    patterns.forEach(({ regex, type, action }) => {
+      const match = response.match(regex);
+      if (match) {
+        suggestions.push({
+          type: type,
+          target: match[1] || 'content',
+          action: match[0],
+          persona: persona,
+          priority: persona === 'lala' ? 'high' : 'low'
+        });
+      }
+    });
+    
+    return suggestions;
+  };
+
+  // Apply suggestion to content
+  const applySuggestionToContent = (content, suggestion) => {
+    if (!suggestion) return content;
+    
+    const timestamp = new Date().toLocaleTimeString();
+    const personaName = suggestion.persona.toUpperCase();
+    
+    // Try to apply the suggestion intelligently based on type
+    let updatedContent = content;
+    
+    switch (suggestion.type) {
+      case 'detail':
+        updatedContent = addDetailSuggestion(content, suggestion);
+        break;
+      case 'strength':
+        updatedContent = addStrengthSuggestion(content, suggestion);
+        break;
+      case 'improvement':
+        updatedContent = addImprovementSuggestion(content, suggestion);
+        break;
+      case 'polish':
+        updatedContent = addPolishSuggestion(content, suggestion);
+        break;
+      case 'cleanup':
+        updatedContent = addCleanupSuggestion(content, suggestion);
+        break;
+      default:
+        // Fallback to adding a comment
+        updatedContent = addCommentSuggestion(content, suggestion);
+    }
+    
+    return updatedContent;
+  };
+
+  // Helper functions for different suggestion types
+  const addDetailSuggestion = (content, suggestion) => {
+    const detailNote = `\n\n[${suggestion.persona.toUpperCase()}] Add more detail to ${suggestion.target}: ${suggestion.action}`;
+    return content + detailNote;
+  };
+
+  const addStrengthSuggestion = (content, suggestion) => {
+    const strengthNote = `\n\n[${suggestion.persona.toUpperCase()}] Strengthen ${suggestion.target}: ${suggestion.action}`;
+    return content + strengthNote;
+  };
+
+  const addImprovementSuggestion = (content, suggestion) => {
+    const improvementNote = `\n\n[${suggestion.persona.toUpperCase()}] Improve ${suggestion.target}: ${suggestion.action}`;
+    return content + improvementNote;
+  };
+
+  const addPolishSuggestion = (content, suggestion) => {
+    const polishNote = `\n\n[${suggestion.persona.toUpperCase()}] Polish ${suggestion.target}: ${suggestion.action}`;
+    return content + polishNote;
+  };
+
+  const addCleanupSuggestion = (content, suggestion) => {
+    const cleanupNote = `\n\n[${suggestion.persona.toUpperCase()}] Clean up ${suggestion.target}: ${suggestion.action}`;
+    return content + cleanupNote;
+  };
+
+  const addCommentSuggestion = (content, suggestion) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const personaName = suggestion.persona.toUpperCase();
+    
+    const comment = `\n\n<!-- ${personaName}'s Suggestion (${timestamp}) -->
+[${personaName}]: ${suggestion.action}
+Priority: ${suggestion.priority}
+Type: ${suggestion.type}
+Target: ${suggestion.target}
+
+<!-- End of ${personaName}'s Suggestion -->`;
+    
+    return content + comment;
   };
 
   // Utility to get token
@@ -157,8 +302,9 @@ export default function MultiAgentCollaboration({ projectId, reportContent, onCo
               <button 
                 className="apply-suggestion-btn"
                 onClick={handleApplyLalaSuggestion}
+                disabled={applyingSuggestion === 'lala'}
               >
-                Apply Lala's Suggestions
+                {applyingSuggestion === 'lala' ? 'Applying...' : 'Apply Lala\'s Suggestions'}
               </button>
             </div>
           )}
@@ -181,8 +327,9 @@ export default function MultiAgentCollaboration({ projectId, reportContent, onCo
               <button 
                 className="apply-suggestion-btn"
                 onClick={handleApplyMinoSuggestion}
+                disabled={applyingSuggestion === 'mino'}
               >
-                Apply Mino's Suggestions
+                {applyingSuggestion === 'mino' ? 'Applying...' : 'Apply Mino\'s Suggestions'}
               </button>
             </div>
           )}
