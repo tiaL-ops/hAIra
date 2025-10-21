@@ -410,13 +410,24 @@ export async function getProjectWithTasks(projectId, userId) {
   
   const tasks = [];
   tasksSnapshot.forEach(doc => {
-    tasks.push({
+    const taskData = {
       id: doc.id,
       ...doc.data()
+    };
+    tasks.push(taskData);
+    
+    // Log each task for debugging
+    console.log(`[FirebaseService] Task ${doc.id}:`, {
+      title: taskData.title || taskData.text || 'No title',
+      description: taskData.description || 'No description',
+      status: taskData.status || 'no status',
+      assignedTo: taskData.assignedTo || taskData.assignee || 'unassigned',
+      id: doc.id
     });
   });
   
   console.log(`[FirebaseService] Found project ${projectId} with ${tasks.length} tasks`);
+  console.log(`[FirebaseService] All tasks:`, JSON.stringify(tasks, null, 2));
   
   return {
     project: {
@@ -433,4 +444,37 @@ export async function updateUserActiveProject(userId, projectId) {
   await userRef.update({
     activeProjectId: projectId
   });
+}
+
+// Get count of user messages since a specific day
+export async function getUserMessageCountSince(projectId, userId, projectStartDate, currentDay) {
+  try {
+    const dayStartTimestamp = projectStartDate + (currentDay - 1) * 24 * 60 * 60 * 1000;
+    
+    console.log(`[Firebase] Counting messages for user ${userId} in project ${projectId} since day ${currentDay} (timestamp: ${dayStartTimestamp})`);
+    
+    // Query subcollection for all messages first, then filter in memory to avoid index requirement
+    const messagesRef = db
+      .collection(COLLECTIONS.USER_PROJECTS)
+      .doc(String(projectId))
+      .collection('chatMessages');
+    
+    const snapshot = await messagesRef.get();
+    
+    // Filter in memory to avoid needing a composite index
+    let count = 0;
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.senderId === userId && data.timestamp >= dayStartTimestamp) {
+        count++;
+      }
+    });
+    
+    console.log(`[Firebase] Found ${count} messages from user ${userId} since day ${currentDay}`);
+    
+    return count;
+  } catch (error) {
+    console.error(`[Firebase] Error counting user messages:`, error);
+    throw error;
+  }
 }

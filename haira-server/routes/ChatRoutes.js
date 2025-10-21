@@ -1,227 +1,227 @@
+// routes/chat.js — compact orchestrator with enhanced context awareness
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
-import { addUserChat, addChat, getChats, ensureProjectExists, getProjectWithTasks } from '../services/firebaseService.js';
-import { generateAIResponse } from '../api/openaiService.js';
-import { AI_AGENTS, isActiveHours, getSleepResponse, buildContextualPrompt, getAgentContext } from '../config/aiAgents.js';
+import {
+  ensureProjectExists,
+  getChats,
+  addUserChat,
+  addChat,
+  getProjectWithTasks,
+  getUserMessageCountSince
+} from '../services/firebaseService.js';
+import { generateAIResponse, buildContextualPrompt, generateContextAwareResponse } from '../services/aiService.js';
+import { AI_AGENTS } from '../config/aiAgents.js';
+import { trimToSentences, getProjectDay, decideResponders } from '../utils/chatUtils.js';
+import { storeMessage, getConversationHistory, getConversationSummary } from '../config/conversationMemory.js';
+import { storeProjectData, formatTasksForAI, extractTasksFromChat } from '../config/taskMemory.js';
+
 const router = express.Router();
-
-// Flag to control whether to use new schema with subcollections or legacy flat structure
-
 const USE_SUBCOLLECTIONS = true;
+const USE_ENHANCED_CONTEXT = true; // Enable full context awareness for AI agents
 
-// Get all chats for a project
 router.get('/:id/chat', verifyFirebaseToken, async (req, res) => {
-  const { id } = req.params;
   try {
-    console.log(`[API] Fetching chats for project ${id}, param type:`, typeof id);
-    
-    // If using subcollections, ensure the project exists first
-    if (USE_SUBCOLLECTIONS) {
-      await ensureProjectExists(id);
+    console.log("HELLO?")
+    const { id } = req.params;
+    if (USE_SUBCOLLECTIONS) await ensureProjectExists(id);
+
+    // Load project to compute current day (and validate access)
+    let projectData = null;
+    try {
+      projectData = await getProjectWithTasks(id, req.user.uid);
+      
+      // Store project data and tasks in memory for AI context
+      if (projectData) {
+        console.log(`[ChatRoutes][GET] Project title: ${projectData.project?.title || projectData.project?.name || 'Untitled'}`);
+        storeProjectData(
+          id, 
+          projectData.tasks || [], 
+          projectData.project || { title: 'Untitled Project' }
+        );
+      }
+    } catch (e) {
+      // Non-fatal for listing chats, just log
+      console.warn('[ChatRoutes][GET] Unable to load project for day calc:', e?.message || e);
     }
+    const projectStart = new Date(projectData?.project?.startDate || Date.now());
+    const currentDay = getProjectDay(projectStart);
     
-    // Get chats using the appropriate method
+    // Check message quota
+    const userMsgsToday = await getUserMessageCountSince(id, req.user.uid, projectStart, currentDay);
+    const quotaExceeded = userMsgsToday >= 10;
+    let quotaWarning = null;
+    if (userMsgsToday >= 7 && !quotaExceeded) {
+      quotaWarning = `${10 - userMsgsToday} messages remaining today`;
+    }
+
+    // Fetch chats
     const chats = await getChats(id, USE_SUBCOLLECTIONS);
     
-    if (!chats || chats.length === 0) {
-      console.log(`[API] No chats found for project ${id}`);
-      return res.json({ chats: [] });
+    // Extract potential tasks mentioned in chat messages
+    const chatTasks = extractTasksFromChat(chats);
+    if (chatTasks.length > 0) {
+      console.log(`[ChatRoutes][GET] Extracted ${chatTasks.length} tasks from chat messages`);
+      // Merge with existing tasks in memory
+      storeProjectData(
+        id,
+        [...(projectData?.tasks || []), ...chatTasks],
+        projectData?.project || { title: 'Untitled Project' }
+      );
     }
-    res.json({ 
-      chats,
-      debug: {
-        projectId: id,
-        chatCount: chats.length,
-        timestamp: Date.now(),
-        usingSubcollections: USE_SUBCOLLECTIONS
-      }
+
+    // Decide responders "as soon as chat opens"
+    // Use the latest user message content if available, otherwise empty string
+    const lastUserMsg = (chats || []).find(c => c.senderId === req.user.uid || c.senderId === 'user');
+    const contentForDecision = lastUserMsg?.text || lastUserMsg?.content || '';
+    const { agents: responders, alexMentioned } = decideResponders(contentForDecision, currentDay, AI_AGENTS);
+
+    // Mirror the same diagnostics you asked for in POST
+    console.log(`[ChatRoutes][GET] Content (for decision): "${contentForDecision}"`);
+    console.log(`[ChatRoutes][GET] Day: ${currentDay}, Alex active days:`, AI_AGENTS.alex.activeDays);
+    console.log(`[ChatRoutes][GET] Responding agents:`, responders, `alexMentioned:`, alexMentioned);
+
+    // Include day and responder preview in the response (non-breaking addition)
+    return res.json({
+      chats: chats || [],
+      currentProjectDay: currentDay,
+      responderPreview: responders,
+      alexMentioned,
+      quotaWarning,
+      quotaExceeded,
+      messagesUsedToday: userMsgsToday,
+      dailyLimit: 10
     });
   } catch (err) {
-    console.error(`[API] Error fetching chats for project ${id}:`, err);
-    res.status(500).json({ error: err.message });
+    console.error('GET /:id/chat ERROR', err);
+    return res.status(500).json({ error: 'Failed fetching chats', details: err.message });
   }
 });
 
-// Add a new chat to a project with dual AI responses
 router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
-  const { id } = req.params;
-  const { content, activeHours } = req.body;
-  const userId = req.user.uid;
-  const userName = req.user.name;
-  
-  if (!content) return res.status(400).json({ error: 'Content required' });
-  
-  // Use custom active hours from client, or default to 9-17
-  const startHour = activeHours?.start ?? 9;
-  const endHour = activeHours?.end ?? 17;
-  
   try {
-    // Ensure the project exists first
-    if (USE_SUBCOLLECTIONS) {
-      await ensureProjectExists(id, userId);
-    }
-    
-    // Fetch project information for context
+     console.log("HELLO 2?")
+    const { id } = req.params;
+    const { content, testProjectDay } = req.body;
+    const userId = req.user.uid;
+    const userName = req.user.name || 'User';
+    if (!content) return res.status(400).json({ error: 'Content required' });
+
+    if (USE_SUBCOLLECTIONS) await ensureProjectExists(id, userId);
     const projectData = await getProjectWithTasks(id, userId);
-    const projectInfo = projectData ? {
-      id: id,
-      name: projectData.project.title || projectData.project.name || 'Untitled Project',
-      description: projectData.project.description || 'No description available'
-    } : {
-      id: id,
-      name: 'New Project',
-      description: 'New project'
-    };
+    const projectStart = new Date(projectData?.project?.startDate || Date.now());
+    const currentDay = getProjectDay(projectStart, testProjectDay);
+
+    // Check the user's daily message limit (10 messages per 24 hours)
+    const userMsgsToday = await getUserMessageCountSince(id, userId, projectStart, currentDay);
+    console.log(`[ChatRoutes] User has sent ${userMsgsToday}/10 messages today`);
     
-    console.log(`[ChatRoutes] Project context:`, projectInfo);
-    
-    // Save user message to Firebase
-    const userChat = await addUserChat(
-      id, 
-      content, 
-      userId, 
-      userName, 
-      USE_SUBCOLLECTIONS
-    );
-    
-    const allResponses = [userChat];
-    const currentHour = new Date().getUTCHours();
-    const activeHoursNow = currentHour >= startHour && currentHour < endHour;
-    
-    // Randomly decide who responds and in what order
-    let respondingAgents = [];
-    
-    if (!activeHoursNow) {
-      // Outside active hours - all agents send sleep messages
-      respondingAgents = ['alex', 'rasoa', 'rakoto'];
-    } else {
-      // Active hours - randomly decide who responds
-      const randomChance = Math.random();
-      
-      if (randomChance < 0.2) {
-        // 20% chance: Only Alex (PM) responds
-        respondingAgents = ['alex'];
-      } else if (randomChance < 0.35) {
-        // 15% chance: Only Rasoa responds
-        respondingAgents = ['rasoa'];
-      } else if (randomChance < 0.5) {
-        // 15% chance: Only Rakoto responds
-        respondingAgents = ['rakoto'];
-      } else if (randomChance < 0.7) {
-        // 20% chance: Alex + one other
-        respondingAgents = Math.random() < 0.5 ? ['alex', 'rasoa'] : ['alex', 'rakoto'];
-      } else if (randomChance < 0.85) {
-        // 15% chance: Two teammates (no Alex)
-        respondingAgents = Math.random() < 0.5 ? ['rasoa', 'rakoto'] : ['rakoto', 'rasoa'];
-      } else {
-        // 15% chance: All three respond
-        const orders = [
-          ['alex', 'rasoa', 'rakoto'],
-          ['alex', 'rakoto', 'rasoa'],
-          ['rasoa', 'alex', 'rakoto'],
-          ['rakoto', 'alex', 'rasoa']
-        ];
-        respondingAgents = orders[Math.floor(Math.random() * orders.length)];
-      }
+    // Hard limit of 10 messages per 24 hours
+    if (userMsgsToday >= 10) {
+      return res.status(429).json({ 
+        error: 'Daily message limit reached (10/day)', 
+        quotaExceeded: true,
+        currentProjectDay: currentDay 
+      });
     }
     
-    console.log(`[ChatRoutes] Active hours: ${activeHoursNow}, Responding agents: ${respondingAgents.join(', ')}`);
+    // Warning when approaching limit
+    let quotaWarning = null;
+    if (userMsgsToday >= 7) {
+      quotaWarning = `${10 - userMsgsToday} messages remaining today`;
+    }
+
+    const userChat = await addUserChat(id, content, userId, userName, USE_SUBCOLLECTIONS);
+    const responses = [userChat];
     
-    // Handle responding AI agents
-    for (const agentId of respondingAgents) {
-      const agent = AI_AGENTS[agentId];
+    // Store the user message in memory for AI context
+    storeMessage(id, currentDay, {
+      senderId: userId,
+      senderName: userName,
+      content: content,
+      timestamp: userChat.timestamp
+    });
+
+    const { agents: responders, alexMentioned } = decideResponders(content, currentDay, AI_AGENTS);
+    console.log(`[ChatRoutes] Content: "${content}"`);
+    console.log(`[ChatRoutes] Day: ${currentDay}, Alex active days:`, AI_AGENTS.alex.activeDays);
+    console.log(`[ChatRoutes] Responding agents:`, responders, `alexMentioned:`, alexMentioned);
+    
+    // If Alex was mentioned but not active, add acknowledgment from teammates
+    if (alexMentioned && !AI_AGENTS.alex.activeDays.includes(currentDay)) {
+      console.log(`[ChatRoutes] Alex mentioned on day ${currentDay} but not active. Teammates will respond.`);
+    }
+    
+    // Get conversations from memory for better context
+    const memoryConversation = getConversationSummary(id, currentDay);
+    console.log(`[ChatRoutes] Memory conversation available: ${memoryConversation.length > 0}`);
+    
+    for (const agentId of responders) {
+      let text;
+      let prompt = '';
       
-      if (!activeHoursNow) {
-        // AI is asleep - send sleep response
-        const sleepMessage = getSleepResponse(agentId);
-        const sleepChat = await addChat(
-          id, 
-          sleepMessage, 
-          agentId, 
-          agent.name, 
-          null, 
-          USE_SUBCOLLECTIONS
-        );
-        allResponses.push(sleepChat);
-      } else {
-        // AI is active - generate proper response
+      if (USE_ENHANCED_CONTEXT) {
+        // Use enhanced context-aware response generation
+        console.log(`[ChatRoutes] Using enhanced context for ${agentId}`);
+        console.log(`[ChatRoutes] Project: ${id}, User: ${userId}, Day: ${currentDay}`);
+        console.log(`[ChatRoutes] User message: "${content}"`);
         try {
-          // Fetch recent conversation history for context
-          const recentChats = await getChats(id, USE_SUBCOLLECTIONS);
-          const conversationHistory = recentChats.slice(-10).map(chat => ({
-            senderName: chat.senderName,
-            content: chat.text || chat.content,
-            senderId: chat.senderId
-          }));
-          
-          // Build contextual prompt with project info, agent identity, and conversation history
-          const contextualPrompt = buildContextualPrompt(agentId, projectInfo, conversationHistory);
-          
-          let aiResponseText = await generateAIResponse(
-            content, 
-            contextualPrompt
-          );
-          
-          // Enforce word limit - truncate if necessary
-          const words = aiResponseText.trim().split(/\s+/);
-          if (words.length > 30) {
-            aiResponseText = words.slice(0, 30).join(' ') + '...';
-            console.log(`[ChatRoutes] Truncated ${agentId} response from ${words.length} to 30 words`);
-          }
-          
-          // Ensure agent identifies themselves
-          if (!aiResponseText.toLowerCase().includes(agentId) && !aiResponseText.toLowerCase().includes(agent.name.toLowerCase())) {
-            aiResponseText = `${agent.name}: ${aiResponseText}`;
-          }
-          
-          const aiChat = await addChat(
-            id, 
-            aiResponseText, 
-            agentId, 
-            agent.name, 
-            contextualPrompt, 
-            USE_SUBCOLLECTIONS
-          );
-          allResponses.push(aiChat);
-        } catch (aiError) {
-          console.error(`Error generating ${agentId} response:`, aiError);
-          // Send a fallback message if AI generation fails
-          let fallbackMessage;
-          if (agentId === 'alex') {
-            fallbackMessage = "Alex: I'm experiencing technical issues. Let me regroup and get back to you!";
-          } else if (agentId === 'rasoa') {
-            fallbackMessage = "Rasoa: I'm having technical difficulties. Let me get back to you!";
-          } else {
-            fallbackMessage = "Rakoto: Uh... my brain isn't working right now 😅";
-          }
-          
-          const fallbackChat = await addChat(
-            id, 
-            fallbackMessage, 
-            agentId, 
-            agent.name, 
-            null, 
-            USE_SUBCOLLECTIONS
-          );
-          allResponses.push(fallbackChat);
+          text = await generateContextAwareResponse(agentId, id, userId, currentDay, content);
+          console.log(`[ChatRoutes] Generated response for ${agentId}: "${text.substring(0, 100)}..."`);
+        } catch (e) {
+          console.error('[ChatRoutes] Enhanced context error, falling back to standard:', e);
+          // Fallback to standard method
+          USE_ENHANCED_CONTEXT = false;
         }
       }
       
-      // Add a small delay between agents if multiple are responding
-      if (respondingAgents.length > 1 && agentId !== respondingAgents[respondingAgents.length - 1]) {
-        await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+      if (!USE_ENHANCED_CONTEXT || !text) {
+        // Standard context method (fallback)
+        const recent = await getChats(id, USE_SUBCOLLECTIONS);
+        const dbConv = recent.slice(-15).map(c => `${c.senderName}: ${c.text || c.content}`).join('\n');
+        const conv = memoryConversation || dbConv;
+        
+        const specialContext = alexMentioned && agentId !== 'alex' 
+          ? `IMPORTANT: Alex was mentioned but is not available today (Day ${currentDay}). Acknowledge this briefly if relevant to the question.`
+          : null;
+        
+        prompt = buildContextualPrompt(agentId, { 
+          projectData, 
+          conversationSummary: conv, 
+          currentDay, 
+          specialContext 
+        }, recent);
+
+        text = await generateAIResponse(content, prompt).catch(e => {
+          console.error('AI error', e);
+          return `${AI_AGENTS[agentId].name}: Sorry, I'm having trouble right now.`;
+        });
       }
+
+      text = trimToSentences(text, 50);
+      if (!text.startsWith(AI_AGENTS[agentId].name + ':')) text = `${AI_AGENTS[agentId].name}: ${text}`;
+      const aiChat = await addChat(id, text, agentId, AI_AGENTS[agentId].name, prompt, USE_SUBCOLLECTIONS);
+      
+      // Store AI response in memory
+      storeMessage(id, currentDay, {
+        senderId: agentId,
+        senderName: AI_AGENTS[agentId].name,
+        content: text,
+        timestamp: aiChat.timestamp
+      });
+      
+      responses.push(aiChat);
     }
-    
-    // Return all messages
-    res.status(201).json({ 
-      messages: allResponses,
-      activeAgents: activeHoursNow ? ['alex', 'rasoa', 'rakoto'] : [],
-      timestamp: new Date().toISOString()
+
+    return res.status(201).json({ 
+      messages: responses, 
+      currentProjectDay: currentDay,
+      quotaWarning: quotaWarning,
+      activeAgents: responders
     });
-  } catch (error) {
-    console.error('Error creating chat:', error);
-    res.status(500).json({ error: 'Failed to create chat' });
+  } catch (e) {
+    console.error('POST /:id/chat ERROR:', e);
+    console.error('Stack:', e.stack);
+    return res.status(500).json({ error: 'Failed to create chat', details: e.message });
   }
 });
 

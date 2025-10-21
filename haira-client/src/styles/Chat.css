@@ -91,6 +91,53 @@
   font-weight: normal;
 }
 
+/* Message quota styles */
+.message-quota {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.quota-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 5px;
+  color: var(--text-light);
+}
+
+.quota-progress {
+  height: 10px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.quota-bar {
+  height: 100%;
+  background: var(--accent-green);
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.quota-bar.quota-warning {
+  background: #ffc107; /* Yellow warning color */
+}
+
+.quota-bar.quota-exceeded {
+  background: var(--accent-rose); /* Red for exceeded */
+}
+
+span.quota-warning {
+  color: #ffc107;
+}
+
+span.quota-exceeded {
+  color: var(--accent-rose);
+}
+
 /* Team status in sidebar */
 .team-status {
   display: flex;

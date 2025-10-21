@@ -27,6 +27,8 @@ function Chat() {
   const [quotaExceeded, setQuotaExceeded] = useState(false);
   const [currentProjectDay, setCurrentProjectDay] = useState(1);
   const [testProjectDay, setTestProjectDay] = useState(1);
+  const [messagesUsed, setMessagesUsed] = useState(0);
+  const [dailyLimit, setDailyLimit] = useState(10);
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState('');
   const [showTaskForm, setShowTaskForm] = useState(false);
@@ -126,7 +128,26 @@ const agentInfo = {
           // Sort chronologically - oldest to newest (ascending order)
           const sorted = newChats.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
           setMessages(sorted);
-          setStatusMessage('');
+          
+          // Get quota information
+          if (chatResp.data.quotaExceeded) {
+            setQuotaExceeded(true);
+            setStatusMessage(`🚫 Daily message limit reached (${chatResp.data.messagesUsedToday}/10)`);
+          } else if (chatResp.data.quotaWarning) {
+            setQuotaWarning(chatResp.data.quotaWarning);
+            setStatusMessage(`⚠️ ${chatResp.data.quotaWarning}`);
+          } else {
+            setStatusMessage('');
+          }
+          
+          // Set message quota stats
+          setMessagesUsed(chatResp.data.messagesUsedToday || 0);
+          setDailyLimit(chatResp.data.dailyLimit || 10);
+          
+          // Set current day
+          if (chatResp.data.currentProjectDay) {
+            setCurrentProjectDay(chatResp.data.currentProjectDay);
+          }
         }
       } catch (err) {
         console.error('[Client] Error fetching data:', err);
@@ -228,6 +249,21 @@ const agentInfo = {
         <div className="sidebar-section">
           <h3>📋 {projectName || 'Project Chat'}</h3>
           <div className="project-day">Day {currentProjectDay}</div>
+          
+          {/* Message Quota Display */}
+          <div className="message-quota">
+            <div className="quota-label">Messages Today: 
+              <span className={quotaExceeded ? 'quota-exceeded' : messagesUsed >= 7 ? 'quota-warning' : ''}>
+                {messagesUsed}/{dailyLimit}
+              </span>
+            </div>
+            <div className="quota-progress">
+              <div 
+                className={`quota-bar ${quotaExceeded ? 'quota-exceeded' : messagesUsed >= 7 ? 'quota-warning' : ''}`}
+                style={{ width: `${(messagesUsed / dailyLimit) * 100}%` }}
+              ></div>
+            </div>
+          </div>
         </div>
 
         {/* Team Status */}
