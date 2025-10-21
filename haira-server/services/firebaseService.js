@@ -231,6 +231,7 @@ export async function addChat(projectId, text, senderId, senderName, systemPromp
     return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'chatMessages', {
       senderId,
       senderName,
+      senderType: senderId.startsWith('ai_') ? 'ai' : 'human',
       text,
       timestamp: chat.timestamp,
       ...(systemPrompt && senderId.startsWith('ai_') ? { systemPrompt } : {})

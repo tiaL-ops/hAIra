@@ -47,12 +47,15 @@ export const USER_PROJECT_SCHEMA = {
 
 // Schema for Chat Message documents (subcollection of userProjects)
 export const CHAT_MESSAGE_SCHEMA = {
-  senderId: String,   // ID of the sender ('user_1' for users or 'ai_*' for AI)
+  senderId: String,   // ID of the sender ('user', 'rasoa', 'rakoto')
   senderName: String, // Display name of the sender
+  senderType: String, // Type of sender ('human' or 'ai')
   text: String,       // Message content
   timestamp: Number,  // Message timestamp
   reaction: String,   // Optional AI reaction to messages
-  systemPrompt: String // System prompt used for AI messages (only stored with AI messages)
+  systemPrompt: String, // System prompt used for AI messages (only stored with AI messages)
+  isActiveHours: Boolean, // Whether message was sent during AI active hours
+  messageType: String // Type of message ('regular', 'checkin', 'sleep_response')
 };
 
 // Schema for Task documents (subcollection of userProjects)
