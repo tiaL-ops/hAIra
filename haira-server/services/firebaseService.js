@@ -231,7 +231,6 @@ export async function addChat(projectId, text, senderId, senderName, systemPromp
     return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'chatMessages', {
       senderId,
       senderName,
-      senderType: senderId.startsWith('ai_') ? 'ai' : 'human',
       text,
       timestamp: chat.timestamp,
       ...(systemPrompt && senderId.startsWith('ai_') ? { systemPrompt } : {})
@@ -363,6 +362,8 @@ export async function createProject(userId, userName, title) {
 
 // Get all projects for a user
 export async function getUserProjects(userId) {
+  console.log(`[FirebaseService] Getting projects for user: ${userId}`);
+  
   const projectsRef = db.collection(COLLECTIONS.USER_PROJECTS);
   const query = projectsRef.where('userId', '==', userId);
   const snapshot = await query.get();
@@ -373,24 +374,33 @@ export async function getUserProjects(userId) {
       id: doc.id,
       ...doc.data()
     });
+    console.log(`[FirebaseService] Found project: ${doc.id} - ${doc.data().title || doc.data().name || 'No title'}`);
   });
   
+  console.log(`[FirebaseService] Total projects found: ${projects.length}`);
   return projects;
 }
 
 // Get project with tasks
 export async function getProjectWithTasks(projectId, userId) {
+  console.log(`[FirebaseService] Looking for project ${projectId} for user ${userId}`);
+  
   const projectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc(projectId);
   const projectDoc = await projectRef.get();
   
+  console.log(`[FirebaseService] Project document exists: ${projectDoc.exists}`);
+  
   if (!projectDoc.exists) {
+    console.log(`[FirebaseService] Project ${projectId} does not exist`);
     return null;
   }
   
   const projectData = projectDoc.data();
+  console.log(`[FirebaseService] Project data userId: ${projectData.userId}, requested userId: ${userId}`);
   
   // Verify the user owns this project
   if (projectData.userId !== userId) {
+    console.log(`[FirebaseService] Access denied: Project ${projectId} belongs to ${projectData.userId}, not ${userId}`);
     return null;
   }
   
@@ -405,6 +415,8 @@ export async function getProjectWithTasks(projectId, userId) {
       ...doc.data()
     });
   });
+  
+  console.log(`[FirebaseService] Found project ${projectId} with ${tasks.length} tasks`);
   
   return {
     project: {

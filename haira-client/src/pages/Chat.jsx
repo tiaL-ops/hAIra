@@ -18,14 +18,21 @@ function Chat() {
     const [showSettings, setShowSettings] = useState(false);
     const [activeHoursStart, setActiveHoursStart] = useState(9); // Default 9 AM
     const [activeHoursEnd, setActiveHoursEnd] = useState(17); // Default 5 PM
+    const [projectName, setProjectName] = useState('');
     const auth = getAuth();
 
     // AI agent info for UI
     const agentInfo = {
+        alex: {
+            name: 'Alex',
+            avatar: '👨‍💼',
+            role: 'Project Manager',
+            color: '#8e44ad' // Purple theme
+        },
         rasoa: {
             name: 'Rasoa',
             avatar: '👩‍💼',
-            role: 'Project Manager',
+            role: 'Planner',
             color: '#e74c3c' // Red theme
         },
         rakoto: {
@@ -69,28 +76,47 @@ function Chat() {
       return;
     }
     
-    const fetchChats = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
+        setStatusMessage('');
         
         const token = await auth.currentUser.getIdToken();
       
-        const response = await axios.get(`http://localhost:3002/api/project/${id}/chat`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        // Fetch chats and project data in parallel
+        const [chatResponse, projectResponse] = await Promise.all([
+          axios.get(`http://localhost:3002/api/project/${id}/chat`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
+          axios.get(`http://localhost:3002/api/project/${id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        ]);
         
         if (isMounted) {
-          const newChats = response.data.chats || [];
+          // Set project name
+          const project = projectResponse.data.project;
+          setProjectName(project?.title || project?.name || 'Untitled Project');
+          
+          // Set messages
+          const newChats = chatResponse.data.chats || [];
           console.log(`[Client] Received ${newChats.length} chats`);
           
           const sortedChats = newChats.sort((a, b) => b.timestamp - a.timestamp);
           setMessages(sortedChats);
+          setStatusMessage('');
         }
       } catch (err) {
-        console.error('[Client] Error fetching chats:', err);
-        setStatusMessage(`❌ Error loading messages: ${err.message}`);
+        console.error('[Client] Error fetching data:', err);
+        const errorMessage = err.response?.status === 404 
+          ? 'Project not found. Please check the project ID.'
+          : err.message || 'Error loading chat data';
+        setStatusMessage(`❌ ${errorMessage}`);
+        
+        // If project not found, redirect to projects page after 3 seconds
+        if (err.response?.status === 404) {
+          setTimeout(() => navigate('/'), 3000);
+        }
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -99,7 +125,7 @@ function Chat() {
     };
     
     // Fetch on mount only
-    fetchChats();
+    fetchData();
     
     // Cleanup
     return () => {
@@ -156,6 +182,8 @@ function Chat() {
     const getMessageStyle = (senderId) => {
         if (senderId === auth.currentUser?.uid || senderId === 'user') {
             return 'message-user';
+        } else if (senderId === 'alex') {
+            return 'message-alex';
         } else if (senderId === 'rasoa') {
             return 'message-rasoa';
         } else if (senderId === 'rakoto') {
@@ -187,7 +215,7 @@ function Chat() {
             {/* Header with team status */}
             <div className="chat-header">
                 <div className="header-top">
-                    <h1>Team Chat - Project {id}</h1>
+                    <h1>{projectName || 'Team Chat'}</h1>
                     <button 
                         className="settings-button"
                         onClick={() => setShowSettings(!showSettings)}
@@ -241,9 +269,21 @@ function Chat() {
                     </div>
                 )}
 
+                {/* Project Title */}
+                <div className="project-title">
+                    <h2>{projectName}</h2>
+                </div>
+
                 <div className="team-status">
                     <div className="status-indicator">
                         <span className="user-status online">👤 You</span>
+                    </div>
+                    <div className="status-indicator">
+                        <span className={`agent-status ${isActiveHours() ? 'online' : 'offline'}`}>
+                            {agentInfo.alex.avatar} {agentInfo.alex.name}
+                        </span>
+                        <span className="role">{agentInfo.alex.role}</span>
+                        {!isActiveHours() && <span className="offline-badge">💤</span>}
                     </div>
                     <div className="status-indicator">
                         <span className={`agent-status ${isActiveHours() ? 'online' : 'offline'}`}>
@@ -279,7 +319,7 @@ function Chat() {
                     <div className="empty-state">
                         <p>👋 Start the conversation with your AI teammates!</p>
                         <p className="hint">
-                            Rasoa and Rakoto are {isActiveHours() ? 'online and ready to help' : `currently offline (${activeHoursStart}:00 - ${activeHoursEnd}:00 UTC)`}
+                            Alex, Rasoa, and Rakoto are {isActiveHours() ? 'online and ready to help' : `currently offline (${activeHoursStart}:00 - ${activeHoursEnd}:00 UTC)`}
                         </p>
                     </div>
                 ) : (

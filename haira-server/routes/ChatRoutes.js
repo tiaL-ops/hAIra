@@ -1,12 +1,12 @@
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
-import { addUserChat, addChat, getChats, ensureProjectExists } from '../services/firebaseService.js';
-import { generateAIResponse } from '../api/geminiService.js';
-import { AI_AGENTS, isActiveHours, getSleepResponse } from '../config/aiAgents.js';
+import { addUserChat, addChat, getChats, ensureProjectExists, getProjectWithTasks } from '../services/firebaseService.js';
+import { generateAIResponse } from '../api/openaiService.js';
+import { AI_AGENTS, isActiveHours, getSleepResponse, buildContextualPrompt, getAgentContext } from '../config/aiAgents.js';
 const router = express.Router();
 
 // Flag to control whether to use new schema with subcollections or legacy flat structure
-// You can change this to true once you're ready to transition to the new schema
+
 const USE_SUBCOLLECTIONS = true;
 
 // Get all chats for a project
@@ -61,6 +61,20 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
       await ensureProjectExists(id, userId);
     }
     
+    // Fetch project information for context
+    const projectData = await getProjectWithTasks(id, userId);
+    const projectInfo = projectData ? {
+      id: id,
+      name: projectData.project.title || projectData.project.name || 'Untitled Project',
+      description: projectData.project.description || 'No description available'
+    } : {
+      id: id,
+      name: 'New Project',
+      description: 'New project'
+    };
+    
+    console.log(`[ChatRoutes] Project context:`, projectInfo);
+    
     // Save user message to Firebase
     const userChat = await addUserChat(
       id, 
@@ -74,8 +88,47 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
     const currentHour = new Date().getUTCHours();
     const activeHoursNow = currentHour >= startHour && currentHour < endHour;
     
-    // Handle both AI agents
-    for (const agentId of ['rasoa', 'rakoto']) {
+    // Randomly decide who responds and in what order
+    let respondingAgents = [];
+    
+    if (!activeHoursNow) {
+      // Outside active hours - all agents send sleep messages
+      respondingAgents = ['alex', 'rasoa', 'rakoto'];
+    } else {
+      // Active hours - randomly decide who responds
+      const randomChance = Math.random();
+      
+      if (randomChance < 0.2) {
+        // 20% chance: Only Alex (PM) responds
+        respondingAgents = ['alex'];
+      } else if (randomChance < 0.35) {
+        // 15% chance: Only Rasoa responds
+        respondingAgents = ['rasoa'];
+      } else if (randomChance < 0.5) {
+        // 15% chance: Only Rakoto responds
+        respondingAgents = ['rakoto'];
+      } else if (randomChance < 0.7) {
+        // 20% chance: Alex + one other
+        respondingAgents = Math.random() < 0.5 ? ['alex', 'rasoa'] : ['alex', 'rakoto'];
+      } else if (randomChance < 0.85) {
+        // 15% chance: Two teammates (no Alex)
+        respondingAgents = Math.random() < 0.5 ? ['rasoa', 'rakoto'] : ['rakoto', 'rasoa'];
+      } else {
+        // 15% chance: All three respond
+        const orders = [
+          ['alex', 'rasoa', 'rakoto'],
+          ['alex', 'rakoto', 'rasoa'],
+          ['rasoa', 'alex', 'rakoto'],
+          ['rakoto', 'alex', 'rasoa']
+        ];
+        respondingAgents = orders[Math.floor(Math.random() * orders.length)];
+      }
+    }
+    
+    console.log(`[ChatRoutes] Active hours: ${activeHoursNow}, Responding agents: ${respondingAgents.join(', ')}`);
+    
+    // Handle responding AI agents
+    for (const agentId of respondingAgents) {
       const agent = AI_AGENTS[agentId];
       
       if (!activeHoursNow) {
@@ -93,26 +146,54 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
       } else {
         // AI is active - generate proper response
         try {
-          const aiResponseText = await generateAIResponse(
+          // Fetch recent conversation history for context
+          const recentChats = await getChats(id, USE_SUBCOLLECTIONS);
+          const conversationHistory = recentChats.slice(-10).map(chat => ({
+            senderName: chat.senderName,
+            content: chat.text || chat.content,
+            senderId: chat.senderId
+          }));
+          
+          // Build contextual prompt with project info, agent identity, and conversation history
+          const contextualPrompt = buildContextualPrompt(agentId, projectInfo, conversationHistory);
+          
+          let aiResponseText = await generateAIResponse(
             content, 
-            agent.systemPrompt
+            contextualPrompt
           );
+          
+          // Enforce word limit - truncate if necessary
+          const words = aiResponseText.trim().split(/\s+/);
+          if (words.length > 30) {
+            aiResponseText = words.slice(0, 30).join(' ') + '...';
+            console.log(`[ChatRoutes] Truncated ${agentId} response from ${words.length} to 30 words`);
+          }
+          
+          // Ensure agent identifies themselves
+          if (!aiResponseText.toLowerCase().includes(agentId) && !aiResponseText.toLowerCase().includes(agent.name.toLowerCase())) {
+            aiResponseText = `${agent.name}: ${aiResponseText}`;
+          }
           
           const aiChat = await addChat(
             id, 
             aiResponseText, 
             agentId, 
             agent.name, 
-            agent.systemPrompt, 
+            contextualPrompt, 
             USE_SUBCOLLECTIONS
           );
           allResponses.push(aiChat);
         } catch (aiError) {
           console.error(`Error generating ${agentId} response:`, aiError);
           // Send a fallback message if AI generation fails
-          const fallbackMessage = agentId === 'rasoa' 
-            ? "I'm having technical difficulties right now. Let me get back to you on this!" 
-            : "Uh... my brain isn't working right now 😅";
+          let fallbackMessage;
+          if (agentId === 'alex') {
+            fallbackMessage = "Alex: I'm experiencing technical issues. Let me regroup and get back to you!";
+          } else if (agentId === 'rasoa') {
+            fallbackMessage = "Rasoa: I'm having technical difficulties. Let me get back to you!";
+          } else {
+            fallbackMessage = "Rakoto: Uh... my brain isn't working right now 😅";
+          }
           
           const fallbackChat = await addChat(
             id, 
@@ -125,12 +206,17 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
           allResponses.push(fallbackChat);
         }
       }
+      
+      // Add a small delay between agents if multiple are responding
+      if (respondingAgents.length > 1 && agentId !== respondingAgents[respondingAgents.length - 1]) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+      }
     }
     
     // Return all messages
     res.status(201).json({ 
       messages: allResponses,
-      activeAgents: activeHoursNow ? ['rasoa', 'rakoto'] : [],
+      activeAgents: activeHoursNow ? ['alex', 'rasoa', 'rakoto'] : [],
       timestamp: new Date().toISOString()
     });
   } catch (error) {

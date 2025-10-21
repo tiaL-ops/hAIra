@@ -146,10 +146,30 @@
     font-weight: 600;
 }
 
+.project-title {
+    padding: 1rem;
+    margin: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+}
+
+.project-title h2 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
 .team-status {
     display: flex;
-    gap: 1.5rem;
-    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    margin: 1rem;
+    align-items: center;
+    backdrop-filter: blur(10px);
 }
 
 .status-indicator {
@@ -248,6 +268,13 @@
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     margin-left: auto;
+}
+
+.message-alex {
+    align-self: flex-start;
+    background: linear-gradient(135deg, #8e44ad 0%, #7d3c98 100%);
+    color: white;
+    border-left: 4px solid #8e44ad;
 }
 
 .message-rasoa {
