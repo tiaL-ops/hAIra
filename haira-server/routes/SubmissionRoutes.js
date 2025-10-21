@@ -1,14 +1,16 @@
 import express from 'express'
 import { 
     updateUserProject,
-    ensureProjectExists 
+    ensureProjectExists,
+    updateDocument,
+    getDocumentById
 } from '../services/firebaseService.js';
+import { COLLECTIONS } from '../schema/database.js';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
 import { 
     generateGradeResponse,
     generateAIResponse
 } from '../api/geminiService.js';
-import { db } from '../services/firebaseService.js';
 
 const router = express.Router()
 
@@ -43,15 +45,83 @@ function parseAIResponseToJson(aiResponse) {
   }
 }
 
+// Get submission page data (including draft content)
 router.get('/:id/submission', verifyFirebaseToken, async (req, res) => {
-    const { id }= req.params; // get parameters from request
-    // make sure backend is connected to firestore
-    try{
+    const { id } = req.params;
+    const userId = req.user.uid;
+
+    try {
+        // Ensure project exists
+        await ensureProjectExists(id, userId);
+        
+        // Get project data including draft content
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
+        if (!projectData) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
         res.json({
-            message: `Hi Submission ${id}! Hello from the backend.`
+            message: `Submission page loaded for project ${id}`,
+            project: {
+                id,
+                title: projectData.title,
+                status: projectData.status,
+                draftReport: projectData.draftReport || null,
+                finalReport: projectData.finalReport || null
+            }
         });
     } catch (err) {
+        console.error('Error fetching submission data:', err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// Autosave draft report
+router.post('/:id/submission/draft', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const { content, type = 'report' } = req.body;
+    const userId = req.user.uid;
+
+    if (!content) {
+        return res.status(400).json({ error: 'Content is required' });
+    }
+
+    try {
+        // Ensure project exists
+        await ensureProjectExists(id, userId);
+
+        let updateData = {};
+        
+        if (type === 'reflection') {
+            // Save reflection separately
+            updateData = {
+                finalReflection: content,
+                reflectionUpdatedAt: Date.now()
+            };
+        } else {
+            // Save draft report
+            updateData = {
+                draftReport: {
+                    content: content,
+                    lastSaved: Date.now()
+                }
+            };
+        }
+
+        await updateDocument(COLLECTIONS.USER_PROJECTS, id, updateData);
+
+        res.json({
+            success: true,
+            message: 'Draft saved successfully',
+            lastSaved: Date.now()
+        });
+
+    } catch (err) {
+        console.error('Draft save error:', err);
+        res.status(500).json({ 
+            success: false,
+            error: err.message 
+        });
     }
 });
 
@@ -156,7 +226,10 @@ Respond with JSON format:
 }
 `;
 
-        const aiResponse = await generateAIResponse(summaryPrompt, "You are a summarization expert. Create concise, accurate summaries.");
+        const aiResponse = await generateAIResponse(
+            summaryPrompt, 
+            "You are a summarization expert. Create concise, accurate summaries."
+        );
         const summary = parseAIResponseToJson(aiResponse);
 
         res.json({
@@ -247,12 +320,15 @@ Respond with a comprehensive reflection in paragraph format that shows deep thin
 `;
 
         const aiResponse = await generateAIResponse(reflectionPrompt, "You are an educational mentor. Generate insightful, personal reflections that help students learn from their project experience.");
-        const reflection = parseAIResponseToJson(aiResponse);
+        
+        // For reflection, we expect plain text, not JSON
+        // Clean up the response but don't try to parse as JSON
+        const cleanedReflection = aiResponse.trim();
 
         res.json({
             success: true,
-            reflection: reflection.reflection || reflection || aiResponse,
-            result: reflection
+            reflection: cleanedReflection,
+            result: cleanedReflection
         });
 
     } catch (err) {
@@ -270,18 +346,16 @@ router.get('/:id/submission/results', verifyFirebaseToken, async (req, res) => {
     const userId = req.user.uid;
 
     try {
-        // Get submission data from Firestore using Admin SDK
-        const projectRef = db.collection('userProjects').doc(id);
-        const projectSnap = await projectRef.get();
-        
-        if (!projectSnap.exists) {
+        // Ensure project exists
+        await ensureProjectExists(id, userId);
+        // Get submission data from Firestore
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
+        if (!projectData) {
             return res.status(404).json({ error: 'Project not found' });
         }
-
-        const projectData = projectSnap.data();
         const submission = {
-            content: projectData.finalReport?.content || projectData.finalSubmission || '',
-            submittedAt: projectData.finalReport?.submittedAt || projectData.submittedAt || null,
+            content: projectData.finalReport?.content || '',
+            submittedAt: projectData.finalReport?.submittedAt || null,
             status: projectData.status || 'draft'
         };
 
@@ -337,8 +411,14 @@ Do not include anything else.
         const grade = parseAIResponseToJson(aiResponseGrade)
         console.log(`From Submission: AI Grades and Feedback ready.`)
 
-        // Submit: Persists Final Report and Feedback
+        // Submit: Persists Final Report and Feedback, clear draft
         await updateUserProject(id, content, grade, 'submitted');
+        
+        // Clear draft report after final submission
+        await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
+            draftReport: null
+        });
+        
         console.log(`From Submission: User Project ${id} updated by ${userId}`)
 
         res.status(201).json({

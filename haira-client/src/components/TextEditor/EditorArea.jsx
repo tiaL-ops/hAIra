@@ -1,7 +1,8 @@
 // src/components/TextEditor/EditorArea.jsx
 import React, { forwardRef, useState, useEffect } from "react";
+import { highlightTextWithComments, removeHighlights, getPlainText } from "../../utils/textHighlighter";
 
-const EditorArea = forwardRef(({ value, onChange, onSelectionChange }, ref) => {
+const EditorArea = forwardRef(({ value, onChange, onSelectionChange, comments = [], showHighlights = true }, ref) => {
   const [isFocused, setIsFocused] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
@@ -12,6 +13,9 @@ const EditorArea = forwardRef(({ value, onChange, onSelectionChange }, ref) => {
     setCharCount(value.length);
   }, [value]);
 
+  // Note: Textarea doesn't support HTML highlighting
+  // For now, we'll keep the highlighting logic for future contentEditable implementation
+
   const handleSelection = (e) => {
     if (!onSelectionChange) return;
     const textarea = e?.target;
@@ -21,11 +25,13 @@ const EditorArea = forwardRef(({ value, onChange, onSelectionChange }, ref) => {
     setTimeout(() => {
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
+      
       if (start === end) {
         onSelectionChange(null);
         return;
       }
       const selectedText = value.substring(start, end);
+      
       if (selectedText.trim()) {
         onSelectionChange({ text: selectedText, start, end });
       } else {

@@ -2,12 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getAuth } from "firebase/auth";
 import { useAuth } from '../App';
+import axios from 'axios';
 
 // -- NEW --
 import EditorToolbar from "../components/TextEditor/EditorToolbar";
 import EditorArea from "../components/TextEditor/EditorArea";
 import CommentSidebar from "../components/TextEditor/CommentSidebar";
-import "../components/TextEditor/editor.css";
+import ProofreadSuggestion from "../components/ProofreadSuggestion";
+import ChromeAIStatus from "../components/ChromeAIStatus";
+import { getChromeProofreadSuggestions, getChromeSummary } from "../utils/chromeAPI";
+import "../styles/editor.css";
 import "../styles/global.css";
 //------------
 
@@ -21,82 +25,117 @@ function Submission() {
 
   const [reportContent, setReportContent] = useState("");
   const [message, setMessage] = useState("...");
+  const [saveStatus, setSaveStatus] = useState("Auto-saving…");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [comments, setComments] = useState([
-    {
-      id: "1",
-      author: "AI Alex",
-      text: "Great introduction! Consider adding more specific examples to support your main points.",
-      anchor: "This project explores the impact of AI on education...",
-      createdAt: Date.now() - 3600000, // 1 hour ago
-      resolved: false,
-      replies: [
-        {
-          text: "Thanks for the feedback! I'll add more examples.",
-          author: "You",
-          at: Date.now() - 1800000 // 30 minutes ago
-        }
-      ]
-    },
-    {
-      id: "2", 
-      author: "You",
-      text: "Need to double-check the methodology section for accuracy.",
-      anchor: null, // General comment
-      createdAt: Date.now() - 7200000, // 2 hours ago
-      resolved: true
-    }
-  ]); // local-only comments
+  const [comments, setComments] = useState([]); // Start with empty comments
   const [selectionRange, setSelectionRange] = useState(null);
   const [aiFeedback, setAiFeedback] = useState(null);
   const [aiSummary, setAiSummary] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const editorRef = useRef(null);
+  
+  // Proofread suggestion modal state
+  const [showProofreadSuggestion, setShowProofreadSuggestion] = useState(false);
+  const [proofreadData, setProofreadData] = useState(null);
+  const [selectedText, setSelectedText] = useState("");
 
-  // Optional: fetch project info
+  // Load project data and draft content
   useEffect(() => {
-      const fetchSubmission = async () => {
-        if (!auth.currentUser) {
-            navigate('/login');
-            return;
-        }
-        try{
-          const token = await auth.currentUser.getIdToken();
-                    
-          const response = await axios.get(`${backend_host}/api/project/${id}/submission`, {
-              headers: {
-                  'Authorization': `Bearer ${token}`
-              }
-          });
-          if (response.data.message) {
-            setMessage(response.data.message || `Submission Page Loaded!`);
-          } else {
-              setMessage("No message found");
+    const fetchSubmission = async () => {
+      if (!auth.currentUser) {
+        navigate('/login');
+        return;
+      }
+      
+      try {
+        setIsLoading(true);
+        const token = await auth.currentUser.getIdToken();
+        
+        const response = await axios.get(`${backend_host}/api/project/${id}/submission`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
           }
-        } catch (err) {
-            console.error("Error fetching submission info:", err);
-            setMessage("Error loading submission page");
+        });
+        
+        const data = response.data;
+        setMessage(data.message || `Submission Page Loaded!`);
+        
+        // Load draft content if available
+        if (data.project?.draftReport?.content) {
+          setReportContent(data.project.draftReport.content);
+          setSaveStatus(`Last saved: ${new Date(data.project.draftReport.lastSaved).toLocaleTimeString()}`);
+        } else if (data.project?.finalReport?.content) {
+          // If already submitted, show final report
+          setReportContent(data.project.finalReport.content);
+          setSubmitted(true);
+          setSaveStatus("Report already submitted");
         }
-      };
-      fetchSubmission();
+        
+      } catch (err) {
+        console.error("Error fetching submission info:", err);
+        setMessage("Error loading submission page");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchSubmission();
   }, [id, navigate, auth]);
+
+  // Autosave effect
+  useEffect(() => {
+    if (!reportContent.trim() || !id || submitted) return;
+
+    const timeout = setTimeout(async () => {
+      try {
+        setSaveStatus("Saving...");
+        const token = await getIdTokenSafely();
+        
+        await axios.post(`${backend_host}/api/project/${id}/submission/draft`, 
+          { content: reportContent },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            }
+          }
+        );
+        
+        setSaveStatus("Saved ✓");
+      } catch (err) {
+        setSaveStatus("Save failed");
+        console.error("Draft save error", err);
+      }
+    }, 2000);
+
+    return () => clearTimeout(timeout);
+  }, [reportContent, id, submitted]);
 
 
   // Add Comment for selected text
   function addCommentForSelection(author = "You", text = "") {
-    if (!selectionRange || !selectionRange.text) return;
+    // Try to capture current selection if none exists
+    let currentSelection = selectionRange;
+    if (!currentSelection) {
+      currentSelection = captureCurrentSelection();
+    }
+    
+    if (!currentSelection || !currentSelection.text) return;
+    
     const newComment = {
       id: Date.now().toString(),
       author,
       text,
-      anchor: selectionRange.text,
+      anchor: currentSelection.text,
       createdAt: Date.now(),
       resolved: false,
     };
     setComments((c) => [newComment, ...c]);
     // clear selection after adding
     setSelectionRange(null);
+    setSelectedText("");
     if (editorRef.current) editorRef.current.focus();
   }
 
@@ -104,9 +143,10 @@ function Submission() {
   function handleTextSelection(selectionData) {
     if (selectionData && selectionData.text) {
       setSelectionRange(selectionData);
+      setSelectedText(selectionData.text);
       return;
     }
-    setSelectionRange(null);
+    // Don't clear selection immediately - only clear when explicitly needed
   }
 
   // Handle comment resolution
@@ -122,77 +162,198 @@ function Submission() {
 
   // Handle adding new comment
   function handleAddComment(text) {
+    // Try to capture current selection if none exists
+    let currentSelection = selectionRange;
+    if (!currentSelection) {
+      currentSelection = captureCurrentSelection();
+    }
+    
     const newComment = {
       id: Date.now().toString(),
       author: "You",
       text,
-      anchor: selectionRange?.text || null, // Use selected text if available, otherwise null
+      anchor: currentSelection?.text || null, // Use selected text if available, otherwise null
       createdAt: Date.now(),
       resolved: false,
     };
     
     setComments(prev => [newComment, ...prev]);
     setSelectionRange(null); // Clear selection after adding comment
+    setSelectedText(""); // Also clear selected text
   }
 
   // AI toolbar callbacks
   async function handleAISummarize() {
     try {
-      const token = await getIdTokenSafely();
-      const res = await fetch(`${backend_host}/api/project/${id}/ai/summarize`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ content: reportContent }),
-      });
-      const data = await res.json();
-      const summary = data?.result || data?.summary || "No summary returned.";
-      setAiFeedback(summary);
-      setAiSummary(summary); // Also update the summary in the Summary & Reflection section
+      setAiFeedback("🤖 Generating summary...");
+      
+      // Gemini fallback function
+      const geminiFallback = async () => {
+        const token = await getIdTokenSafely();
+        const res = await axios.post(`${backend_host}/api/project/${id}/ai/summarize`, 
+          { content: reportContent },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            }
+          }
+        );
+        return {
+          summary: res.data?.result || res.data?.summary || "No summary returned.",
+          source: 'gemini'
+        };
+      };
+
+      // Try Chrome AI first, fallback to Gemini
+      const result = await getChromeSummary(reportContent, geminiFallback);
+      
+      const summary = result.summary || "No summary generated.";
+      const source = result.source || 'unknown (chrome or gemini)';
+      
+      setAiFeedback(`📝 Summary (${source}):\n\n${summary}`);
+      setAiSummary(summary);
     } catch (err) {
       console.error("AI Summarize error", err);
-      setAiFeedback("AI error: " + err.message);
+      setAiFeedback("❌ AI error: " + err.message);
     }
+  }
+
+  // Function to capture current selection from contentEditable div
+  function captureCurrentSelection() {
+    if (!editorRef.current) return null;
+    
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return null;
+    
+    const range = selection.getRangeAt(0);
+    const selectedText = range.toString();
+    
+    if (!selectedText.trim()) return null;
+    
+    // Get position in plain text
+    const plainText = reportContent;
+    const start = plainText.indexOf(selectedText);
+    const end = start + selectedText.length;
+    
+    const selectionData = { text: selectedText, start, end };
+    setSelectionRange(selectionData);
+    setSelectedText(selectedText);
+    
+    return selectionData;
   }
 
   async function handleAIProofread() {
     try {
-      const token = await getIdTokenSafely();
-      const res = await fetch(`${backend_host}/api/project/${id}/ai/proofread`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ content: reportContent }),
-      });
-      const data = await res.json();
-      setAiFeedback(data?.corrections || data?.proofread || "No response.");
+      // First try to capture current selection from textarea
+      let currentSelection = captureCurrentSelection();
+      
+      // Check if user has selected text (use stored selection or captured selection)
+      const textToProofread = selectedText.trim() || (selectionRange?.text || '').trim() || (currentSelection?.text || '').trim();
+      
+      if (!textToProofread) {
+        setAiFeedback("💡 Please select some text to proofread first!");
+        return;
+      }
+
+      setAiFeedback("🔍 Checking selected text...");
+      
+      // Gemini fallback function
+      const geminiFallback = async () => {
+        const token = await getIdTokenSafely();
+        const res = await axios.post(`${backend_host}/api/project/${id}/ai/proofread`, 
+          { content: textToProofread },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            }
+          }
+        );
+        return {
+          corrections: res.data?.corrections || res.data?.proofread || "No response.",
+          source: 'gemini'
+        };
+      };
+
+      // Try Chrome AI first, fallback to Gemini
+      const result = await getChromeProofreadSuggestions(textToProofread, geminiFallback);
+      
+      const source = result.source || 'unknown';
+      
+      if (result.hasErrors && result.corrected) {
+        // Show interactive suggestion modal
+        setProofreadData({
+          originalText: textToProofread,
+          correctedText: result.corrected,
+          source: source,
+          errorCount: result.errorCount
+        });
+        setShowProofreadSuggestion(true);
+        setAiFeedback(`🔧 Found ${result.errorCount} issues in selected text (${source})`);
+      } else if (result.hasErrors) {
+        // Fallback for Gemini with individual corrections
+        const corrections = result.corrections.map(c => 
+          `• ${c.type}: "${c.originalText}" → "${c.suggestedText}"`
+        ).join('\n');
+        setAiFeedback(`🔧 Found ${result.errorCount} issues (${source}):\n\n${corrections}`);
+      } else {
+        setAiFeedback(`✅ No errors found in selected text! (${source})`);
+      }
     } catch (err) {
       console.error("AI Proofread error", err);
-      setAiFeedback("AI error: " + err.message);
+      setAiFeedback("❌ AI error: " + err.message);
     }
   }
 
   async function handleAISuggest() {
     try {
       const token = await getIdTokenSafely();
-      const res = await fetch(`${backend_host}/api/project/${id}/ai/suggest`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ content: reportContent }),
-      });
-      const data = await res.json();
-      setAiFeedback(data?.suggestions || "No response.");
+      const res = await axios.post(`${backend_host}/api/project/${id}/ai/suggest`, 
+        { content: reportContent },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          }
+        }
+      );
+      setAiFeedback(res.data?.suggestions || "No response.");
     } catch (err) {
       console.error("AI Suggest error", err);
       setAiFeedback("AI error: " + err.message);
     }
+  }
+
+  // Handle applying proofread suggestion
+  function handleApplySuggestion(correctedText) {
+    if (!selectionRange) return;
+    
+    const start = selectionRange.start;
+    const end = selectionRange.end;
+    const beforeText = reportContent.substring(0, start);
+    const afterText = reportContent.substring(end);
+    const newContent = beforeText + correctedText + afterText;
+    
+    setReportContent(newContent);
+    setAiFeedback("✅ Suggestion applied successfully!");
+    
+    // Clear selection
+    setSelectionRange(null);
+    setSelectedText("");
+  }
+
+  // Handle discarding proofread suggestion
+  function handleDiscardSuggestion() {
+    setAiFeedback("❌ Suggestion discarded");
+    setSelectionRange(null);
+    setSelectedText("");
+  }
+
+  // Handle closing proofread suggestion modal
+  function handleCloseSuggestion() {
+    setShowProofreadSuggestion(false);
+    setProofreadData(null);
   }
 
   // Handle submission
@@ -210,16 +371,16 @@ function Submission() {
     setSubmitting(true);
     try {
       const token = await getIdTokenSafely();
-      const response = await fetch(`${backend_host}/api/project/${id}/submission`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ content: reportContent }),
-      });
+      const response = await axios.post(`${backend_host}/api/project/${id}/submission`, 
+        { content: reportContent },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          }
+        }
+      );
       
-      const data = await response.json();
       setSubmitted(true);
       
       // Redirect to success page after a short delay
@@ -249,6 +410,17 @@ function Submission() {
     return null;
   }
 
+  if (isLoading) {
+    return (
+      <div className="editor-container">
+        <div className="loading-state">
+          <h2>Loading your project...</h2>
+          <div className="spinner"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="editor-container" onMouseUp={handleTextSelection}>
       <div className="main-editor">
@@ -258,6 +430,8 @@ function Submission() {
           onSuggest={handleAISuggest}
           aiFeedback={aiFeedback}
         />
+        
+        <ChromeAIStatus />
         <EditorArea
           ref={editorRef}
           value={reportContent}
@@ -266,7 +440,7 @@ function Submission() {
         />
 
         <div className="status-row">
-          <div className="save-status">Auto-saving…</div>
+          <div className="save-status">{saveStatus}</div>
           {!submitted ? (
             <button
               onClick={handleSubmission}
@@ -297,6 +471,17 @@ function Submission() {
         onAddComment={handleAddComment}
         onResolve={handleCommentResolve}
       />
+
+      {/* Proofread Suggestion Modal */}
+      {showProofreadSuggestion && proofreadData && (
+        <ProofreadSuggestion
+          originalText={proofreadData.originalText}
+          correctedText={proofreadData.correctedText}
+          onApply={handleApplySuggestion}
+          onDiscard={handleDiscardSuggestion}
+          onClose={handleCloseSuggestion}
+        />
+      )}
     </div>
   );
 }

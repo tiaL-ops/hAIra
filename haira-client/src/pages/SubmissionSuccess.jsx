@@ -4,7 +4,7 @@ import { getAuth } from "firebase/auth";
 import { useAuth } from '../App';
 import ContributionTracker from "../components/ContributionTracker";
 import SummaryReflection from "../components/SummaryReflection";
-import "../components/TextEditor/editor.css";
+import "../styles/editor.css";
 import "../styles/global.css";
 
 const backend_host = "http://localhost:3002";
@@ -21,7 +21,9 @@ function SubmissionSuccess() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+
   useEffect(() => {
+    // Fetch submission data from backend for the project
     const fetchSubmissionData = async () => {
       if (!auth.currentUser) {
         navigate('/login');
@@ -166,7 +168,7 @@ function SubmissionSuccess() {
           <SummaryReflection 
             projectId={id} 
             reportContent={submission?.content || ""} 
-            aiSummary={aiSummary} 
+            aiSummary={aiSummary}
           />
         </div>
 

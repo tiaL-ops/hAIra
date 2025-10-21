@@ -8,9 +8,8 @@ export default function EditorToolbar({ onSummarize, onProofread, onSuggest, aiF
   const handleToolClick = (tool, callback) => {
     setActiveTool(tool);
     callback();
-    if (aiFeedback) {
-      setShowFeedback(true);
-    }
+    // Always show feedback popup when a tool is clicked
+    setShowFeedback(true);
   };
 
   return (

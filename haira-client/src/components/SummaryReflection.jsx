@@ -1,7 +1,10 @@
 // src/components/SummaryReflection.jsx
 import React, { useState, useEffect } from "react";
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { db } from "../../firebase"; // adjust path if needed
+import { db } from '../../firebase.js';
+import axios from 'axios';
+
+const backend_host = "http://localhost:3002";
 
 export default function SummaryReflection({ projectId, reportContent, aiSummary }) {
   const [reflection, setReflection] = useState("");
@@ -15,13 +18,18 @@ export default function SummaryReflection({ projectId, reportContent, aiSummary 
       if (!projectId) return;
       try {
         setIsLoading(true);
-        const docRef = doc(db, "userProjects", projectId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data.finalReflection) {
-            setReflection(data.finalReflection);
+        
+        // Get project data from backend
+        const token = await getIdTokenSafely();
+        const response = await axios.get(`${backend_host}/api/project/${projectId}/submission`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
           }
+        });
+        
+        const projectData = response.data.project;
+        if (projectData?.finalReflection) {
+          setReflection(projectData.finalReflection);
         }
       } catch (err) {
         console.error("Error loading reflection:", err);
@@ -40,10 +48,21 @@ export default function SummaryReflection({ projectId, reportContent, aiSummary 
     const timeout = setTimeout(async () => {
       try {
         setStatus("Saving...");
-        await setDoc(doc(db, "userProjects", projectId), {
-          finalReflection: reflection,
-          reflectionUpdatedAt: Date.now(),
-        }, { merge: true });
+        const token = await getIdTokenSafely();
+        
+        await axios.post(`${backend_host}/api/project/${projectId}/submission/draft`, 
+          { 
+            content: reflection,
+            type: 'reflection'
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            }
+          }
+        );
+        
         setStatus("Saved ✓");
       } catch (err) {
         setStatus("Save failed");
@@ -64,15 +83,15 @@ export default function SummaryReflection({ projectId, reportContent, aiSummary 
     setIsGenerating(true);
     try {
       const token = await getIdTokenSafely();
-      const res = await fetch(`http://localhost:3002/api/project/${projectId}/ai/reflect`, {
-        method: "POST",
+      const res = await axios.post(`${backend_host}/api/project/${projectId}/ai/reflect`, {
+        content: reportContent
+      }, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ content: reportContent }),
+        }
       });
-      const data = await res.json();
+      const data = res.data;
       
       if (data.success && data.reflection) {
         setReflection(data.reflection);
@@ -87,6 +106,7 @@ export default function SummaryReflection({ projectId, reportContent, aiSummary 
       setIsGenerating(false);
     }
   };
+
 
   // Utility to get token
   async function getIdTokenSafely() {

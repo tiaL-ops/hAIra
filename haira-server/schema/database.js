@@ -33,10 +33,16 @@ export const USER_PROJECT_SCHEMA = {
   startDate: Number,  // Timestamp when project was started
   dailyMeetingTime: String, // Preferred meeting time
   team: Array,        // Array of team members (user and AI)
+  draftReport: {      // Draft project report (autosaved)
+    content: String,
+    lastSaved: Number
+  },
   finalReport: {      // Final project submission
     content: String,
     submittedAt: Number
   },
+  finalReflection: String, // AI-generated reflection
+  reflectionUpdatedAt: Number, // When reflection was last updated
   grade: {            // Project evaluation
     overall: Number,
     workPercentage: Number,
