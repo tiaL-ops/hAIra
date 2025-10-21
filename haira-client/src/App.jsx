@@ -9,6 +9,7 @@ import Classroom from './pages/Classroom';
 import Project from './pages/Project';
 import Chat from './pages/Chat';
 import Submission from './pages/Submission';
+import SubmissionSuccess from './pages/SubmissionSuccess';
 import Kanban from './pages/Kanban';
 import ProjectSelection from './pages/ProjectSelection';
 
@@ -110,6 +111,12 @@ function App() {
           <Route path="/project/:id/submission" element={
             <ProtectedRoute>
               <Submission />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/project/:id/success" element={
+            <ProtectedRoute>
+              <SubmissionSuccess />
             </ProtectedRoute>
           } />
           

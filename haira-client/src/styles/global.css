@@ -1,0 +1,22 @@
+/* src/styles/global.css */
+@import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+:root {
+  --color-teal: #408F8C;
+  --color-purple: #9169C0;
+  --color-red: #B4565A;
+  --color-green: #93C263;
+  --color-bg: #f8f9fb;
+  --color-text: #333333;
+}
+
+body {
+  font-family: "Jersey 10", sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  margin: 0;
+  padding: 0;
+}
+
+/* small utility */
+h3 { margin: 0 0 8px 0; font-size: 1rem; }

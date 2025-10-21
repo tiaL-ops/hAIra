@@ -1,9 +1,49 @@
 import express from 'express'
-import { updateUserProject, ensureProjectExists } from '../services/firebaseService.js';
-import { generateGradeResponse } from '../api/geminiService.js';
+import { 
+    updateUserProject,
+    ensureProjectExists 
+} from '../services/firebaseService.js';
+import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
+import { 
+    generateGradeResponse,
+    generateAIResponse
+} from '../api/geminiService.js';
+import { db } from '../services/firebaseService.js';
+
 const router = express.Router()
 
-router.get('/:id/submission', async (req, res) => {
+
+/**
+ * Parses the raw string response from the AI model into a JSON object.
+ * It cleans up common markdown formatting like ```json and handles parsing errors.
+ * @param {string} aiResponse - The raw string response from the Gemini API.
+ * @returns {object} The parsed JSON object or an error object if parsing fails.
+ */
+function parseAIResponseToJson(aiResponse) {
+  try {
+    // Remove markdown code fences (```json, ```) and trim whitespace
+    const cleanedJsonString = aiResponse
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim();
+    
+    return JSON.parse(cleanedJsonString);
+  } catch (parseError) {
+    console.error("[AI PARSE ERROR] Failed to parse AI response:", aiResponse);
+    // Return a default error structure that matches the expected grade format
+    return { 
+        error: 'Invalid AI response format', 
+        raw: aiResponse,
+        overall: 0,
+        workPercentage: 0,
+        responsiveness: 0,
+        reportQuality: 0,
+        feedback: "Critical Error: Failed to get AI Response"
+    };
+  }
+}
+
+router.get('/:id/submission', verifyFirebaseToken, async (req, res) => {
     const { id }= req.params; // get parameters from request
     // make sure backend is connected to firestore
     try{
@@ -15,12 +55,261 @@ router.get('/:id/submission', async (req, res) => {
     }
 });
 
-router.post('/:id/submission', async (req, res) => {
-    const { id } = req.params;
-    const { content, userId } = req.body;
+// AI Proofreading endpoint using Chrome's built-in API
+router.post('/:id/ai/proofread', verifyFirebaseToken, async (req, res) => {
+    const { content } = req.body;
+    
+    if (!content) {
+        return res.status(400).json({ error: 'Content is required' });
+    }
 
-    if (!content || !userId) {
-        return res.status(400).json({ error: 'Content and userId are required' });
+    try {
+        // Chrome's built-in spell check and grammar suggestions
+        const corrections = [];
+        const words = content.split(/\s+/);
+        
+        // Simple spell check simulation (in real implementation, you'd use Chrome's API)
+        const commonMistakes = {
+            'teh': 'the',
+            'adn': 'and',
+            'recieve': 'receive',
+            'seperate': 'separate',
+            'occured': 'occurred',
+            'definately': 'definitely',
+            'accomodate': 'accommodate',
+            'embarass': 'embarrass',
+            'priviledge': 'privilege',
+            'maintainance': 'maintenance'
+        };
+
+        words.forEach((word, index) => {
+            const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
+            if (commonMistakes[cleanWord]) {
+                corrections.push({
+                    word: word,
+                    suggestion: commonMistakes[cleanWord],
+                    position: index,
+                    type: 'spelling'
+                });
+            }
+        });
+
+        // Grammar suggestions using Gemini
+        const grammarPrompt = `
+Analyze this text for grammar errors and provide corrections. Focus on:
+- Subject-verb agreement
+- Tense consistency
+- Sentence structure
+- Punctuation
+
+Text: ${content}
+
+Respond with JSON format:
+{
+    "corrections": [
+        {
+            "original": "incorrect text",
+            "suggestion": "corrected text",
+            "explanation": "why this is wrong"
+        }
+    ]
+}
+`;
+
+        const aiResponse = await generateAIResponse(grammarPrompt, "You are a grammar expert. Provide clear, helpful corrections.");
+        const aiCorrections = parseAIResponseToJson(aiResponse);
+
+        res.json({
+            success: true,
+            corrections: [...corrections, ...(aiCorrections.corrections || [])],
+            proofread: aiCorrections
+        });
+
+    } catch (err) {
+        console.error('Proofreading error:', err);
+        res.status(500).json({ 
+            success: false,
+            error: err.message 
+        });
+    }
+});
+
+// AI Summarize endpoint
+router.post('/:id/ai/summarize', verifyFirebaseToken, async (req, res) => {
+    const { content } = req.body;
+    
+    if (!content) {
+        return res.status(400).json({ error: 'Content is required' });
+    }
+
+    try {
+        const summaryPrompt = `
+Summarize this text in 2-3 sentences, highlighting the main points and key findings.
+
+Text: ${content}
+
+Respond with JSON format:
+{
+    "summary": "brief summary here",
+    "keyPoints": ["point 1", "point 2", "point 3"],
+    "wordCount": number
+}
+`;
+
+        const aiResponse = await generateAIResponse(summaryPrompt, "You are a summarization expert. Create concise, accurate summaries.");
+        const summary = parseAIResponseToJson(aiResponse);
+
+        res.json({
+            success: true,
+            result: summary.summary || summary,
+            summary: summary
+        });
+
+    } catch (err) {
+        console.error('Summarization error:', err);
+        res.status(500).json({ 
+            success: false,
+            error: err.message 
+        });
+    }
+});
+
+// AI Suggestions endpoint
+router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
+    const { content } = req.body;
+    
+    if (!content) {
+        return res.status(400).json({ error: 'Content is required' });
+    }
+
+    try {
+        const suggestionPrompt = `
+Analyze this text and provide suggestions for improvement. Focus on:
+- Clarity and readability
+- Structure and organization
+- Content completeness
+- Professional tone
+
+Text: ${content}
+
+Respond with JSON format:
+{
+    "suggestions": [
+        {
+            "type": "clarity|structure|content|tone",
+            "suggestion": "specific improvement",
+            "reason": "why this helps"
+        }
+    ],
+    "overall": "general feedback"
+}
+`;
+
+        const aiResponse = await generateAIResponse(suggestionPrompt, "You are a writing coach. Provide constructive, helpful suggestions.");
+        const suggestions = parseAIResponseToJson(aiResponse);
+
+        res.json({
+            success: true,
+            suggestions: suggestions.suggestions || suggestions,
+            result: suggestions
+        });
+
+    } catch (err) {
+        console.error('Suggestion error:', err);
+        res.status(500).json({ 
+            success: false,
+            error: err.message 
+        });
+    }
+});
+
+// AI Reflection endpoint
+router.post('/:id/ai/reflect', verifyFirebaseToken, async (req, res) => {
+    const { content } = req.body;
+    
+    if (!content) {
+        return res.status(400).json({ error: 'Content is required' });
+    }
+
+    try {
+        const reflectionPrompt = `
+Analyze this project report and generate a thoughtful reflection. Focus on:
+- Lessons learned from the project
+- Challenges faced and how they were overcome
+- Skills developed or improved
+- Areas for future improvement
+- Key insights gained
+- What you would do differently next time
+
+Text: ${content}
+
+Respond with a comprehensive reflection in paragraph format that shows deep thinking about the project experience.
+`;
+
+        const aiResponse = await generateAIResponse(reflectionPrompt, "You are an educational mentor. Generate insightful, personal reflections that help students learn from their project experience.");
+        const reflection = parseAIResponseToJson(aiResponse);
+
+        res.json({
+            success: true,
+            reflection: reflection.reflection || reflection || aiResponse,
+            result: reflection
+        });
+
+    } catch (err) {
+        console.error('Reflection error:', err);
+        res.status(500).json({ 
+            success: false,
+            error: err.message 
+        });
+    }
+});
+
+// Get submission results
+router.get('/:id/submission/results', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.uid;
+
+    try {
+        // Get submission data from Firestore using Admin SDK
+        const projectRef = db.collection('userProjects').doc(id);
+        const projectSnap = await projectRef.get();
+        
+        if (!projectSnap.exists) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        const projectData = projectSnap.data();
+        const submission = {
+            content: projectData.finalReport?.content || projectData.finalSubmission || '',
+            submittedAt: projectData.finalReport?.submittedAt || projectData.submittedAt || null,
+            status: projectData.status || 'draft'
+        };
+
+        // Get grade data (you might want to store this separately)
+        const grade = projectData.grade || null;
+
+        res.json({
+            success: true,
+            submission,
+            grade
+        });
+
+    } catch (err) {
+        console.error('Results fetch error:', err);
+        res.status(500).json({ 
+            success: false,
+            error: err.message 
+        });
+    }
+});
+
+router.post('/:id/submission', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const { content } = req.body;
+    const  userId = req.user.uid;
+
+    if (!content) {
+        return res.status(400).json({ error: 'Content is required' });
     }
 
     const SYSTEM_INSTRUCTION = `
@@ -37,27 +326,20 @@ Do not include anything else.
 `;
 
     try {
-        console.log("From Submission: Making sure the project exists...")
+        // Make sure project exists
+        console.log(`From Submission: Making sure the project exists...`)
         await ensureProjectExists(id, userId);
 
-        console.log("From Submission: generating AI grades and feedback")
+        // generate AI Grades and Feedback
+        console.log(`From Submission: generating AI grades and feedback...`)
         const aiResponseGrade = await generateGradeResponse(content, SYSTEM_INSTRUCTION);
+        // Parse AI response to JSON
+        const grade = parseAIResponseToJson(aiResponseGrade)
+        console.log(`From Submission: AI Grades and Feedback ready.`)
 
-        let grade;
-        try {
-            // Remove ```json, ``` and extra whitespace
-            const cleaned = aiResponseGrade
-            .replace(/```json/g, '')
-            .replace(/```/g, '')
-            .trim();
-
-            grade = JSON.parse(cleaned);
-        } catch {
-            grade = { error: 'Invalid AI response', raw: aiResponseGrade };
-        }
-        console.log("From Submission: generating AI grades and feedback")
+        // Submit: Persists Final Report and Feedback
         await updateUserProject(id, content, grade, 'submitted');
-        console.log("From Submission: User project updated")
+        console.log(`From Submission: User Project ${id} updated by ${userId}`)
 
         res.status(201).json({
             success: true,
