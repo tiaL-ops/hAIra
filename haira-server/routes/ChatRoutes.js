@@ -46,12 +46,12 @@ router.get('/:id/chat', verifyFirebaseToken, async (req, res) => {
     const projectStart = new Date(projectData?.project?.startDate || Date.now());
     const currentDay = getProjectDay(projectStart);
     
-    // Check message quota
+    // Check message quota (7 messages per 24 hours)
     const userMsgsToday = await getUserMessageCountSince(id, req.user.uid, projectStart, currentDay);
-    const quotaExceeded = userMsgsToday >= 10;
+    const quotaExceeded = userMsgsToday >= 7;
     let quotaWarning = null;
-    if (userMsgsToday >= 7 && !quotaExceeded) {
-      quotaWarning = `${10 - userMsgsToday} messages remaining today`;
+    if (userMsgsToday >= 5 && !quotaExceeded) {
+      quotaWarning = `${7 - userMsgsToday} messages remaining today`;
     }
 
     // Fetch chats
@@ -111,23 +111,23 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
     const projectStart = new Date(projectData?.project?.startDate || Date.now());
     const currentDay = getProjectDay(projectStart, testProjectDay);
 
-    // Check the user's daily message limit (10 messages per 24 hours)
+    // Check the user's daily message limit (7 messages per 24 hours)
     const userMsgsToday = await getUserMessageCountSince(id, userId, projectStart, currentDay);
-    console.log(`[ChatRoutes] User has sent ${userMsgsToday}/10 messages today`);
+    console.log(`[ChatRoutes] User has sent ${userMsgsToday}/7 messages in last 24 hours`);
     
-    // Hard limit of 10 messages per 24 hours
-    if (userMsgsToday >= 10) {
+    // Hard limit of 7 messages per 24 hours
+    if (userMsgsToday >= 7) {
       return res.status(429).json({ 
-        error: 'Daily message limit reached (10/day)', 
+        error: 'Daily message limit reached (7/24h)', 
         quotaExceeded: true,
         currentProjectDay: currentDay 
       });
     }
     
-    // Warning when approaching limit
+    // Warning when approaching limit (at 5/7 messages)
     let quotaWarning = null;
-    if (userMsgsToday >= 7) {
-      quotaWarning = `${10 - userMsgsToday} messages remaining today`;
+    if (userMsgsToday >= 5) {
+      quotaWarning = `${7 - userMsgsToday} messages remaining today`;
     }
 
     const userChat = await addUserChat(id, content, userId, userName, USE_SUBCOLLECTIONS);
@@ -212,10 +212,36 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
       responses.push(aiChat);
     }
 
+    // Add sign-off message if quota is reached (7/7 messages)
+    if (userMsgsToday >= 6) { // This is the 7th message, so add sign-off
+      const signOffMessages = [
+        "OK, let's get to work, see you tomorrow.",
+        "Great progress today! See you tomorrow.",
+        "Alright, time to focus on our tasks. See you tomorrow!",
+        "Perfect! Let's get to work, see you tomorrow."
+      ];
+      
+      const randomSignOff = signOffMessages[Math.floor(Math.random() * signOffMessages.length)];
+      const signOffChat = await addChat(id, randomSignOff, 'rasoa', 'Rasoa', null, USE_SUBCOLLECTIONS);
+      
+      // Store sign-off message in memory
+      storeMessage(id, currentDay, {
+        senderId: 'rasoa',
+        senderName: 'Rasoa',
+        content: randomSignOff,
+        timestamp: signOffChat.timestamp
+      });
+      
+      responses.push(signOffChat);
+    }
+
     return res.status(201).json({ 
       messages: responses, 
       currentProjectDay: currentDay,
       quotaWarning: quotaWarning,
+      quotaExceeded: userMsgsToday >= 6, // Will be exceeded after this message
+      messagesUsedToday: userMsgsToday + 1,
+      dailyLimit: 7,
       activeAgents: responders
     });
   } catch (e) {

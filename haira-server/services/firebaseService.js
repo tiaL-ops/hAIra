@@ -446,12 +446,14 @@ export async function updateUserActiveProject(userId, projectId) {
   });
 }
 
-// Get count of user messages since a specific day
+// Get count of user messages in the last 24 hours
 export async function getUserMessageCountSince(projectId, userId, projectStartDate, currentDay) {
   try {
-    const dayStartTimestamp = projectStartDate + (currentDay - 1) * 24 * 60 * 60 * 1000;
+    // Calculate 24 hours ago from now
+    const now = Date.now();
+    const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
     
-    console.log(`[Firebase] Counting messages for user ${userId} in project ${projectId} since day ${currentDay} (timestamp: ${dayStartTimestamp})`);
+    console.log(`[Firebase] Counting messages for user ${userId} in project ${projectId} in last 24 hours (since ${new Date(twentyFourHoursAgo).toISOString()})`);
     
     // Query subcollection for all messages first, then filter in memory to avoid index requirement
     const messagesRef = db
@@ -465,12 +467,19 @@ export async function getUserMessageCountSince(projectId, userId, projectStartDa
     let count = 0;
     snapshot.forEach(doc => {
       const data = doc.data();
-      if (data.senderId === userId && data.timestamp >= dayStartTimestamp) {
+      // Count only user messages (not AI messages) from the last 24 hours
+      if (data.senderId === userId && data.timestamp >= twentyFourHoursAgo) {
         count++;
+        console.log(`[Firebase] Found user message: ${data.text?.substring(0, 50)}... at ${new Date(data.timestamp).toISOString()}`);
       }
     });
     
-    console.log(`[Firebase] Found ${count} messages from user ${userId} since day ${currentDay}`);
+    console.log(`[Firebase] Found ${count} user messages in last 24 hours for user ${userId}`);
+    
+    // Debug: Show when the 24-hour window started
+    const nowDate = new Date();
+    const twentyFourHoursAgoDate = new Date(twentyFourHoursAgo);
+    console.log(`[Firebase] 24-hour window: ${twentyFourHoursAgoDate.toISOString()} to ${nowDate.toISOString()}`);
     
     return count;
   } catch (error) {
