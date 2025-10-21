@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
@@ -31,6 +31,9 @@ function Chat() {
   const [newTask, setNewTask] = useState('');
   const [showTaskForm, setShowTaskForm] = useState(false);
   const auth = getAuth();
+  
+  // Ref for auto-scrolling to the bottom
+  const messagesContainerRef = useRef(null);
 
   // Agent info (you can replace avatar string with an image URL later)
 const agentInfo = {
@@ -38,6 +41,15 @@ const agentInfo = {
     rasoa: { name: 'Rasoa', avatar: RasoaAvatar, role: 'Planner', color: '#e74c3c' },
     rakoto: { name: 'Rakoto', avatar: RakotoAvatar, role: 'Developer', color: '#3498db' }
   };
+  
+  // Auto-scroll to bottom when messages change or when loading finishes
+  useEffect(() => {
+    if (messagesContainerRef.current && !isLoading) {
+      setTimeout(() => {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }, 100); // Small delay to ensure all content is rendered
+    }
+  }, [messages, isLoading]);
   // active hours util
   const isActiveHours = () => {
     const now = new Date();
@@ -111,7 +123,8 @@ const agentInfo = {
           setProjectName(project?.title || project?.name || 'Untitled Project');
 
           const newChats = chatResp.data.chats || [];
-          const sorted = newChats.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          // Sort chronologically - oldest to newest (ascending order)
+          const sorted = newChats.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
           setMessages(sorted);
           setStatusMessage('');
         }
@@ -158,8 +171,9 @@ const agentInfo = {
       if (response.data.currentProjectDay) setCurrentProjectDay(response.data.currentProjectDay);
 
       setMessages(prev => {
-        const updated = [...newChats, ...prev];
-        return updated.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        const updated = [...prev, ...newChats];
+        // Sort chronologically - oldest to newest (ascending order)
+        return updated.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
       });
 
       setNewMessage("");

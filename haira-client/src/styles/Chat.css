@@ -7,7 +7,7 @@
   --font-primary: 'Jersey 10', sans-serif;
   --bg-main: #2A2A2E;
   --bg-sidebar: #383840;
-  --bg-chat: #2F2F35;
+  --bg-chat: #d3d3dc;
   --border-color: #0f3b38;
   --bg-subheader-purple: #9191C0;
   
@@ -16,8 +16,8 @@
   --accent-rose: #B4565A;
   --accent-green: #93C263;
 
-  --text-light: #F5F5F5;
-  --text-medium: #B0B0B0;
+  --text-light: #222121;
+  --text-medium: #000000;
   --text-dark: #1A1A1A;
 }
 
@@ -33,6 +33,10 @@
   box-shadow: 0 10px 30px rgba(0,0,0,0.3);
   font-family: var(--font-primary);
   color: var(--text-light);
+  
+  /* Make responsive */
+  flex-direction: row;
+  position: relative;
 }
 
 /* Left Sidebar */
@@ -43,6 +47,10 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  
+  /* Make responsive */
+  min-width: 250px;
+  max-height: 100vh;
 }
 
 /* Right Chat Area */
@@ -51,6 +59,9 @@
   display: flex;
   flex-direction: column;
   background: var(--bg-chat);
+  min-width: 0; /* Prevent flex children from overflowing */
+  max-height: 100vh;
+  overflow: hidden; /* Prevent scroll issues */
 }
 
 /* Purple section pill header */
@@ -191,6 +202,8 @@
   background: var(--bg-chat);
   display: flex;
   flex-direction: column;
+  height: 100%;
+  max-height: calc(100vh - 180px); /* Account for header and input */
 }
 
 .messages-list {
@@ -409,6 +422,56 @@
   color: var(--text-medium);
   text-align: center;
   margin-top: 8px;
+}
+
+/* Responsive Media Queries */
+@media (max-width: 768px) {
+  .chat-container {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+  
+  .chat-sidebar {
+    width: 100%;
+    max-height: 40vh;
+    overflow-y: auto;
+    border-right: none;
+    border-bottom: 2px solid var(--primary-teal);
+  }
+  
+  .chat-main {
+    height: 60vh;
+    min-height: 400px;
+  }
+  
+  .messages-container {
+    max-height: calc(60vh - 160px); /* Account for header and input area */
+  }
+  
+  .mention-options {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .status-indicator {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: center;
+  }
+  
+  .status-indicator .avatar {
+    margin: 0 auto 8px;
+  }
+  
+  .message {
+    max-width: 90%;
+  }
+  
+  .message-header {
+    flex-wrap: wrap;
+  }
 }
 
 /* Settings panel */
