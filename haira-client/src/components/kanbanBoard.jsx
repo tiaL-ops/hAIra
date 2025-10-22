@@ -1,10 +1,12 @@
-import React, { useState } from "react";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-} from "@hello-pangea/dnd";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { v4 as uuidv4 } from "uuid";
+import { getAuth } from 'firebase/auth';
+import { useAuth } from '../App';
+import axios from 'axios';
+
+const auth = getAuth();
 
 const COLOR = {
   dominant: "#408F8C",
@@ -12,6 +14,11 @@ const COLOR = {
   third: "#B4565A",
   fourth: "#93C263",
 };
+
+const fetchTasks = () => {
+
+};
+
 
 const initialData = {
   todo: [
@@ -29,8 +36,40 @@ const initialData = {
 const assignees = ["Alice", "Bob", "Charlie", "David"];
 
 export default function KanbanBoard() {
+  const { id } = useParams();
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState(initialData);
   const [editingTask, setEditingTask] = useState(null);
+  
+useEffect(() => {
+    let isMounted = true;
+    if (!auth.currentUser) {
+      navigate('/login');
+      return;
+    }
+
+    const fetchData = async () => {
+      try {
+        const token = await auth.currentUser.getIdToken(true);
+        const kanbanData = await axios.get(`http://localhost:3002/api/project/${id}/kanban`, { headers: { Authorization: `Bearer ${token}` } });
+        const tasks = kanbanData.data.tasks;
+        let data = {todo : [], inProgress : [], done : []};
+        tasks.map((item) => {
+          let tmp = { id: item.id, name: item.description, assignee: item.assignedTo};
+          data[item.status].push(tmp);
+        });
+        setTasks(data);
+     }
+      catch (err) {
+        console.error('[Client] Error fetching data:', err);
+        const errorMessage = err.response?.status === 404 ? 'Project not found. Please check the project ID.' : err.message || 'Error loading chat data';
+       
+        if (err.response?.status === 404) setTimeout(() => navigate('/'), 3000);
+      }
+    };
+    fetchData();
+  }, []);
 
   const onDragEnd = (result) => {
     const { source, destination } = result;
