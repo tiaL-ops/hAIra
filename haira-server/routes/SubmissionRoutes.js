@@ -10,10 +10,12 @@ import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
 import { 
     generateGradeResponse,
     generateAIResponse,
-    generateAIContribution
+    generateAIContribution,
+    getChromeWriteSuggestion
 } from '../api/geminiService.js';
 import { LALA_CONFIG, LALA_SYSTEM_PROMPT } from '../lib/ai/agents/lalaPrompt.js';
 import { MINO_CONFIG, MINO_SYSTEM_PROMPT } from '../lib/ai/agents/minoPrompt.js';
+import { AI_TEAMMATES, TASK_TYPES } from '../config/aiReportAgents.js';
 
 const router = express.Router()
 
@@ -48,6 +50,20 @@ function parseAIResponseToJson(aiResponse) {
   }
 }
 
+// This is to clean AI output from gemini
+function cleanAIResponse(text) {
+    if (!text) return '';
+    return text
+      .replace(/```[\s\S]*?```/g, (match) => {
+        // If it’s a fenced code block, strip the fences but keep inner text
+        return match.replace(/```[a-zA-Z]*\n?/, '').replace(/```$/, '');
+      })
+      .replace(/^```[a-zA-Z]*\s*/gm, '') // remove starting ```html or ```json
+      .replace(/```$/gm, '') // remove ending ```
+      .trim();
+}
+
+
 // Get submission page data (including draft content)
 router.get('/:id/submission', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;
@@ -69,6 +85,7 @@ router.get('/:id/submission', verifyFirebaseToken, async (req, res) => {
                 id,
                 title: projectData.title,
                 status: projectData.status,
+                team: projectData.team || [],
                 draftReport: projectData.draftReport || null,
                 finalReport: projectData.finalReport || null
             }
@@ -496,10 +513,11 @@ router.post('/:id/ai/respond', verifyFirebaseToken, async (req, res) => {
         }
 
         const aiResponse = await generateAIContribution(prompt, personaConfig, systemPrompt);
+        const cleanedResponse = cleanAIResponse(aiResponse)
 
         res.json({
             success: true,
-            response: aiResponse,
+            response: cleanedResponse,
             persona: persona,
             timestamp: Date.now()
         });
@@ -510,6 +528,200 @@ router.post('/:id/ai/respond', verifyFirebaseToken, async (req, res) => {
             success: false,
             error: err.message 
         });
+    }
+});
+
+// AI Write Section endpoint
+router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const { aiType, sectionName, currentContent } = req.body;
+    const userId = req.user.uid;
+
+    console.log('AI Write request received:', { id, aiType, sectionName, userId });
+
+    if (!aiType) {
+        return res.status(400).json({ error: 'AI type is required' });
+    }
+
+    if (!['ai_manager', 'ai_helper'].includes(aiType)) {
+        return res.status(400).json({ error: 'AI type must be either "ai_manager" or "ai_helper"' });
+    }
+
+    try {
+        await ensureProjectExists(id, userId);
+        const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
+        
+        // Use Chrome Write API for writing tasks
+        const taskPrompt = `Write a section for "${sectionName || 'the project'}" based on the current content. 
+        Current content: ${currentContent || 'No content yet.'}
+        
+        Provide a well-structured section that fits with the existing content.`;
+        
+        // Try Chrome Write API first, fallback to Gemini
+        let aiResponse;
+        try {
+            const chromeResponse = await getChromeWriteSuggestion(taskPrompt);
+            aiResponse = chromeResponse;
+        } catch (chromeError) {
+            console.log('Chrome Write API failed, using Gemini:', chromeError.message);
+            aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
+        }
+
+        const cleanedResponse = cleanAIResponse(aiResponse);
+        const aiName = aiTeammate.name;
+        const prefixedResponse = `[${aiName}] ${cleanedResponse}`;
+
+        const completionMessage = aiType === 'ai_manager' ? '✅ Done — anything else to assign?' : '😴 I did something… kind of.';
+
+        // Log activity
+        const activityLog = {
+            timestamp: Date.now(),
+            type: 'ai_write_completion',
+            aiType: aiType,
+            sectionName: sectionName || 'general',
+            completionMessage: completionMessage
+        };
+
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
+        const currentActivity = projectData.activity || [];
+        await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
+            activity: [...currentActivity, activityLog]
+        });
+
+        res.json({
+            success: true,
+            aiType: aiType,
+            response: prefixedResponse,
+            responseType: 'text',
+            completionMessage: completionMessage,
+            timestamp: Date.now()
+        });
+
+    } catch (err) {
+        console.error('AI Write error:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// AI Review endpoint
+router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const { aiType, currentContent } = req.body;
+    const userId = req.user.uid;
+
+    console.log('AI Review request received:', { id, aiType, userId });
+
+    if (!aiType) {
+        return res.status(400).json({ error: 'AI type is required' });
+    }
+
+    if (!['ai_manager', 'ai_helper'].includes(aiType)) {
+        return res.status(400).json({ error: 'AI type must be either "ai_manager" or "ai_helper"' });
+    }
+
+    try {
+        await ensureProjectExists(id, userId);
+        const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
+        
+        const taskPrompt = `Review the following content and provide feedback on structure, clarity, and completeness:
+        ${currentContent || 'No content to review.'}
+        
+        Focus on what works well and what could be improved.`;
+        
+        const aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
+        const cleanedResponse = cleanAIResponse(aiResponse);
+        const aiName = aiTeammate.name;
+        const prefixedResponse = `[${aiName}] ${cleanedResponse}`;
+
+        const completionMessage = aiType === 'ai_manager' ? '✅ Done — anything else to assign?' : '😴 I did something… kind of.';
+
+        // Log activity
+        const activityLog = {
+            timestamp: Date.now(),
+            type: 'ai_review_completion',
+            aiType: aiType,
+            completionMessage: completionMessage
+        };
+
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
+        const currentActivity = projectData.activity || [];
+        await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
+            activity: [...currentActivity, activityLog]
+        });
+
+        res.json({
+            success: true,
+            aiType: aiType,
+            response: prefixedResponse,
+            responseType: 'comment',
+            completionMessage: completionMessage,
+            timestamp: Date.now()
+        });
+
+    } catch (err) {
+        console.error('AI Review error:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// AI Suggest Improvements endpoint
+router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const { aiType, currentContent } = req.body;
+    const userId = req.user.uid;
+
+    console.log('AI Suggest request received:', { id, aiType, userId });
+
+    if (!aiType) {
+        return res.status(400).json({ error: 'AI type is required' });
+    }
+
+    if (!['ai_manager', 'ai_helper'].includes(aiType)) {
+        return res.status(400).json({ error: 'AI type must be either "ai_manager" or "ai_helper"' });
+    }
+
+    try {
+        await ensureProjectExists(id, userId);
+        const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
+        
+        const taskPrompt = `Suggest specific improvements for this content:
+        ${currentContent || 'No content to improve.'}
+        
+        Provide actionable suggestions for enhancement.`;
+        
+        const aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
+        const cleanedResponse = cleanAIResponse(aiResponse);
+        const aiName = aiTeammate.name;
+        const prefixedResponse = `[${aiName}] ${cleanedResponse}`;
+
+        const completionMessage = aiType === 'ai_manager' ? '✅ Done — anything else to assign?' : '😴 I did something… kind of.';
+
+        // Log activity
+        const activityLog = {
+            timestamp: Date.now(),
+            type: 'ai_suggest_completion',
+            aiType: aiType,
+            completionMessage: completionMessage
+        };
+
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
+        const currentActivity = projectData.activity || [];
+        await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
+            activity: [...currentActivity, activityLog]
+        });
+
+        res.json({
+            success: true,
+            aiType: aiType,
+            response: prefixedResponse,
+            responseType: 'comment',
+            completionMessage: completionMessage,
+            timestamp: Date.now()
+        });
+
+    } catch (err) {
+        console.error('AI Suggest error:', err);
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 

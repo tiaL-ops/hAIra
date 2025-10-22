@@ -11,9 +11,14 @@ import CommentSidebar from "../components/TextEditor/CommentSidebar";
 import EditorGuide from "../components/TextEditor/EditorGuide";
 import ProofreadSuggestion from "../components/ProofreadSuggestion";
 import ChromeAIStatus from "../components/ChromeAIStatus";
+import TeamPanel from "../components/TeamPanel";
+import TaskCompletionFeedback from "../components/TaskCompletionFeedback";
 import { getChromeProofreadSuggestions, getChromeSummary } from "../utils/chromeAPI";
+import { useAITeam } from "../hooks/useAITeam";
 import "../styles/editor.css";
 import "../styles/global.css";
+import "../styles/TeamPanel.css";
+import "../styles/TaskCompletionFeedback.css";
 //------------
 
 const backend_host = "http://localhost:3002";
@@ -38,6 +43,19 @@ function Submission() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const editorRef = useRef(null);
+  
+  // Team collaboration state
+  const [teamContext, setTeamContext] = useState(null);
+  const [projectData, setProjectData] = useState(null);
+  
+  // AI Team hook
+  const { 
+    performAITask, 
+    isLoading: aiTaskLoading, 
+    loadingAIs,
+    taskCompletionMessages, 
+    removeCompletionMessage 
+  } = useAITeam(id, editorRef);
   
   // Proofread suggestion modal state
   const [showProofreadSuggestion, setShowProofreadSuggestion] = useState(false);
@@ -64,6 +82,103 @@ function Submission() {
         
         const data = response.data;
         setMessage(data.message || `Submission Page Loaded!`);
+        setProjectData(data.project);
+        
+        // Setup team context
+        const team = data.project?.team || [];
+        const hasAITeammates = team.some(member => member.type === 'ai');
+        const hasOldAITeammates = team.some(member => member.id === 'manager-ai' || member.id === 'lazy-ai');
+        
+        console.log('Team setup:', { team, hasAITeammates, hasOldAITeammates });
+        
+        if (!hasAITeammates || hasOldAITeammates) {
+          // Add or update AI teammates
+          const defaultAITeammates = [
+            {
+              id: 'ai_manager',
+              name: 'Alex (Project Manager)',
+              role: 'AI Manager',
+              personality: 'organized, deadline-focused, detail-oriented',
+              color: '#4A90E2',
+              isActive: true,
+              type: 'ai'
+            },
+            {
+              id: 'ai_helper',
+              name: 'Sam (Helper)',
+              role: 'AI Helper',
+              personality: 'lazy, creative, finds shortcuts',
+              color: '#93C263',
+              isActive: true,
+              type: 'ai'
+            }
+          ];
+          
+          // Filter out old AI teammates and keep human teammates
+          const filteredTeam = team.filter(member => member.type !== 'ai' && !['manager-ai', 'lazy-ai'].includes(member.id));
+          const updatedTeam = [...filteredTeam, ...defaultAITeammates];
+          
+          console.log('Setting updated team:', updatedTeam);
+          setTeamContext(updatedTeam);
+          
+          // Update team in backend
+          try {
+            await axios.post(`${backend_host}/api/project/${id}/team`, 
+              { team: updatedTeam },
+              {
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              }
+            );
+          } catch (err) {
+            console.log('Team update failed, continuing with local state:', err);
+          }
+        } else {
+          // We have existing AI teammates with correct IDs, but update their persona/config
+          const updatedTeam = team.map(member => {
+            if (member.type === 'ai') {
+              // Update AI teammates with latest persona configurations
+              if (member.id === 'ai_manager') {
+                return {
+                  ...member,
+                  name: 'Alex (Project Manager)',
+                  role: 'AI Manager',
+                  personality: 'organized, deadline-focused, detail-oriented',
+                  color: '#4A90E2',
+                  isActive: true
+                };
+              } else if (member.id === 'ai_helper') {
+                return {
+                  ...member,
+                  name: 'Sam (Helper)',
+                  role: 'AI Helper',
+                  personality: 'lazy, creative, finds shortcuts',
+                  color: '#93C263',
+                  isActive: true
+                };
+              }
+            }
+            return member;
+          });
+          
+          console.log('Updating existing AI teammates:', updatedTeam);
+          setTeamContext(updatedTeam);
+          
+          // Update team in backend with updated persona
+          try {
+            await axios.post(`${backend_host}/api/project/${id}/team`, 
+              { team: updatedTeam },
+              {
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              }
+            );
+          } catch (err) {
+            console.log('Team update failed, continuing with local state:', err);
+          }
+        }
         
         // Load draft content if available
         if (data.project?.draftReport?.content) {
@@ -434,6 +549,17 @@ function Submission() {
     setAiFeedback(null);
   }
 
+  // Handle AI task assignment
+  async function handleAssignAITask(aiType, taskType, sectionName) {
+    console.log('handleAssignAITask called:', { aiType, taskType, sectionName });
+    try {
+      await performAITask(aiType, taskType, sectionName, reportContent);
+    } catch (error) {
+      console.error('AI task assignment failed:', error);
+      setAiFeedback(`❌ AI task failed: ${error.message}`);
+    }
+  }
+
   // Handle submission
   async function handleSubmission() {
     if (!reportContent.trim()) {
@@ -501,6 +627,12 @@ function Submission() {
 
   return (
     <div className="editor-container" onMouseUp={handleTextSelection}>
+      {/* Task Completion Feedback */}
+      <TaskCompletionFeedback 
+        messages={taskCompletionMessages}
+        onRemoveMessage={removeCompletionMessage}
+      />
+      
       <div className="main-editor">
         <AIToolbar
           onSummarize={handleAISummarize}
@@ -515,6 +647,17 @@ function Submission() {
         />
         
         <ChromeAIStatus />
+        
+        {/* Project Title */}
+        {projectData && (
+          <div className="project-title-header">
+            <h1 className="project-title">{projectData.title || 'Untitled Project'}</h1>
+            {projectData.description && (
+              <p className="project-description">{projectData.description}</p>
+            )}
+          </div>
+        )}
+        
         <EditorArea
           content={reportContent}
           onChange={setReportContent}
@@ -532,35 +675,47 @@ function Submission() {
 
       </div>
 
-      <CommentSidebar
-        comments={comments}
-        hasSelection={!!selectionRange}
-        onReply={(commentId, replyText) => {
-          setComments((prev) =>
-            prev.map((c) =>
-              c.id === commentId ? { ...c, replies: [...(c.replies || []), { text: replyText, author: "You", at: Date.now() }] } : c
-            )
-          );
-        }}
-        onAddComment={handleAddComment}
-        onResolve={handleCommentResolve}
-        onHighlightClick={(commentId) => {
-          // Find the highlight range for this comment
-          const highlightRange = highlightedRanges.find(range => range.commentId === commentId);
-          if (highlightRange) {
-            // Scroll to the highlighted text in the editor
-            const highlightElement = document.querySelector(`[data-comment-id="${commentId}"]`);
-            if (highlightElement) {
-              highlightElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              // Add a temporary flash effect
-              highlightElement.style.backgroundColor = '#ff9800';
-              setTimeout(() => {
-                highlightElement.style.backgroundColor = '#ffeb3b';
-              }, 1000);
+      <div className="right-sidebar">
+        {/* Team Panel - positioned above CommentSidebar */}
+        {console.log('TeamPanel render check:', { teamContext, submitted, loadingAIs })}
+        {teamContext && !submitted && (
+          <TeamPanel
+            onAssignTask={handleAssignAITask}
+            loadingAIs={loadingAIs}
+            teamMembers={teamContext}
+          />
+        )}
+        
+        <CommentSidebar
+          comments={comments}
+          hasSelection={!!selectionRange}
+          onReply={(commentId, replyText) => {
+            setComments((prev) =>
+              prev.map((c) =>
+                c.id === commentId ? { ...c, replies: [...(c.replies || []), { text: replyText, author: "You", at: Date.now() }] } : c
+              )
+            );
+          }}
+          onAddComment={handleAddComment}
+          onResolve={handleCommentResolve}
+          onHighlightClick={(commentId) => {
+            // Find the highlight range for this comment
+            const highlightRange = highlightedRanges.find(range => range.commentId === commentId);
+            if (highlightRange) {
+              // Scroll to the highlighted text in the editor
+              const highlightElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+              if (highlightElement) {
+                highlightElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Add a temporary flash effect
+                highlightElement.style.backgroundColor = '#ff9800';
+                setTimeout(() => {
+                  highlightElement.style.backgroundColor = '#ffeb3b';
+                }, 1000);
+              }
             }
-          }
-        }}
-      />
+          }}
+        />
+      </div>
 
       {/* Proofread Suggestion Modal */}
       {showProofreadSuggestion && proofreadData && (

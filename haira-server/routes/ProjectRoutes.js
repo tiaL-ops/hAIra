@@ -1,6 +1,7 @@
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
-import { createProject, getUserProjects, updateUserActiveProject } from '../services/firebaseService.js';
+import { createProject, getUserProjects, updateUserActiveProject, updateDocument, getDocumentById } from '../services/firebaseService.js';
+import { COLLECTIONS } from '../schema/database.js';
 
 const router = express.Router();
 
@@ -71,6 +72,34 @@ router.post('/:projectId/activate', verifyFirebaseToken, async (req, res) => {
 router.get('/:id', (req, res) => {
   const { id } = req.params;
   res.json({ message: `Project ${id} details` });
+});
+
+// Update project team
+router.post('/:id/team', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { team } = req.body;
+    const userId = req.user.uid;
+
+    if (!team || !Array.isArray(team)) {
+      return res.status(400).json({ error: 'Team array is required' });
+    }
+
+    // Update the project with the new team
+    await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
+      team: team,
+      teamUpdatedAt: Date.now()
+    });
+
+    res.json({
+      success: true,
+      team: team,
+      message: 'Team updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating project team:', error);
+    res.status(500).json({ error: 'Failed to update team' });
+  }
 });
 
 // Export the router so we can use it in index.js

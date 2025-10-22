@@ -1,0 +1,263 @@
+/* TeamPanel Styles - Chat-like interface */
+.team-panel {
+  background: #1e293b; /* Dark background to match sidebar */
+  border: 1px solid #334155;
+  border-radius: 8px;
+  margin: 8px; /* Reduced from 16px */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  max-height: 260px; /* Optimized for perfect balance with comments panel */
+  overflow-y: auto;
+  flex: 0 0 auto; /* Don't shrink, maintain size */
+}
+
+.team-panel-header {
+  background: #0f172a; /* Dark header to match sidebar */
+  padding: 8px 12px; /* Reduced padding */
+  border-bottom: 1px solid #334155;
+  border-radius: 8px 8px 0 0;
+  margin-bottom: 0;
+}
+
+.team-panel-header h3 {
+  margin: 0;
+  color: #f1f5f9; /* Light text for dark background */
+  font-size: 0.9rem; /* Slightly smaller */
+  font-weight: 600;
+  text-align: center;
+}
+
+.team-panel-header p {
+  margin: 2px 0 0 0; /* Reduced margin */
+  color: #94a3b8;
+  font-size: 0.7rem; /* Smaller text */
+  text-align: center;
+}
+
+.ai-teammates {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Increased from 6px for better spacing */
+  padding: 12px; /* Increased from 8px for more breathing room */
+}
+
+.ai-teammate {
+  position: relative;
+}
+
+.ai-teammate-card {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Increased from 6px */
+  padding: 10px 12px; /* Increased from 6px 8px */
+  background: #334155; /* Dark background */
+  border: 1px solid #475569;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ai-teammate-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  transform: translateY(-1px);
+}
+
+.ai-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.ai-info {
+  flex: 1;
+}
+
+.ai-info h4 {
+  margin: 0 0 2px 0;
+  color: #f1f5f9; /* Light text for dark background */
+  font-size: 0.8rem; /* Slightly smaller */
+  font-weight: 600;
+}
+
+.ai-info p {
+  margin: 0 0 2px 0;
+  color: #cbd5e1;
+  font-size: 0.7rem; /* Smaller */
+}
+
+.ai-role {
+  font-size: 0.65rem; /* Smaller */
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.ai-status {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* Task Menu */
+.task-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 2px solid #3b82f6;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 8px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+.task-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.task-menu-header h4 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.close-menu {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.close-menu:hover {
+  background-color: #f1f5f9;
+}
+
+.section-input {
+  margin-bottom: 16px;
+}
+
+.section-input label {
+  display: block;
+  margin-bottom: 6px;
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.section-input input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease;
+}
+
+.section-input input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.task-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-option {
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.task-option:hover:not(:disabled) {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.task-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.no-ai-teammates {
+  text-align: center;
+  padding: 20px;
+  color: #64748b;
+  font-style: italic;
+}
+
+/* Right Sidebar Layout */
+.right-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  height: calc(100vh - 180px); /* Adjusted to match new editor padding */
+  background: #1e293b;
+  border-left: 1px solid #334155;
+  border-radius: 12px;
+  padding: 12px; /* Reduced from 20px to give more space for content */
+  margin: 1rem 0 1rem 0; /* Consistent margins with main editor */
+  overflow: hidden;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .right-sidebar {
+    width: 100%;
+    height: auto;
+    border-left: none;
+    border-top: 1px solid #e2e8f0;
+  }
+  
+  .team-panel {
+    margin: 8px;
+    max-height: 300px;
+  }
+  
+  .ai-teammate-card {
+    padding: 6px 8px;
+  }
+  
+  .ai-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.875rem;
+  }
+  
+  .task-menu {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+}

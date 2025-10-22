@@ -1,0 +1,92 @@
+/* TaskCompletionFeedback Styles */
+.task-completion-feedback {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 350px;
+}
+
+.completion-message {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #3b82f6;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ai-emoji {
+  font-size: 1.25rem;
+}
+
+.ai-name {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.875rem;
+  flex: 1;
+}
+
+.close-message {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease;
+}
+
+.close-message:hover {
+  background-color: #f1f5f9;
+}
+
+.message-content {
+  color: #374151;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.message-timestamp {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  text-align: right;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .task-completion-feedback {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+  
+  .completion-message {
+    padding: 12px;
+  }
+}
