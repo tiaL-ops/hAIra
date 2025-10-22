@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import CommentBubble from "./CommentBubble";
 
-export default function CommentSidebar({ comments = [], onReply, onAddComment, onResolve, hasSelection = false }) {
+export default function CommentSidebar({ comments = [], onReply, onAddComment, onResolve, hasSelection = false, onHighlightClick }) {
   const [openNew, setOpenNew] = useState(false);
   const [text, setText] = useState("");
   const [filter, setFilter] = useState('all'); // all, resolved, unresolved
@@ -64,7 +64,7 @@ export default function CommentSidebar({ comments = [], onReply, onAddComment, o
           </div>
         ) : (
           filteredComments.map((c) => (
-            <CommentBubble key={c.id} comment={c} onReply={onReply} onResolve={handleCommentResolve} />
+            <CommentBubble key={c.id} comment={c} onReply={onReply} onResolve={handleCommentResolve} onHighlightClick={onHighlightClick} />
           ))
         )}
       </div>

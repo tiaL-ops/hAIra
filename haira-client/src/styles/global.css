@@ -18,6 +18,16 @@ body {
   padding: 0;
 }
 
+/* Ensure all components use Jersey 10 font */
+* {
+  font-family: "Jersey 10", sans-serif;
+}
+
+/* Exception: Text area content should use Times New Roman */
+.prose, .editor-textarea, .reflection-textarea, .comment-textarea, .reply-textarea {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
 /* small utility */
 h3 { margin: 0 0 8px 0; font-size: 1rem; }
 
@@ -180,7 +190,7 @@ h3 { margin: 0 0 8px 0; font-size: 1rem; }
 }
 
 .collaboration-trigger-btn {
-  background: #17a2b8;
+  background: #B4565A;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -188,10 +198,11 @@ h3 { margin: 0 0 8px 0; font-size: 1rem; }
   cursor: pointer;
   font-size: 16px;
   font-weight: 500;
+  font-family: "Jersey 10", sans-serif;
 }
 
 .collaboration-trigger-btn:hover:not(:disabled) {
-  background: #138496;
+  background: #B4565A;
 }
 
 .collaboration-trigger-btn:disabled {

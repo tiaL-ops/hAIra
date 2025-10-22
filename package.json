@@ -18,6 +18,8 @@
     "mocha": "^11.7.4"
   },
   "dependencies": {
-    "@google/genai": "^1.25.0"
+    "@google/genai": "^1.25.0",
+    "@tiptap/extension-text-align": "^3.7.2",
+    "lucide-react": "^0.546.0"
   }
 }

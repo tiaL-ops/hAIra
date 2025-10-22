@@ -1,7 +1,7 @@
 // src/components/TextEditor/CommentBubble.jsx
 import React, { useState } from "react";
 
-export default function CommentBubble({ comment, onReply, onResolve }) {
+export default function CommentBubble({ comment, onReply, onResolve, onHighlightClick }) {
   const [replyText, setReplyText] = useState("");
   const [showReplies, setShowReplies] = useState(true);
   const [isReplying, setIsReplying] = useState(false);
@@ -58,6 +58,19 @@ export default function CommentBubble({ comment, onReply, onResolve }) {
       {comment.anchor && (
         <div className="comment-anchor">
           <em>"{comment.anchor}"</em>
+          {!comment.resolved ? (
+            <button 
+              className="highlight-text-btn"
+              onClick={() => onHighlightClick && onHighlightClick(comment.id)}
+              title="Click to highlight this text in the editor"
+            >
+              📍 Highlight in text
+            </button>
+          ) : (
+            <span className="highlight-removed-indicator">
+              ✅ Highlight removed (comment resolved)
+            </span>
+          )}
         </div>
       )}
 

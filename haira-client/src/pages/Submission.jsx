@@ -5,9 +5,10 @@ import { useAuth } from '../App';
 import axios from 'axios';
 
 // -- NEW --
-import EditorToolbar from "../components/TextEditor/EditorToolbar";
+import AIToolbar from "../components/TextEditor/AIToolbar";
 import EditorArea from "../components/TextEditor/EditorArea";
 import CommentSidebar from "../components/TextEditor/CommentSidebar";
+import EditorGuide from "../components/TextEditor/EditorGuide";
 import ProofreadSuggestion from "../components/ProofreadSuggestion";
 import ChromeAIStatus from "../components/ChromeAIStatus";
 import MultiAgentCollaboration from "../components/MultiAgentCollaboration";
@@ -31,7 +32,9 @@ function Submission() {
 
   const [comments, setComments] = useState([]); // Start with empty comments
   const [selectionRange, setSelectionRange] = useState(null);
+  const [highlightedRanges, setHighlightedRanges] = useState([]); // Store highlighted text ranges
   const [aiFeedback, setAiFeedback] = useState(null);
+  const [showGuide, setShowGuide] = useState(false);
   const [aiSummary, setAiSummary] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -142,6 +145,7 @@ function Submission() {
 
   // Handle text selection from text editor
   function handleTextSelection(selectionData) {
+    console.log('handleTextSelection called with:', selectionData);
     if (selectionData && selectionData.text) {
       setSelectionRange(selectionData);
       setSelectedText(selectionData.text);
@@ -152,6 +156,9 @@ function Submission() {
 
   // Handle comment resolution
   function handleCommentResolve(commentId) {
+    console.log('Resolving comment:', commentId);
+    
+    // Update comment as resolved
     setComments(prev => 
       prev.map(comment => 
         comment.id === commentId 
@@ -159,14 +166,36 @@ function Submission() {
           : comment
       )
     );
+    
+    // Remove highlight for this comment
+    setHighlightedRanges(prev => {
+      const updated = prev.filter(range => range.commentId !== commentId);
+      console.log('Removed highlight for comment:', commentId, 'Remaining highlights:', updated);
+      return updated;
+    });
+    
+    // Also remove highlight from editor immediately
+    setTimeout(() => {
+      if (editorRef.current) {
+        console.log('Removing highlight from editor for comment:', commentId);
+        
+        // Use the new command to remove highlight by commentId
+        const success = editorRef.current.commands.removeHighlightByCommentId(commentId);
+        console.log('Highlight removal success:', success);
+      }
+    }, 100);
   }
 
   // Handle adding new comment
   function handleAddComment(text) {
+    console.log('Adding comment with text:', text);
+    console.log('Current selectionRange:', selectionRange);
+    
     // Try to capture current selection if none exists
     let currentSelection = selectionRange;
     if (!currentSelection) {
       currentSelection = captureCurrentSelection();
+      console.log('Captured selection:', currentSelection);
     }
     
     const newComment = {
@@ -176,9 +205,42 @@ function Submission() {
       anchor: currentSelection?.text || null, // Use selected text if available, otherwise null
       createdAt: Date.now(),
       resolved: false,
+      selection: currentSelection, // Store the full selection data
     };
     
+    console.log('New comment:', newComment);
     setComments(prev => [newComment, ...prev]);
+    
+    // If there's a selection, add it to highlighted ranges
+    if (currentSelection) {
+      const highlightId = `highlight-${newComment.id}`;
+      const newHighlight = {
+        id: highlightId,
+        commentId: newComment.id,
+        start: currentSelection.start,
+        end: currentSelection.end,
+        text: currentSelection.text
+      };
+      console.log('Adding highlight:', newHighlight);
+      setHighlightedRanges(prev => {
+        const updated = [...prev, newHighlight];
+        console.log('Updated highlightedRanges:', updated);
+        return updated;
+      });
+      
+      // Also try to apply the highlight immediately
+      setTimeout(() => {
+        if (editorRef.current) {
+          console.log('Manually applying highlight immediately...');
+          editorRef.current.commands.setTextSelection({ from: currentSelection.start, to: currentSelection.end });
+          const success = editorRef.current.commands.setHighlight({ commentId: newComment.id });
+          console.log('Manual highlight success:', success);
+        }
+      }, 200);
+    } else {
+      console.log('No selection found, not adding highlight');
+    }
+    
     setSelectionRange(null); // Clear selection after adding comment
     setSelectedText(""); // Also clear selected text
   }
@@ -220,24 +282,20 @@ function Submission() {
     }
   }
 
-  // Function to capture current selection from contentEditable div
+  // Function to capture current selection from TipTap editor
   function captureCurrentSelection() {
     if (!editorRef.current) return null;
     
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return null;
+    const editor = editorRef.current;
+    const { from, to } = editor.state.selection;
     
-    const range = selection.getRangeAt(0);
-    const selectedText = range.toString();
+    if (from === to) return null; // No selection
+    
+    const selectedText = editor.state.doc.textBetween(from, to);
     
     if (!selectedText.trim()) return null;
     
-    // Get position in plain text
-    const plainText = reportContent;
-    const start = plainText.indexOf(selectedText);
-    const end = start + selectedText.length;
-    
-    const selectionData = { text: selectedText, start, end };
+    const selectionData = { text: selectedText, start: from, end: to };
     setSelectionRange(selectionData);
     setSelectedText(selectedText);
     
@@ -425,19 +483,27 @@ function Submission() {
   return (
     <div className="editor-container" onMouseUp={handleTextSelection}>
       <div className="main-editor">
-        <EditorToolbar
+        <AIToolbar
           onSummarize={handleAISummarize}
           onProofread={handleAIProofread}
           onSuggest={handleAISuggest}
           aiFeedback={aiFeedback}
+          onShowGuide={() => setShowGuide(true)}
         />
         
         <ChromeAIStatus />
         <EditorArea
-          ref={editorRef}
-          value={reportContent}
+          content={reportContent}
           onChange={setReportContent}
-          onSelectionChange={handleTextSelection}
+          editorRef={editorRef}
+          highlightedRanges={highlightedRanges}
+          onHighlightClick={(commentId) => {
+            // Scroll to comment in sidebar
+            const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+            if (commentElement) {
+              commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }}
         />
 
         {/* Multi-Agent Collaboration */}
@@ -478,6 +544,22 @@ function Submission() {
         }}
         onAddComment={handleAddComment}
         onResolve={handleCommentResolve}
+        onHighlightClick={(commentId) => {
+          // Find the highlight range for this comment
+          const highlightRange = highlightedRanges.find(range => range.commentId === commentId);
+          if (highlightRange) {
+            // Scroll to the highlighted text in the editor
+            const highlightElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+            if (highlightElement) {
+              highlightElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              // Add a temporary flash effect
+              highlightElement.style.backgroundColor = '#ff9800';
+              setTimeout(() => {
+                highlightElement.style.backgroundColor = '#ffeb3b';
+              }, 1000);
+            }
+          }
+        }}
       />
 
       {/* Proofread Suggestion Modal */}
@@ -490,6 +572,11 @@ function Submission() {
           onClose={handleCloseSuggestion}
         />
       )}
+      
+      <EditorGuide 
+        isVisible={showGuide} 
+        onClose={() => setShowGuide(false)} 
+      />
     </div>
   );
 }
