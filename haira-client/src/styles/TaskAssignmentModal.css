@@ -1,0 +1,330 @@
+/* Clean Dark Modal - Task Assignment */
+.task-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+  animation: overlayFadeIn 0.2s ease-out;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.task-modal {
+  background: #1e293b;
+  border: 1px solid #555555;
+  border-radius: 12px;
+  box-shadow: 0 15px 16px rgba(0, 0, 0, 0.4), 0 8px 8px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalSlideIn 0.3s ease-out;
+  position: relative;
+  font-family: 'Jersey 10', monospace;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.task-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #555555;
+}
+
+.task-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Jersey 10', monospace;
+}
+
+.task-modal-header h3::before {
+  content: '⚡';
+  font-size: 1.2rem;
+  color: #ffd700;
+}
+
+.task-modal-close {
+  background: #dc2626;
+  border: none;
+  font-size: 18px;
+  color: white;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  line-height: 1;
+  font-weight: bold;
+  font-family: 'Jersey 10', monospace;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.task-modal-close:hover {
+  background: #b91c1c;
+  transform: scale(1.05);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.4);
+}
+
+.task-modal-body {
+  padding: 24px;
+}
+
+.ai-teammate-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: #4a4a4a;
+  border-radius: 8px;
+  border: 1px solid #666666;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.ai-teammate-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ai-teammate-details h4 {
+  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffffff;
+  font-family: 'Jersey 10', monospace;
+}
+
+.ai-teammate-role {
+  margin: 0 0 8px 0;
+  font-size: 0.875rem;
+  color: #a78bfa;
+  font-weight: 500;
+  font-family: 'Jersey 10', monospace;
+}
+
+.ai-teammate-description {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #d1d5db;
+  line-height: 1.4;
+  font-family: 'Jersey 10', monospace;
+}
+
+.task-assignment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-family: 'Jersey 10', monospace;
+}
+
+.form-group input {
+  padding: 12px 16px;
+  border: 1px solid #666666;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  background-color: #4a4a4a;
+  color: #ffffff;
+  font-family: 'Jersey 10', monospace;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1), 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.form-group input::placeholder {
+  color: #9ca3af;
+}
+
+/* Clean Task Type Options */
+.task-type-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-type-option {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid #666666;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: #475569;
+  box-shadow: 0 8px 8px rgba(0, 0, 0, 0.3);
+}
+
+.task-type-option:hover {
+  border-color: #a78bfa;
+  background-color: #555555;
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.4);
+}
+
+.task-type-option input[type="radio"] {
+  margin: 0 12px 0 0;
+  accent-color: #a78bfa;
+}
+
+.task-type-option input[type="radio"]:checked + .task-type-content {
+  color: #a78bfa;
+}
+
+.task-type-option:has(input:checked) {
+  border-color: #a78bfa;
+  background-color: #555555;
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(167, 139, 250, 0.1);
+}
+
+.task-type-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.task-type-label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #ffffff;
+  font-family: 'Jersey 10', monospace;
+}
+
+.task-type-description {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-family: 'Jersey 10', monospace;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  min-width: 100px;
+  font-family: 'Jersey 10', monospace;
+}
+
+.btn-primary {
+  background-color: #a78bfa;
+  color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #8b5cf6;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.btn-primary:disabled {
+  background-color: #6b7280;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background-color: #6b7280;
+  color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #4b5563;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.btn-secondary:disabled {
+  background-color: #4b5563;
+  color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .task-modal {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .task-modal-header {
+    padding: 16px 20px 12px;
+  }
+  
+  .task-modal-body {
+    padding: 20px;
+  }
+  
+  .ai-teammate-info {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .btn-primary, .btn-secondary {
+    width: 100%;
+  }
+}

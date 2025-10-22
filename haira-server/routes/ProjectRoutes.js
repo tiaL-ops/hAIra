@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
-import { createProject, getUserProjects, updateUserActiveProject, updateDocument, getDocumentById } from '../services/firebaseService.js';
+import { createProject, getUserProjects, updateUserActiveProject, updateDocument, getDocumentById, getProjectWithTasks } from '../services/firebaseService.js';
 import { COLLECTIONS } from '../schema/database.js';
 
 const router = express.Router();

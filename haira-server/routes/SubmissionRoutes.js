@@ -76,6 +76,97 @@ function cleanContentForReview(htmlContent) {
         .trim();
 }
 
+// Update AI contribution percentage automatically
+async function updateAIContribution(projectId, aiType, taskType) {
+    try {
+        // Get current project data
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
+        if (!projectData) return;
+
+        let contributions = projectData.contributions || [];
+        
+        // Initialize contributions if they don't exist
+        if (contributions.length === 0) {
+            contributions = [
+                { name: "You", percent: 70, role: "Student" },
+                { name: "Alex", percent: 20, role: "AI Manager" },
+                { name: "Sam", percent: 10, role: "AI Helper" },
+            ];
+        }
+
+        // Find the AI teammate
+        const aiName = aiType === 'ai_manager' ? 'Alex' : 'Sam';
+        const aiIndex = contributions.findIndex(c => c.name === aiName);
+        
+        if (aiIndex === -1) return;
+
+        // Calculate contribution points based on task type
+        let contributionPoints = 0;
+        switch (taskType) {
+            case 'write':
+                contributionPoints = 5; // Writing is high value
+                break;
+            case 'review':
+                contributionPoints = 3; // Review is medium value
+                break;
+            case 'suggest':
+                contributionPoints = 2; // Suggestions are lower value
+                break;
+            default:
+                contributionPoints = 1;
+        }
+
+        // Update the AI's contribution
+        contributions[aiIndex].percent = Math.min(100, contributions[aiIndex].percent + contributionPoints);
+        
+        // Balance contributions to reach 100% total
+        const totalContribution = contributions.reduce((sum, c) => sum + c.percent, 0);
+        
+        if (totalContribution > 100) {
+            // If over 100%, reduce user contribution to balance
+            const userIndex = contributions.findIndex(c => c.name === "You");
+            if (userIndex !== -1) {
+                const excess = totalContribution - 100;
+                contributions[userIndex].percent = Math.max(0, contributions[userIndex].percent - excess);
+            }
+        } else if (totalContribution < 100) {
+            // If under 100%, distribute the remaining percentage
+            const remaining = 100 - totalContribution;
+            
+            // Give 60% of remaining to user, 40% to other AI
+            const userIndex = contributions.findIndex(c => c.name === "You");
+            const otherAiIndex = contributions.findIndex(c => c.name !== aiName && c.name !== "You");
+            
+            if (userIndex !== -1) {
+                contributions[userIndex].percent += Math.round(remaining * 0.6);
+            }
+            
+            if (otherAiIndex !== -1) {
+                contributions[otherAiIndex].percent += Math.round(remaining * 0.4);
+            }
+            
+            // Ensure we don't exceed 100%
+            const finalTotal = contributions.reduce((sum, c) => sum + c.percent, 0);
+            if (finalTotal > 100) {
+                const excess = finalTotal - 100;
+                if (userIndex !== -1) {
+                    contributions[userIndex].percent = Math.max(0, contributions[userIndex].percent - excess);
+                }
+            }
+        }
+
+        // Save updated contributions
+        await updateDocument(COLLECTIONS.USER_PROJECTS, projectId, {
+            contributions: contributions,
+            contributionUpdatedAt: Date.now()
+        });
+
+        console.log(`Updated ${aiName} contribution by +${contributionPoints}% for ${taskType} task`);
+    } catch (error) {
+        console.error('Error updating AI contribution:', error);
+    }
+}
+
 
 // Get submission page data (including draft content)
 router.get('/:id/submission', verifyFirebaseToken, async (req, res) => {
@@ -381,9 +472,9 @@ router.get('/:id/contributions', verifyFirebaseToken, async (req, res) => {
         let contributions = projectData.contributions;
         if (!contributions) {
             contributions = [
-                { name: "You", percent: 0, role: "Student" },
-                { name: "Lala", percent: 0, role: "AI Manager" },
-                { name: "Mino", percent: 0, role: "AI Helper" },
+                { name: "You", percent: 70, role: "Student" },
+                { name: "Alex", percent: 20, role: "AI Manager" },
+                { name: "Sam", percent: 10, role: "AI Helper" },
             ];
             
             // Save default contributions
@@ -599,6 +690,9 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
             activity: [...currentActivity, activityLog]
         });
 
+        // Update AI contribution automatically
+        await updateAIContribution(id, aiType, 'write');
+
         res.json({
             success: true,
             aiType: aiType,
@@ -669,6 +763,9 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
             activity: [...currentActivity, activityLog]
         });
 
+        // Update AI contribution automatically
+        await updateAIContribution(id, aiType, 'review');
+
         res.json({
             success: true,
             aiType: aiType,
@@ -732,6 +829,9 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
             activity: [...currentActivity, activityLog]
         });
+
+        // Update AI contribution automatically
+        await updateAIContribution(id, aiType, 'suggest');
 
         res.json({
             success: true,

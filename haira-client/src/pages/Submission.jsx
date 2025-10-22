@@ -678,7 +678,7 @@ function Submission() {
       <div className="right-sidebar">
         {/* Team Panel - positioned above CommentSidebar */}
         {console.log('TeamPanel render check:', { teamContext, submitted, loadingAIs })}
-        {teamContext && !submitted && (
+        {teamContext && (
           <TeamPanel
             onAssignTask={handleAssignAITask}
             loadingAIs={loadingAIs}

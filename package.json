@@ -19,7 +19,10 @@
   },
   "dependencies": {
     "@google/genai": "^1.25.0",
+    "@tiptap/extension-color": "^3.7.2",
     "@tiptap/extension-text-align": "^3.7.2",
-    "lucide-react": "^0.546.0"
+    "@tiptap/extension-text-style": "^3.7.2",
+    "lucide-react": "^0.546.0",
+    "openai": "^6.6.0"
   }
 }

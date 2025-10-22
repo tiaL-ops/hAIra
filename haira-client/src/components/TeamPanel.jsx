@@ -1,34 +1,41 @@
 import React, { useState } from 'react';
 import { AI_TEAMMATES, TASK_TYPES } from '../../../shared/aiReportAgents.js';
+import TaskAssignmentModal from './TaskAssignmentModal';
 
 export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMembers = [] }) {
-  const [showTaskMenu, setShowTaskMenu] = useState(null);
-  const [sectionName, setSectionName] = useState('');
+  const [selectedTeammate, setSelectedTeammate] = useState(null);
 
-  const handleAIClick = (aiType) => {
-    console.log('TeamPanel handleAIClick called:', { aiType });
-    setShowTaskMenu(aiType);
+  const handleAIClick = (teammate) => {
+    console.log('TeamPanel handleAIClick called:', { teammate });
+    setSelectedTeammate(teammate);
   };
 
-  const handleTaskSelect = (aiType, taskType) => {
-    console.log('TeamPanel handleTaskSelect called:', { aiType, taskType, sectionName });
-    onAssignTask(aiType, taskType, sectionName);
-    setShowTaskMenu(null);
-    setSectionName('');
-  };
-
-  const getTaskTypeLabel = (taskType) => {
+  const handleAssignTask = (aiType, taskType, sectionName) => {
+    console.log('TeamPanel handleAssignTask called:', { aiType, taskType, sectionName });
+    // Map task type from modal to TASK_TYPES
+    let mappedTaskType;
     switch (taskType) {
-      case TASK_TYPES.WRITE_SECTION:
-        return '✍️ Write Section';
-      case TASK_TYPES.REVIEW:
-        return '👀 Review';
-      case TASK_TYPES.SUGGEST_IMPROVEMENTS:
-        return '💡 Suggest Improvements';
+      case 'write':
+        mappedTaskType = TASK_TYPES.WRITE_SECTION;
+        break;
+      case 'review':
+        mappedTaskType = TASK_TYPES.REVIEW;
+        break;
+      case 'suggest':
+        mappedTaskType = TASK_TYPES.SUGGEST_IMPROVEMENTS;
+        break;
       default:
-        return taskType;
+        mappedTaskType = TASK_TYPES.WRITE_SECTION;
     }
+    
+    onAssignTask(aiType, mappedTaskType, sectionName);
+    setSelectedTeammate(null);
   };
+
+  const handleCloseModal = () => {
+    setSelectedTeammate(null);
+  };
+
 
   const getAITeammate = (memberId) => {
     // Map memberId to the correct AI_TEAMMATES key
@@ -61,7 +68,7 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
             <div 
               className="ai-teammate-card"
               style={{ borderColor: teammate.color }}
-              onClick={() => handleAIClick(teammate.id)}
+              onClick={() => handleAIClick(teammate)}
             >
               <div className="ai-avatar" style={{ backgroundColor: teammate.color }}>
                 {teammate.emoji}
@@ -76,56 +83,6 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
               </div>
             </div>
 
-            {/* Task Menu */}
-            {showTaskMenu === teammate.id && (
-              <div className="task-menu">
-                <div className="task-menu-header">
-                  <h4>Assign Task to {teammate.name}</h4>
-                  <button 
-                    className="close-menu"
-                    onClick={() => setShowTaskMenu(null)}
-                  >
-                    ✕
-                  </button>
-                </div>
-                
-                <div className="section-input">
-                  <label>Section Name (optional):</label>
-                  <input
-                    type="text"
-                    value={sectionName}
-                    onChange={(e) => setSectionName(e.target.value)}
-                    placeholder="e.g., Introduction, Conclusion"
-                  />
-                </div>
-
-                <div className="task-options">
-                  <button
-                    className="task-option"
-                    onClick={() => handleTaskSelect(teammate.id, TASK_TYPES.WRITE_SECTION)}
-                    disabled={loadingAIs.has(teammate.id)}
-                  >
-                    {getTaskTypeLabel(TASK_TYPES.WRITE_SECTION)}
-                  </button>
-                  
-                  <button
-                    className="task-option"
-                    onClick={() => handleTaskSelect(teammate.id, TASK_TYPES.REVIEW)}
-                    disabled={loadingAIs.has(teammate.id)}
-                  >
-                    {getTaskTypeLabel(TASK_TYPES.REVIEW)}
-                  </button>
-                  
-                  <button
-                    className="task-option"
-                    onClick={() => handleTaskSelect(teammate.id, TASK_TYPES.SUGGEST_IMPROVEMENTS)}
-                    disabled={loadingAIs.has(teammate.id)}
-                  >
-                    {getTaskTypeLabel(TASK_TYPES.SUGGEST_IMPROVEMENTS)}
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         ))}
       </div>
@@ -134,6 +91,17 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
         <div className="no-ai-teammates">
           <p>No AI teammates found. They will be added automatically.</p>
         </div>
+      )}
+
+      {/* Task Assignment Modal */}
+      {selectedTeammate && (
+        <TaskAssignmentModal
+          isOpen={!!selectedTeammate}
+          onClose={handleCloseModal}
+          aiTeammate={selectedTeammate}
+          onAssignTask={handleAssignTask}
+          isLoading={loadingAIs.has(selectedTeammate.id)}
+        />
       )}
     </div>
   );

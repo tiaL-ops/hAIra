@@ -38,13 +38,44 @@ export const useAITeam = (projectId, editorRef) => {
     const docSize = editor.state.doc.content.size;
     editor.commands.setTextSelection({ from: docSize, to: docSize });
     
-    // Use red background for review tasks, otherwise use default backgrounds
-    const backgroundColor = (taskType === 'review') ? '#FEF2F2' : (aiType === 'ai_manager' ? '#EFF6FF' : '#F0F9FF');
+    // Insert the text first
+    editor.commands.insertContent(`<p>${text}</p>`);
     
-    // Insert the text with color styling at the end using TipTap's textStyle
-    editor.commands.insertContent(
-      `<p><span data-ai-type="${aiType}" style="color: ${color}; font-weight: 500; background-color: ${backgroundColor}; padding: 2px 4px; border-radius: 3px; border-left: 3px solid ${color};">${text}</span></p>`
-    );
+    // Then apply color and highlight using TipTap commands
+    const newDocSize = editor.state.doc.content.size;
+    const textLength = text.length;
+    editor.commands.setTextSelection({ 
+      from: newDocSize - textLength - 7, // -7 for <p></p> tags
+      to: newDocSize - 4 // -4 for </p> tag
+    });
+    editor.commands.setColor(color);
+    
+    // Apply highlight based on task type
+    if (taskType === 'review') {
+      editor.commands.setHighlight({ color: '#FEF2F2' }); // Light red highlight
+    } else if (taskType === 'suggest') {
+      editor.commands.setHighlight({ color: '#FFF7ED' }); // Light orange highlight
+    } else {
+      // For write tasks, use light blue/green highlight
+      const highlightColor = aiType === 'ai_manager' ? '#EFF6FF' : '#F0F9FF';
+      editor.commands.setHighlight({ color: highlightColor });
+    }
+
+    const editorState = useEditorState({
+    editor,
+    selector: ctx => {
+      return {
+        color: ctx.editor.getAttributes('textStyle').color,
+        isPurple: ctx.editor.isActive('textStyle', { color: '#958DF1' }),
+        isRed: ctx.editor.isActive('textStyle', { color: '#F98181' }),
+        isOrange: ctx.editor.isActive('textStyle', { color: '#FBBC88' }),
+        isYellow: ctx.editor.isActive('textStyle', { color: '#FAF594' }),
+        isBlue: ctx.editor.isActive('textStyle', { color: '#70CFF8' }),
+        isTeal: ctx.editor.isActive('textStyle', { color: '#94FADB' }),
+        isGreen: ctx.editor.isActive('textStyle', { color: '#B9F18D' }),
+      }
+    },
+  })
   }, [editorRef]);
 
   // Insert AI review text as plain text without HTML wrapping
@@ -57,10 +88,18 @@ export const useAITeam = (projectId, editorRef) => {
     const docSize = editor.state.doc.content.size;
     editor.commands.setTextSelection({ from: docSize, to: docSize });
     
-    // Insert plain text with red color styling but no HTML span wrapper
-    editor.commands.insertContent(
-      `<p style="color: #DC2626; font-weight: 500; background-color: #FEF2F2; padding: 8px 12px; border-radius: 4px; border-left: 4px solid #DC2626; margin: 8px 0;">${text}</p>`
-    );
+    // Insert the text first
+    editor.commands.insertContent(`<p>${text}</p>`);
+    
+    // Then apply red color and highlight using TipTap commands
+    const newDocSize = editor.state.doc.content.size;
+    const textLength = text.length;
+    editor.commands.setTextSelection({ 
+      from: newDocSize - textLength - 7, // -7 for <p></p> tags
+      to: newDocSize - 4 // -4 for </p> tag
+    });
+    editor.commands.setColor('#DC2626');
+    editor.commands.setHighlight({ color: '#FEF2F2' }); // Light red highlight
   }, [editorRef]);
 
   // Insert AI suggest text as plain text without HTML wrapping
@@ -73,10 +112,18 @@ export const useAITeam = (projectId, editorRef) => {
     const docSize = editor.state.doc.content.size;
     editor.commands.setTextSelection({ from: docSize, to: docSize });
     
-    // Insert plain text with orange color styling for suggestions
-    editor.commands.insertContent(
-      `<p style="color: #EA580C; font-weight: 500; background-color: #FFF7ED; padding: 8px 12px; border-radius: 4px; border-left: 4px solid #EA580C; margin: 8px 0;">${text}</p>`
-    );
+    // Insert the text first
+    editor.commands.insertContent(`<p>${text}</p>`);
+    
+    // Then apply orange color and highlight using TipTap commands
+    const newDocSize = editor.state.doc.content.size;
+    const textLength = text.length;
+    editor.commands.setTextSelection({ 
+      from: newDocSize - textLength - 7, // -7 for <p></p> tags
+      to: newDocSize - 4 // -4 for </p> tag
+    });
+    editor.commands.setColor('#EA580C');
+    editor.commands.setHighlight({ color: '#FFF7ED' }); // Light orange highlight
   }, [editorRef]);
 
   // Add AI comment to the editor
@@ -96,22 +143,40 @@ export const useAITeam = (projectId, editorRef) => {
       ai_helper: '#F0F9FF'
     };
     
-    // Use red for review tasks, otherwise use default colors
-    const color = (taskType === 'review') ? '#DC2626' : (colors[aiType] || '#000000');
-    const background = (taskType === 'review') ? '#FEF2F2' : (backgrounds[aiType] || '#F9FAFB');
+    // Use red for review tasks, orange for suggest, otherwise use default colors
+    let color, highlightColor;
+    if (taskType === 'review') {
+      color = '#DC2626';
+      highlightColor = '#FEF2F2';
+    } else if (taskType === 'suggest') {
+      color = '#EA580C';
+      highlightColor = '#FFF7ED';
+    } else {
+      color = colors[aiType] || '#000000';
+      highlightColor = backgrounds[aiType] || '#F9FAFB';
+    }
     
     // If no selection, insert at current cursor position
     if (from === to) {
       const cursorPos = editor.state.selection.from;
-      editor.commands.insertContent(
-        `<span class="ai-comment" data-ai-type="${aiType}" style="background-color: ${background}; padding: 2px 4px; border-radius: 3px; border-left: 3px solid ${color};">${text}</span>`
-      );
+      editor.commands.insertContent(`<span class="ai-comment" data-ai-type="${aiType}">${text}</span>`);
+      
+      // Apply color and highlight to the inserted text
+      const newPos = cursorPos + text.length + 50; // Approximate position after insertion
+      editor.commands.setTextSelection({ from: cursorPos, to: newPos });
+      editor.commands.setColor(color);
+      editor.commands.setHighlight({ color: highlightColor });
     } else {
       // If there's a selection, wrap it with the comment
       const selectedText = editor.state.doc.textBetween(from, to);
       editor.commands.insertContent(
-        `<span class="ai-comment" data-ai-type="${aiType}" style="background-color: ${background}; padding: 2px 4px; border-radius: 3px; border-left: 3px solid ${color};">${selectedText}</span>`
+        `<span class="ai-comment" data-ai-type="${aiType}">${selectedText}</span>`
       );
+      
+      // Apply color and highlight to the wrapped text
+      editor.commands.setTextSelection({ from, to: to + 50 }); // Approximate new position
+      editor.commands.setColor(color);
+      editor.commands.setHighlight({ color: highlightColor });
     }
   }, [editorRef]);
 
