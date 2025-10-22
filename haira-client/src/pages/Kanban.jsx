@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 import { useAuth } from '../App';
+import KanbanBoard from "../components/kanbanBoard";
 
 const backend_host = "http://localhost:3002";
 
@@ -107,7 +108,9 @@ function Kanban() {
                     </ul>
                 </div>
             )}
+            <KanbanBoard />
         </div>
+        
     );
 }
 
