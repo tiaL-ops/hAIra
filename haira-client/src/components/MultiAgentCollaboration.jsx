@@ -5,42 +5,30 @@ import axios from 'axios';
 const backend_host = "http://localhost:3002";
 
 export default function MultiAgentCollaboration({ projectId, reportContent, onContentUpdate }) {
-  const [lalaResponse, setLalaResponse] = useState("");
-  const [minoResponse, setMinoResponse] = useState("");
-  const [isLalaTyping, setIsLalaTyping] = useState(false);
-  const [isMinoTyping, setIsMinoTyping] = useState(false);
+  const [alexResponse, setAlexResponse] = useState("");
+  const [samResponse, setSamResponse] = useState("");
+  const [isAlexTyping, setIsAlexTyping] = useState(false);
+  const [isSamTyping, setIsSamTyping] = useState(false);
   const [showCollaboration, setShowCollaboration] = useState(false);
   const [applyingSuggestion, setApplyingSuggestion] = useState(null);
-
-  // Auto-trigger AI responses when content changes significantly
-  useEffect(() => {
-    if (!reportContent.trim() || reportContent.length < 50) return;
-
-    const timeout = setTimeout(() => {
-      triggerAICollaboration();
-    }, 3000); // Wait 3 seconds after user stops typing
-
-    return () => clearTimeout(timeout);
-  }, [reportContent]);
-
   const triggerAICollaboration = async () => {
     if (!reportContent.trim()) return;
 
-    // Trigger both AI personas
+    // Trigger both AI teammates
     await Promise.all([
-      getLalaResponse(),
-      getMinoResponse()
+      getAlexResponse(),
+      getSamResponse()
     ]);
   };
 
-  const getLalaResponse = async () => {
+  const getAlexResponse = async () => {
     try {
-      setIsLalaTyping(true);
+      setIsAlexTyping(true);
       const token = await getIdTokenSafely();
       
       const response = await axios.post(`${backend_host}/api/project/${projectId}/ai/respond`, {
         prompt: `Please review this project content and provide feedback: ${reportContent}`,
-        persona: 'lala'
+        persona: 'alex'
       }, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -49,24 +37,24 @@ export default function MultiAgentCollaboration({ projectId, reportContent, onCo
       });
 
       if (response.data.success) {
-        setLalaResponse(response.data.response);
+        setAlexResponse(response.data.response);
         setShowCollaboration(true);
       }
     } catch (err) {
-      console.error("Lala response error:", err);
+      console.error("Alex response error:", err);
     } finally {
-      setIsLalaTyping(false);
+      setIsAlexTyping(false);
     }
   };
 
-  const getMinoResponse = async () => {
+  const getSamResponse = async () => {
     try {
-      setIsMinoTyping(true);
+      setIsSamTyping(true);
       const token = await getIdTokenSafely();
       
       const response = await axios.post(`${backend_host}/api/project/${projectId}/ai/respond`, {
         prompt: `What do you think about this project content: ${reportContent}`,
-        persona: 'mino'
+        persona: 'sam'
       }, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -75,13 +63,13 @@ export default function MultiAgentCollaboration({ projectId, reportContent, onCo
       });
 
       if (response.data.success) {
-        setMinoResponse(response.data.response);
+        setSamResponse(response.data.response);
         setShowCollaboration(true);
       }
     } catch (err) {
-      console.error("Mino response error:", err);
+      console.error("Sam response error:", err);
     } finally {
-      setIsMinoTyping(false);
+      setIsSamTyping(false);
     }
   };
 
@@ -89,46 +77,46 @@ export default function MultiAgentCollaboration({ projectId, reportContent, onCo
     triggerAICollaboration();
   };
 
-  const handleApplyLalaSuggestion = () => {
-    if (!lalaResponse) return;
+  const handleApplyAlexSuggestion = () => {
+    if (!alexResponse) return;
     
-    setApplyingSuggestion('lala');
+    setApplyingSuggestion('alex');
     
-    // Parse Lala's response for actionable suggestions
-    const suggestions = parseAISuggestions(lalaResponse, 'lala');
+    // Parse Alex's response for actionable suggestions
+    const suggestions = parseAISuggestions(alexResponse, 'alex');
     if (suggestions.length > 0) {
       // Apply the first suggestion to the content
       const updatedContent = applySuggestionToContent(reportContent, suggestions[0]);
       onContentUpdate(updatedContent);
-      setLalaResponse(""); // Clear the response after applying
+        setAlexResponse(""); // Clear the response after applying
     } else {
       // If no specific suggestions found, just add a note
-      const note = "\n\n[Lala's Note: " + lalaResponse + "]";
+      const note = "\n\n[Alex's Note: " + alexResponse + "]";
       onContentUpdate(reportContent + note);
-      setLalaResponse("");
+      setAlexResponse("");
     }
     
     // Clear applying state after a short delay
     setTimeout(() => setApplyingSuggestion(null), 1000);
   };
 
-  const handleApplyMinoSuggestion = () => {
-    if (!minoResponse) return;
+  const handleApplySamSuggestion = () => {
+    if (!samResponse) return;
     
-    setApplyingSuggestion('mino');
+    setApplyingSuggestion('sam');
     
-    // Parse Mino's response for suggestions
-    const suggestions = parseAISuggestions(minoResponse, 'mino');
+    // Parse Sam's response for suggestions
+    const suggestions = parseAISuggestions(samResponse, 'sam');
     if (suggestions.length > 0) {
       // Apply the first suggestion to the content
       const updatedContent = applySuggestionToContent(reportContent, suggestions[0]);
       onContentUpdate(updatedContent);
-      setMinoResponse(""); // Clear the response after applying
+      setSamResponse(""); // Clear the response after applying
     } else {
       // If no specific suggestions found, just add a note
-      const note = "\n\n[Mino's Note: " + minoResponse + "]";
+      const note = "\n\n[Sam's Note: " + samResponse + "]";
       onContentUpdate(reportContent + note);
-      setMinoResponse("");
+      setSamResponse("");
     }
     
     // Clear applying state after a short delay
@@ -161,7 +149,7 @@ export default function MultiAgentCollaboration({ projectId, reportContent, onCo
           target: match[1] || 'content',
           action: match[0],
           persona: persona,
-          priority: persona === 'lala' ? 'high' : 'low'
+          priority: persona === 'alex' ? 'high' : 'low'
         });
       }
     });
@@ -258,7 +246,7 @@ Target: ${suggestion.target}
     return null;
   }
 
-  if (!showCollaboration && !isLalaTyping && !isMinoTyping) {
+    if (!showCollaboration && !isAlexTyping && !isSamTyping) {
     return (
       <div className="multi-agent-trigger">
         <button 
@@ -285,51 +273,51 @@ Target: ${suggestion.target}
       </div>
 
       <div className="ai-responses">
-        {/* Lala (Manager AI) */}
-        <div className="ai-response lala-response">
+        {/* Alex (Manager AI) */}
+        <div className="ai-response alex-response">
           <div className="ai-header">
             <div className="ai-avatar">👩‍💼</div>
             <div className="ai-info">
-              <strong>Lala</strong>
+              <strong>Alex</strong>
               <span>AI Manager</span>
             </div>
-            {isLalaTyping && <div className="typing-indicator">💭 Thinking...</div>}
+            {isAlexTyping && <div className="typing-indicator">💭 Thinking...</div>}
           </div>
           
-          {lalaResponse && (
+          {alexResponse && (
             <div className="ai-content">
-              <p>{lalaResponse}</p>
+              <p>{alexResponse}</p>
               <button 
                 className="apply-suggestion-btn"
-                onClick={handleApplyLalaSuggestion}
-                disabled={applyingSuggestion === 'lala'}
+                onClick={handleApplyAlexSuggestion}
+                disabled={applyingSuggestion === 'alex'}
               >
-                {applyingSuggestion === 'lala' ? 'Applying...' : 'Apply Lala\'s Suggestions'}
+                {applyingSuggestion === 'alex' ? 'Applying...' : 'Apply Alex\'s Suggestions'}
               </button>
             </div>
           )}
         </div>
 
-        {/* Mino (Slacker AI) */}
-        <div className="ai-response mino-response">
+        {/* Sam (Slacker AI) */}
+        <div className="ai-response sam-response">
           <div className="ai-header">
             <div className="ai-avatar">😴</div>
             <div className="ai-info">
-              <strong>Mino</strong>
+              <strong>Sam</strong>
               <span>AI Helper</span>
             </div>
-            {isMinoTyping && <div className="typing-indicator">💭 Thinking...</div>}
+            {isSamTyping && <div className="typing-indicator">💭 Thinking...</div>}
           </div>
           
-          {minoResponse && (
+            {samResponse && (
             <div className="ai-content">
-              <p>{minoResponse}</p>
+              <p>{samResponse}</p>
               <button 
                 className="apply-suggestion-btn"
-                onClick={handleApplyMinoSuggestion}
-                disabled={applyingSuggestion === 'mino'}
+                onClick={handleApplySamSuggestion}
+                disabled={applyingSuggestion === 'sam'}
               >
-                {applyingSuggestion === 'mino' ? 'Applying...' : 'Apply Mino\'s Suggestions'}
+                {applyingSuggestion === 'sam' ? 'Applying...' : 'Apply Sam\'s Suggestions'}
               </button>
             </div>
           )}
@@ -340,7 +328,7 @@ Target: ${suggestion.target}
         <button 
           className="refresh-collaboration-btn"
           onClick={handleManualTrigger}
-          disabled={isLalaTyping || isMinoTyping}
+          disabled={isAlexTyping || isSamTyping}
         >
           🔄 Refresh AI Responses
         </button>

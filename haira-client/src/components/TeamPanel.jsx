@@ -1,27 +1,5 @@
 import React, { useState } from 'react';
-
-const TASK_TYPES = {
-  WRITE_SECTION: 'write_section',
-  REVIEW: 'review',
-  SUGGEST_IMPROVEMENTS: 'suggest_improvements'
-};
-
-const AI_TEAMMATES = {
-  ai_manager: {
-    id: 'ai_manager',
-    name: 'Alex (Project Manager)',
-    emoji: '🧠',
-    color: '#4A90E2',
-    description: 'Organized & deadline-focused'
-  },
-  ai_helper: {
-    id: 'ai_helper',
-    name: 'Sam (Helper)',
-    emoji: '😴',
-    color: '#93C263',
-    description: 'Lazy & creative'
-  }
-};
+import { AI_TEAMMATES, TASK_TYPES } from '../../../shared/aiReportAgents.js';
 
 export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMembers = [] }) {
   const [showTaskMenu, setShowTaskMenu] = useState(null);
@@ -53,7 +31,13 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
   };
 
   const getAITeammate = (memberId) => {
-    return AI_TEAMMATES[memberId] || null;
+    // Map memberId to the correct AI_TEAMMATES key
+    if (memberId === 'ai_manager') {
+      return AI_TEAMMATES.MANAGER;
+    } else if (memberId === 'ai_helper') {
+      return AI_TEAMMATES.LAZY;
+    }
+    return null;
   };
 
   // Filter AI teammates from team members

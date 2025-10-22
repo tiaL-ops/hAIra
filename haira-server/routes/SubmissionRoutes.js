@@ -13,8 +13,6 @@ import {
     generateAIContribution,
     getChromeWriteSuggestion
 } from '../api/geminiService.js';
-import { LALA_CONFIG, LALA_SYSTEM_PROMPT } from '../lib/ai/agents/lalaPrompt.js';
-import { MINO_CONFIG, MINO_SYSTEM_PROMPT } from '../lib/ai/agents/minoPrompt.js';
 import { AI_TEAMMATES, TASK_TYPES } from '../config/aiReportAgents.js';
 
 const router = express.Router()
@@ -55,12 +53,27 @@ function cleanAIResponse(text) {
     if (!text) return '';
     return text
       .replace(/```[\s\S]*?```/g, (match) => {
-        // If it’s a fenced code block, strip the fences but keep inner text
+        // If it's a fenced code block, strip the fences but keep inner text
         return match.replace(/```[a-zA-Z]*\n?/, '').replace(/```$/, '');
       })
       .replace(/^```[a-zA-Z]*\s*/gm, '') // remove starting ```html or ```json
       .replace(/```$/gm, '') // remove ending ```
       .trim();
+}
+
+// Clean HTML content for AI review - extract readable text
+function cleanContentForReview(htmlContent) {
+    if (!htmlContent) return '';
+    
+    return htmlContent
+        // Remove HTML tags but keep the text content
+        .replace(/<[^>]*>/g, ' ')
+        // Remove multiple spaces and normalize whitespace
+        .replace(/\s+/g, ' ')
+        // Remove AI prefixes like [Alex] or [Sam]
+        .replace(/\[(Alex|Sam|Lala|Mino)\]\s*/g, '')
+        // Clean up any remaining artifacts
+        .trim();
 }
 
 
@@ -503,16 +516,14 @@ router.post('/:id/ai/respond', verifyFirebaseToken, async (req, res) => {
     }
 
     try {
-        let systemPrompt, personaConfig;
+        let aiTeammate;
         if (persona === 'lala') {
-            systemPrompt = LALA_SYSTEM_PROMPT;
-            personaConfig = LALA_CONFIG;
+            aiTeammate = AI_TEAMMATES.MANAGER;
         } else if (persona === 'mino') {
-            systemPrompt = MINO_SYSTEM_PROMPT;
-            personaConfig = MINO_CONFIG;
+            aiTeammate = AI_TEAMMATES.LAZY;
         }
 
-        const aiResponse = await generateAIContribution(prompt, personaConfig, systemPrompt);
+        const aiResponse = await generateAIContribution(prompt, aiTeammate.config, aiTeammate.prompt);
         const cleanedResponse = cleanAIResponse(aiResponse)
 
         res.json({
@@ -623,10 +634,19 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         await ensureProjectExists(id, userId);
         const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
         
-        const taskPrompt = `Review the following content and provide feedback on structure, clarity, and completeness:
-        ${currentContent || 'No content to review.'}
+        // Clean the content to remove HTML markup for better AI review
+        const cleanedContent = cleanContentForReview(currentContent);
         
-        Focus on what works well and what could be improved.`;
+        const taskPrompt = `Review the following content and provide helpful feedback on:
+        - Content quality and clarity
+        - Logical flow and organization  
+        - Completeness of ideas
+        - Writing style and tone
+        
+        Content to review:
+        ${cleanedContent || 'No content to review.'}
+        
+        IMPORTANT: Provide your feedback in plain text only. Do not use any HTML tags, markdown formatting, or special characters. Just write clear, helpful feedback in simple text format.`;
         
         const aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
         const cleanedResponse = cleanAIResponse(aiResponse);
@@ -653,7 +673,7 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
             success: true,
             aiType: aiType,
             response: prefixedResponse,
-            responseType: 'comment',
+            responseType: 'review',
             completionMessage: completionMessage,
             timestamp: Date.now()
         });
@@ -684,10 +704,13 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         await ensureProjectExists(id, userId);
         const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
         
-        const taskPrompt = `Suggest specific improvements for this content:
-        ${currentContent || 'No content to improve.'}
+        // Clean the content to remove HTML markup for better AI suggestions
+        const cleanedContent = cleanContentForReview(currentContent);
         
-        Provide actionable suggestions for enhancement.`;
+        const taskPrompt = `Suggest specific improvements for this content:
+        ${cleanedContent || 'No content to improve.'}
+        
+        IMPORTANT: Provide your suggestions in plain text only. Do not use any HTML tags, markdown formatting, or special characters. Just write clear, actionable suggestions in simple text format.`;
         
         const aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
         const cleanedResponse = cleanAIResponse(aiResponse);
@@ -714,7 +737,7 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
             success: true,
             aiType: aiType,
             response: prefixedResponse,
-            responseType: 'comment',
+            responseType: 'suggest',
             completionMessage: completionMessage,
             timestamp: Date.now()
         });

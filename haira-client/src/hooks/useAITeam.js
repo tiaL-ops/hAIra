@@ -22,7 +22,7 @@ export const useAITeam = (projectId, editorRef) => {
   };
 
   // Insert AI text at the end of document with color marking
-  const insertAIText = useCallback((text, aiType) => {
+  const insertAIText = useCallback((text, aiType, taskType = '') => {
     if (!editorRef.current) return;
 
     const editor = editorRef.current;
@@ -31,20 +31,56 @@ export const useAITeam = (projectId, editorRef) => {
       ai_helper: '#93C263'   // Green
     };
 
-    const color = colors[aiType] || '#000000';
+    // Use red for review tasks, otherwise use default colors
+    const color = (taskType === 'review') ? '#DC2626' : (colors[aiType] || '#000000');
     
     // Move cursor to end of document
     const docSize = editor.state.doc.content.size;
     editor.commands.setTextSelection({ from: docSize, to: docSize });
     
+    // Use red background for review tasks, otherwise use default backgrounds
+    const backgroundColor = (taskType === 'review') ? '#FEF2F2' : (aiType === 'ai_manager' ? '#EFF6FF' : '#F0F9FF');
+    
     // Insert the text with color styling at the end using TipTap's textStyle
     editor.commands.insertContent(
-      `<p><span data-ai-type="${aiType}" style="color: ${color}; font-weight: 500; background-color: ${aiType === 'ai_manager' ? '#EFF6FF' : '#F0F9FF'}; padding: 2px 4px; border-radius: 3px; border-left: 3px solid ${color};">${text}</span></p>`
+      `<p><span data-ai-type="${aiType}" style="color: ${color}; font-weight: 500; background-color: ${backgroundColor}; padding: 2px 4px; border-radius: 3px; border-left: 3px solid ${color};">${text}</span></p>`
+    );
+  }, [editorRef]);
+
+  // Insert AI review text as plain text without HTML wrapping
+  const insertReviewText = useCallback((text, aiType) => {
+    if (!editorRef.current) return;
+
+    const editor = editorRef.current;
+    
+    // Move cursor to end of document
+    const docSize = editor.state.doc.content.size;
+    editor.commands.setTextSelection({ from: docSize, to: docSize });
+    
+    // Insert plain text with red color styling but no HTML span wrapper
+    editor.commands.insertContent(
+      `<p style="color: #DC2626; font-weight: 500; background-color: #FEF2F2; padding: 8px 12px; border-radius: 4px; border-left: 4px solid #DC2626; margin: 8px 0;">${text}</p>`
+    );
+  }, [editorRef]);
+
+  // Insert AI suggest text as plain text without HTML wrapping
+  const insertSuggestText = useCallback((text, aiType) => {
+    if (!editorRef.current) return;
+
+    const editor = editorRef.current;
+    
+    // Move cursor to end of document
+    const docSize = editor.state.doc.content.size;
+    editor.commands.setTextSelection({ from: docSize, to: docSize });
+    
+    // Insert plain text with orange color styling for suggestions
+    editor.commands.insertContent(
+      `<p style="color: #EA580C; font-weight: 500; background-color: #FFF7ED; padding: 8px 12px; border-radius: 4px; border-left: 4px solid #EA580C; margin: 8px 0;">${text}</p>`
     );
   }, [editorRef]);
 
   // Add AI comment to the editor
-  const addAIComment = useCallback((text, aiType) => {
+  const addAIComment = useCallback((text, aiType, taskType = '') => {
     if (!editorRef.current) return;
 
     const editor = editorRef.current;
@@ -60,8 +96,9 @@ export const useAITeam = (projectId, editorRef) => {
       ai_helper: '#F0F9FF'
     };
     
-    const color = colors[aiType] || '#000000';
-    const background = backgrounds[aiType] || '#F9FAFB';
+    // Use red for review tasks, otherwise use default colors
+    const color = (taskType === 'review') ? '#DC2626' : (colors[aiType] || '#000000');
+    const background = (taskType === 'review') ? '#FEF2F2' : (backgrounds[aiType] || '#F9FAFB');
     
     // If no selection, insert at current cursor position
     if (from === to) {
@@ -128,9 +165,13 @@ export const useAITeam = (projectId, editorRef) => {
 
       // Handle the response based on type
       if (responseType === 'text') {
-        insertAIText(aiResponse, aiType);
+        insertAIText(aiResponse, aiType, taskType);
       } else if (responseType === 'comment') {
-        addAIComment(aiResponse, aiType);
+        addAIComment(aiResponse, aiType, taskType);
+      } else if (responseType === 'review') {
+        insertReviewText(aiResponse, aiType);
+      } else if (responseType === 'suggest') {
+        insertSuggestText(aiResponse, aiType);
       }
 
       // Add completion message to the feedback system
