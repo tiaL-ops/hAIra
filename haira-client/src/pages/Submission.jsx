@@ -11,7 +11,6 @@ import CommentSidebar from "../components/TextEditor/CommentSidebar";
 import EditorGuide from "../components/TextEditor/EditorGuide";
 import ProofreadSuggestion from "../components/ProofreadSuggestion";
 import ChromeAIStatus from "../components/ChromeAIStatus";
-import MultiAgentCollaboration from "../components/MultiAgentCollaboration";
 import { getChromeProofreadSuggestions, getChromeSummary } from "../utils/chromeAPI";
 import "../styles/editor.css";
 import "../styles/global.css";
@@ -90,10 +89,23 @@ function Submission() {
 
   // Autosave effect
   useEffect(() => {
-    if (!reportContent.trim() || !id || submitted) return;
+    // Don't auto-save if no project ID, already submitted, or no content
+    if (!id || submitted) {
+      console.log('Auto-save skipped: no id or already submitted');
+      return;
+    }
+
+    // Don't auto-save empty content on initial load
+    if (!reportContent.trim() && saveStatus === "Auto-saving…") {
+      console.log('Auto-save skipped: empty content on initial load');
+      return;
+    }
+
+    console.log('Auto-save triggered for content:', reportContent.substring(0, 50) + '...');
 
     const timeout = setTimeout(async () => {
       try {
+        console.log('Auto-saving...');
         setSaveStatus("Saving...");
         const token = await getIdTokenSafely();
         
@@ -107,15 +119,16 @@ function Submission() {
           }
         );
         
+        console.log('Auto-save successful');
         setSaveStatus("Saved ✓");
       } catch (err) {
-        setSaveStatus("Save failed");
         console.error("Draft save error", err);
+        setSaveStatus("Save failed");
       }
-    }, 2000);
+    }, 5000);
 
     return () => clearTimeout(timeout);
-  }, [reportContent, id, submitted]);
+  }, [reportContent, id, submitted, saveStatus]);
 
 
   // Add Comment for selected text
@@ -365,24 +378,6 @@ function Submission() {
     }
   }
 
-  async function handleAISuggest() {
-    try {
-      const token = await getIdTokenSafely();
-      const res = await axios.post(`${backend_host}/api/project/${id}/ai/suggest`, 
-        { content: reportContent },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          }
-        }
-      );
-      setAiFeedback(res.data?.suggestions || "No response.");
-    } catch (err) {
-      console.error("AI Suggest error", err);
-      setAiFeedback("AI error: " + err.message);
-    }
-  }
 
   // Handle applying proofread suggestion
   function handleApplySuggestion(correctedText) {
@@ -390,11 +385,30 @@ function Submission() {
     
     const start = selectionRange.start;
     const end = selectionRange.end;
+    
+    // Update the content state
     const beforeText = reportContent.substring(0, start);
     const afterText = reportContent.substring(end);
     const newContent = beforeText + correctedText + afterText;
     
     setReportContent(newContent);
+    
+    // Also update the TipTap editor directly to ensure it reflects the change
+    if (editorRef.current) {
+      try {
+        // Set the selection in the editor
+        editorRef.current.commands.setTextSelection({ from: start, to: end });
+        // Replace the selected text with the corrected text
+        editorRef.current.commands.insertContent(correctedText);
+        // Clear the selection
+        editorRef.current.commands.setTextSelection({ from: start + correctedText.length, to: start + correctedText.length });
+      } catch (error) {
+        console.error('Error updating editor:', error);
+        // Fallback: just update the content state
+        console.log('Using fallback content update');
+      }
+    }
+    
     setAiFeedback("✅ Suggestion applied successfully!");
     
     // Clear selection
@@ -413,6 +427,11 @@ function Submission() {
   function handleCloseSuggestion() {
     setShowProofreadSuggestion(false);
     setProofreadData(null);
+  }
+
+  // Handle clearing AI feedback
+  function handleClearFeedback() {
+    setAiFeedback(null);
   }
 
   // Handle submission
@@ -486,9 +505,13 @@ function Submission() {
         <AIToolbar
           onSummarize={handleAISummarize}
           onProofread={handleAIProofread}
-          onSuggest={handleAISuggest}
           aiFeedback={aiFeedback}
           onShowGuide={() => setShowGuide(true)}
+          onSubmit={handleSubmission}
+          submitting={submitting}
+          submitted={submitted}
+          saveStatus={saveStatus}
+          onClearFeedback={handleClearFeedback}
         />
         
         <ChromeAIStatus />
@@ -506,30 +529,7 @@ function Submission() {
           }}
         />
 
-        {/* Multi-Agent Collaboration */}
-        <MultiAgentCollaboration
-          projectId={id}
-          reportContent={reportContent}
-          onContentUpdate={setReportContent}
-        />
 
-        <div className="status-row">
-          <div className="save-status">{saveStatus}</div>
-          {!submitted ? (
-            <button
-              onClick={handleSubmission}
-              disabled={submitting || !reportContent.trim()}
-              className="submit-button"
-            >
-              {submitting ? "Submitting..." : "📤 Submit Report"}
-            </button>
-          ) : (
-            <div className="submission-success">
-              <h3>✅ Report Submitted Successfully!</h3>
-              <p>Redirecting to results page...</p>
-            </div>
-          )}
-        </div>
       </div>
 
       <CommentSidebar

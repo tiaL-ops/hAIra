@@ -158,7 +158,7 @@ function SubmissionSuccess() {
           {/* Contribution Tracker - Right Column */}
           <div className="contribution-section">
             <h2>👥 Team Contributions</h2>
-            <ContributionTracker projectId={id} />
+            <ContributionTracker projectId={id} showContributions={true} />
           </div>
         </div>
 
@@ -172,17 +172,7 @@ function SubmissionSuccess() {
           />
         </div>
 
-        {/* Submission Content */}
-        {submission?.content && (
-          <div className="submission-content-section">
-            <h2>📄 Your Submitted Report</h2>
-            <div className="submission-content">
-              <div className="submission-text">
-                {submission.content}
-              </div>
-            </div>
-          </div>
-        )}
+        
       </div>
     </div>
   );

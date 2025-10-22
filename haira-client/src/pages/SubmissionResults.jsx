@@ -83,38 +83,50 @@ function SubmissionResults() {
       </div>
 
       <div className="results-content">
-        <div className="grade-section">
-          <h2>🎯 AI Grade & Feedback</h2>
-          {grade ? (
-            <div className="grade-card">
-              <div className="grade-score">
-                <span className="score-number">{grade.overall || 0}</span>
-                <span className="score-total">/ 100</span>
-              </div>
-              <div className="grade-breakdown">
-                <div className="breakdown-item">
-                  <span>Work Percentage:</span>
-                  <span>{grade.workPercentage || 0}%</span>
+        {/* Grade and Contribution Side by Side */}
+        <div className="results-row">
+          <div className="grade-section">
+            <h2>🎯 AI Grade & Feedback</h2>
+            {grade ? (
+              <div className="grade-card">
+                <div className="grade-score">
+                  <span className="score-number">{grade.overall || 0}</span>
+                  <span className="score-total">/ 100</span>
                 </div>
-                <div className="breakdown-item">
-                  <span>Responsiveness:</span>
-                  <span>{grade.responsiveness || 0}%</span>
+                <div className="grade-breakdown">
+                  <div className="breakdown-item">
+                    <span>Work Percentage:</span>
+                    <span>{grade.workPercentage || 0}%</span>
+                  </div>
+                  <div className="breakdown-item">
+                    <span>Responsiveness:</span>
+                    <span>{grade.responsiveness || 0}%</span>
+                  </div>
+                  <div className="breakdown-item">
+                    <span>Report Quality:</span>
+                    <span>{grade.reportQuality || 0}%</span>
+                  </div>
                 </div>
-                <div className="breakdown-item">
-                  <span>Report Quality:</span>
-                  <span>{grade.reportQuality || 0}%</span>
+                <div className="grade-feedback">
+                  <h3>AI Feedback:</h3>
+                  <p>{grade.feedback || "No feedback available."}</p>
                 </div>
               </div>
-              <div className="grade-feedback">
-                <h3>AI Feedback:</h3>
-                <p>{grade.feedback || "No feedback available."}</p>
+            ) : (
+              <div className="no-grade">
+                <p>Grade is being processed...</p>
               </div>
-            </div>
-          ) : (
-            <div className="no-grade">
-              <p>Grade is being processed...</p>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Show contribution metrics only in results page */}
+          <div className="contribution-section">
+            <h2>📊 Team Contribution Analysis</h2>
+            <ContributionTracker 
+              projectId={id} 
+              showContributions={true}
+            />
+          </div>
         </div>
 
         <div className="submission-section">
@@ -128,15 +140,6 @@ function SubmissionResults() {
               <p>No submission content available.</p>
             )}
           </div>
-        </div>
-
-        {/* Show contribution metrics only in results page */}
-        <div className="contribution-section">
-          <h2>📊 Team Contribution Analysis</h2>
-          <ContributionTracker 
-            projectId={id} 
-            showContributions={true}
-          />
         </div>
 
         <div className="actions-section">

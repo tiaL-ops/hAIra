@@ -26,8 +26,8 @@ export default function EditorArea({ content = '', onChange, editable = true, ed
     content,
     editable,
     onUpdate: ({ editor }) => {
-      const text = editor.getText()
-      if (onChange) onChange(text)
+      const html = editor.getHTML()
+      if (onChange) onChange(html)
     },
   })
 

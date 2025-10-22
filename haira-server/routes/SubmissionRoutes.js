@@ -250,54 +250,6 @@ Respond with JSON format:
     }
 });
 
-// AI Suggestions endpoint
-router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
-    const { content } = req.body;
-    
-    if (!content) {
-        return res.status(400).json({ error: 'Content is required' });
-    }
-
-    try {
-        const suggestionPrompt = `
-Analyze this text and provide suggestions for improvement. Focus on:
-- Clarity and readability
-- Structure and organization
-- Content completeness
-- Professional tone
-
-Text: ${content}
-
-Respond with JSON format:
-{
-    "suggestions": [
-        {
-            "type": "clarity|structure|content|tone",
-            "suggestion": "specific improvement",
-            "reason": "why this helps"
-        }
-    ],
-    "overall": "general feedback"
-}
-`;
-
-        const aiResponse = await generateAIResponse(suggestionPrompt, "You are a writing coach. Provide constructive, helpful suggestions.");
-        const suggestions = parseAIResponseToJson(aiResponse);
-
-        res.json({
-            success: true,
-            suggestions: suggestions.suggestions || suggestions,
-            result: suggestions
-        });
-
-    } catch (err) {
-        console.error('Suggestion error:', err);
-        res.status(500).json({ 
-            success: false,
-            error: err.message 
-        });
-    }
-});
 
 // AI Reflection endpoint
 router.post('/:id/ai/reflect', verifyFirebaseToken, async (req, res) => {

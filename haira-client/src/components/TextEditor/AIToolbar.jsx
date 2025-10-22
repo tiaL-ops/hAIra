@@ -1,7 +1,7 @@
 // src/components/TextEditor/AIToolbar.jsx
 import React, { useState } from "react";
 
-export default function AIToolbar({ onSummarize, onProofread, onSuggest, aiFeedback, onShowGuide }) {
+export default function AIToolbar({ onSummarize, onProofread, aiFeedback, onShowGuide, onSubmit, submitting, submitted, saveStatus, onClearFeedback }) {
   const [activeTool, setActiveTool] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
 
@@ -27,12 +27,16 @@ export default function AIToolbar({ onSummarize, onProofread, onSuggest, aiFeedb
         >
           ✍️ Proofread
         </button>
-        <button 
-          className={`toolbar-btn ${activeTool === 'suggest' ? 'active' : ''}`}
-          onClick={() => handleToolClick('suggest', onSuggest)}
-        >
-          💡 Suggest
-        </button>
+        {/* AI feedback text - only show when there's actual feedback */}
+        {aiFeedback && (
+          <div 
+            className="ai-suggestions-text clickable"
+            onClick={() => setShowFeedback(!showFeedback)}
+            style={{ cursor: 'pointer' }}
+          >
+            ⚡ AI Feedback Available
+          </div>
+        )}
         
         {/* Help button */}
         <div className="toolbar-divider"></div>
@@ -46,34 +50,58 @@ export default function AIToolbar({ onSummarize, onProofread, onSuggest, aiFeedb
       </div>
 
       <div className="toolbar-right">
-        {aiFeedback ? (
-          <div className="ai-feedback-container">
-            <button 
-              className="ai-feedback-toggle"
-              onClick={() => setShowFeedback(!showFeedback)}
-            >
-              ⚡ AI Feedback {showFeedback ? '▼' : '▶'}
-            </button>
-            {showFeedback && (
-              <div className="ai-feedback-popup">
-                <div className="ai-feedback-content">
-                  {typeof aiFeedback === "string" ? aiFeedback : JSON.stringify(aiFeedback)}
-                </div>
-                <button 
-                  className="close-feedback"
-                  onClick={() => setShowFeedback(false)}
-                >
-                  ✕
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="ai-feedback-placeholder">
-            AI suggestions will appear here
-          </div>
+        {/* Project Status */}
+        <div className="submission-status">
+          {saveStatus || "Ready"}
+        </div>
+        
+        {/* Debug: Show if saveStatus is received */}
+        {console.log('AIToolbar received saveStatus:', saveStatus)}
+        
+        {/* Submit Button */}
+        {onSubmit && (
+          <button
+            onClick={onSubmit}
+            disabled={submitting || submitted}
+            className="submit-button-toolbar"
+          >
+            {submitting ? "Submitting..." : submitted ? "✅ Submitted" : "📤 Submit"}
+          </button>
         )}
+        
       </div>
+      
+      {/* AI Feedback Popup - Gaming Style */}
+      {aiFeedback && showFeedback && (
+        <div className="ai-feedback-popup-gaming">
+          <div className="ai-feedback-header">
+            <span className="ai-feedback-title">⚡ AI Feedback</span>
+            <div className="ai-feedback-actions">
+              {onClearFeedback && (
+                <button 
+                  className="clear-feedback-gaming"
+                  onClick={() => {
+                    onClearFeedback();
+                    setShowFeedback(false);
+                  }}
+                  title="Clear feedback"
+                >
+                  🗑️ Clear
+                </button>
+              )}
+              <button 
+                className="close-feedback-gaming"
+                onClick={() => setShowFeedback(false)}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+          <div className="ai-feedback-content-gaming">
+            {typeof aiFeedback === "string" ? aiFeedback : JSON.stringify(aiFeedback)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
