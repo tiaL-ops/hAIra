@@ -50,6 +50,34 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
   }
 });
 
+// Get project by ID
+router.get('/:id', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.uid;
+
+    console.log(`[ProjectRoutes] Fetching project ${id} for user ${userId}`);
+    
+    const projectData = await getProjectWithTasks(id, userId);
+    
+    console.log(`[ProjectRoutes] Project data result:`, projectData ? 'Found' : 'Not found');
+    
+    if (!projectData) {
+      console.log(`[ProjectRoutes] Project ${id} not found or access denied for user ${userId}`);
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    console.log(`[ProjectRoutes] Returning project:`, projectData.project.id);
+    res.json({
+      success: true,
+      project: projectData.project
+    });
+  } catch (error) {
+    console.error('[ProjectRoutes] Error fetching project:', error);
+    res.status(500).json({ error: 'Failed to fetch project' });
+  }
+});
+
 // Set active project for user
 router.post('/:projectId/activate', verifyFirebaseToken, async (req, res) => {
   try {

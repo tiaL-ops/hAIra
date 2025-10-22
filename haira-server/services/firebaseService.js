@@ -362,6 +362,8 @@ export async function createProject(userId, userName, title) {
 
 // Get all projects for a user
 export async function getUserProjects(userId) {
+  console.log(`[FirebaseService] Getting projects for user: ${userId}`);
+  
   const projectsRef = db.collection(COLLECTIONS.USER_PROJECTS);
   const query = projectsRef.where('userId', '==', userId);
   const snapshot = await query.get();
@@ -372,24 +374,33 @@ export async function getUserProjects(userId) {
       id: doc.id,
       ...doc.data()
     });
+    console.log(`[FirebaseService] Found project: ${doc.id} - ${doc.data().title || doc.data().name || 'No title'}`);
   });
   
+  console.log(`[FirebaseService] Total projects found: ${projects.length}`);
   return projects;
 }
 
 // Get project with tasks
 export async function getProjectWithTasks(projectId, userId) {
+  console.log(`[FirebaseService] Looking for project ${projectId} for user ${userId}`);
+  
   const projectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc(projectId);
   const projectDoc = await projectRef.get();
   
+  console.log(`[FirebaseService] Project document exists: ${projectDoc.exists}`);
+  
   if (!projectDoc.exists) {
+    console.log(`[FirebaseService] Project ${projectId} does not exist`);
     return null;
   }
   
   const projectData = projectDoc.data();
+  console.log(`[FirebaseService] Project data userId: ${projectData.userId}, requested userId: ${userId}`);
   
   // Verify the user owns this project
   if (projectData.userId !== userId) {
+    console.log(`[FirebaseService] Access denied: Project ${projectId} belongs to ${projectData.userId}, not ${userId}`);
     return null;
   }
   
@@ -399,11 +410,24 @@ export async function getProjectWithTasks(projectId, userId) {
   
   const tasks = [];
   tasksSnapshot.forEach(doc => {
-    tasks.push({
+    const taskData = {
       id: doc.id,
       ...doc.data()
+    };
+    tasks.push(taskData);
+    
+    // Log each task for debugging
+    console.log(`[FirebaseService] Task ${doc.id}:`, {
+      title: taskData.title || taskData.text || 'No title',
+      description: taskData.description || 'No description',
+      status: taskData.status || 'no status',
+      assignedTo: taskData.assignedTo || taskData.assignee || 'unassigned',
+      id: doc.id
     });
   });
+  
+  console.log(`[FirebaseService] Found project ${projectId} with ${tasks.length} tasks`);
+  console.log(`[FirebaseService] All tasks:`, JSON.stringify(tasks, null, 2));
   
   return {
     project: {
@@ -420,4 +444,46 @@ export async function updateUserActiveProject(userId, projectId) {
   await userRef.update({
     activeProjectId: projectId
   });
+}
+
+// Get count of user messages in the last 24 hours
+export async function getUserMessageCountSince(projectId, userId, projectStartDate, currentDay) {
+  try {
+    // Calculate 24 hours ago from now
+    const now = Date.now();
+    const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
+    
+    console.log(`[Firebase] Counting messages for user ${userId} in project ${projectId} in last 24 hours (since ${new Date(twentyFourHoursAgo).toISOString()})`);
+    
+    // Query subcollection for all messages first, then filter in memory to avoid index requirement
+    const messagesRef = db
+      .collection(COLLECTIONS.USER_PROJECTS)
+      .doc(String(projectId))
+      .collection('chatMessages');
+    
+    const snapshot = await messagesRef.get();
+    
+    // Filter in memory to avoid needing a composite index
+    let count = 0;
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      // Count only user messages (not AI messages) from the last 24 hours
+      if (data.senderId === userId && data.timestamp >= twentyFourHoursAgo) {
+        count++;
+        console.log(`[Firebase] Found user message: ${data.text?.substring(0, 50)}... at ${new Date(data.timestamp).toISOString()}`);
+      }
+    });
+    
+    console.log(`[Firebase] Found ${count} user messages in last 24 hours for user ${userId}`);
+    
+    // Debug: Show when the 24-hour window started
+    const nowDate = new Date();
+    const twentyFourHoursAgoDate = new Date(twentyFourHoursAgo);
+    console.log(`[Firebase] 24-hour window: ${twentyFourHoursAgoDate.toISOString()} to ${nowDate.toISOString()}`);
+    
+    return count;
+  } catch (error) {
+    console.error(`[Firebase] Error counting user messages:`, error);
+    throw error;
+  }
 }
