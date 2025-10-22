@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
-import { createProject, getUserProjects, updateUserActiveProject } from '../services/firebaseService.js';
+import { createProject, getUserProjects, updateUserActiveProject, getProjectWithTasks } from '../services/firebaseService.js';
 
 const router = express.Router();
 
@@ -49,6 +49,34 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
   }
 });
 
+// Get project by ID
+router.get('/:id', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.uid;
+
+    console.log(`[ProjectRoutes] Fetching project ${id} for user ${userId}`);
+    
+    const projectData = await getProjectWithTasks(id, userId);
+    
+    console.log(`[ProjectRoutes] Project data result:`, projectData ? 'Found' : 'Not found');
+    
+    if (!projectData) {
+      console.log(`[ProjectRoutes] Project ${id} not found or access denied for user ${userId}`);
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    console.log(`[ProjectRoutes] Returning project:`, projectData.project.id);
+    res.json({
+      success: true,
+      project: projectData.project
+    });
+  } catch (error) {
+    console.error('[ProjectRoutes] Error fetching project:', error);
+    res.status(500).json({ error: 'Failed to fetch project' });
+  }
+});
+
 // Set active project for user
 router.post('/:projectId/activate', verifyFirebaseToken, async (req, res) => {
   try {
@@ -65,12 +93,6 @@ router.post('/:projectId/activate', verifyFirebaseToken, async (req, res) => {
     console.error('Error updating active project:', error);
     res.status(500).json({ error: 'Failed to update active project' });
   }
-});
-
-// Project details route
-router.get('/:id', (req, res) => {
-  const { id } = req.params;
-  res.json({ message: `Project ${id} details` });
 });
 
 // Export the router so we can use it in index.js
