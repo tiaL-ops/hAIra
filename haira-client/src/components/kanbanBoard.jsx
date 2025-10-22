@@ -1,14 +1,19 @@
 import React, { useState } from "react";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+} from "@hello-pangea/dnd";
+import { v4 as uuidv4 } from "uuid";
 
-const COLORS = {
+const COLOR = {
   dominant: "#408F8C",
   second: "#9169C0",
   third: "#B4565A",
   fourth: "#93C263",
 };
 
-const initialTasks = {
+const initialData = {
   todo: [
     { id: "1", name: "Task 1", assignee: "Alice" },
     { id: "2", name: "Task 2", assignee: "Bob" },
@@ -17,160 +22,186 @@ const initialTasks = {
     { id: "3", name: "Task 3", assignee: "Charlie" },
   ],
   done: [
-    { id: "4", name: "Task 4", assignee: "Diana" },
+    { id: "4", name: "Task 4", assignee: "Alice" },
   ],
 };
 
+const assignees = ["Alice", "Bob", "Charlie", "David"];
+
 export default function KanbanBoard() {
-  const [tasks, setTasks] = useState(initialTasks);
-  const [selectedTask, setSelectedTask] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [tasks, setTasks] = useState(initialData);
+  const [editingTask, setEditingTask] = useState(null);
 
   const onDragEnd = (result) => {
-    if (!result.destination) return;
+    const { source, destination } = result;
+    if (!destination) return;
 
-    const sourceCol = result.source.droppableId;
-    const destCol = result.destination.droppableId;
+    const sourceCol = [...tasks[source.droppableId]];
+    const [moved] = sourceCol.splice(source.index, 1);
 
-    const sourceTasks = Array.from(tasks[sourceCol]);
-    const [movedTask] = sourceTasks.splice(result.source.index, 1);
+    const destCol = [...tasks[destination.droppableId]];
+    destCol.splice(destination.index, 0, moved);
 
-    if (sourceCol === destCol) {
-      sourceTasks.splice(result.destination.index, 0, movedTask);
-      setTasks({ ...tasks, [sourceCol]: sourceTasks });
-    } else {
-      const destTasks = Array.from(tasks[destCol]);
-      destTasks.splice(result.destination.index, 0, movedTask);
-      setTasks({ ...tasks, [sourceCol]: sourceTasks, [destCol]: destTasks });
-    }
-  };
-
-  const openModal = (task, col) => {
-    setSelectedTask({ ...task, col });
-    setModalVisible(true);
-  };
-
-  const handleSave = () => {
-    const { col, id, name, assignee } = selectedTask;
     setTasks({
       ...tasks,
-      [col]: tasks[col].map((t) => (t.id === id ? { id, name, assignee } : t)),
+      [source.droppableId]: sourceCol,
+      [destination.droppableId]: destCol,
     });
-    setModalVisible(false);
   };
 
-  const handleDelete = () => {
-    const { col, id } = selectedTask;
+  const handleAddTask = (column) => {
+    const newTask = {
+      id: uuidv4(),
+      name: "New Task",
+      assignee: assignees[0],
+    };
     setTasks({
       ...tasks,
-      [col]: tasks[col].filter((t) => t.id !== id),
+      [column]: [...tasks[column], newTask],
     });
-    setModalVisible(false);
   };
 
-  const handleAddTask = (col) => {
-    const id = Date.now().toString();
-    const newTask = { id, name: "New Task", assignee: "" };
-    setTasks({ ...tasks, [col]: [...tasks[col], newTask] });
-    openModal({ ...newTask }, col);
+  const handleSaveTask = (column, task) => {
+    setTasks({
+      ...tasks,
+      [column]: tasks[column].map((t) =>
+        t.id === task.id ? task : t
+      ),
+    });
+    setEditingTask(null);
   };
+
+  const handleDeleteTask = (column, taskId) => {
+    setTasks({
+      ...tasks,
+      [column]: tasks[column].filter((t) => t.id !== taskId),
+    });
+    setEditingTask(null);
+  };
+
+  const columns = [
+    { id: "todo", title: "To Do", color: COLOR.dominant },
+    { id: "inProgress", title: "In Progress", color: COLOR.second },
+    { id: "done", title: "Done", color: COLOR.third },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="p-6 bg-gray-100 min-h-screen">
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex gap-4">
-          {["todo", "inProgress", "done"].map((colKey, idx) => {
-            const colName =
-              colKey === "todo" ? "To Do" : colKey === "inProgress" ? "In Progress" : "Done";
-            const color =
-              idx === 0 ? COLORS.dominant : idx === 1 ? COLORS.second : COLORS.third;
-            return (
-              <div key={colKey} className="flex-1 bg-white rounded-lg shadow p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <h2 className="font-bold text-lg" style={{ color }}>
-                    {colName}
-                  </h2>
-                  <button
-                    onClick={() => handleAddTask(colKey)}
-                    className="bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300"
+          {columns.map((col) => (
+            <Droppable key={col.id} droppableId={col.id}>
+              {(provided) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className="flex-1 bg-white rounded-xl p-4 shadow-lg"
+                >
+                  <div
+                    className="text-white font-bold text-lg p-2 rounded-md mb-4"
+                    style={{ backgroundColor: col.color }}
                   >
-                    + Add
-                  </button>
-                </div>
-                <Droppable droppableId={colKey}>
-                  {(provided) => (
-                    <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
-                      {tasks[colKey].map((task, index) => (
-                        <Draggable key={task.id} draggableId={task.id} index={index}>
-                          {(provided) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              onClick={() => openModal(task, colKey)}
-                              className="bg-gray-50 p-3 rounded shadow cursor-pointer hover:bg-gray-100"
+                    {col.title}
+                  </div>
+
+                  {tasks[col.id].map((task, index) => (
+                    <Draggable
+                      key={task.id}
+                      draggableId={task.id}
+                      index={index}
+                    >
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className="group bg-gray-50 rounded-md p-3 mb-3 shadow cursor-pointer relative"
+                        >
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <div className="font-medium">{task.name}</div>
+                              <div className="text-sm text-gray-500">
+                                {task.assignee}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() =>
+                                setEditingTask({ ...task, column: col.id })
+                              }
+                              className="text-sm text-blue-500 hover:underline opacity-0 group-hover:opacity-100 transition"
                             >
-                              <div className="font-semibold">{task.name}</div>
-                              <div className="text-sm text-gray-500">{task.assignee}</div>
+                              Edit
+                            </button>
+                          </div>
+
+                          {editingTask && editingTask.id === task.id && (
+                            <div className="absolute top-full left-0 mt-2 p-2 w-64 bg-white border rounded shadow z-10">
+                              <input
+                                type="text"
+                                className="w-full border p-1 rounded mb-2"
+                                value={editingTask.name}
+                                onChange={(e) =>
+                                  setEditingTask({
+                                    ...editingTask,
+                                    name: e.target.value,
+                                  })
+                                }
+                              />
+                              <select
+                                className="w-full border p-1 rounded mb-2"
+                                value={editingTask.assignee}
+                                onChange={(e) =>
+                                  setEditingTask({
+                                    ...editingTask,
+                                    assignee: e.target.value,
+                                  })
+                                }
+                              >
+                                {assignees.map((a) => (
+                                  <option key={a} value={a}>
+                                    {a}
+                                  </option>
+                                ))}
+                              </select>
+                              <div className="flex justify-between">
+                                <button
+                                  className="bg-green-500 text-white px-2 py-1 rounded"
+                                  onClick={() =>
+                                    handleSaveTask(col.id, editingTask)
+                                  }
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  className="bg-red-500 text-white px-2 py-1 rounded"
+                                  onClick={() =>
+                                    handleDeleteTask(col.id, task.id)
+                                  }
+                                >
+                                  Delete
+                                </button>
+                              </div>
                             </div>
                           )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </div>
-            );
-          })}
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+
+                  <button
+                    className="mt-2 w-full bg-gray-200 text-gray-800 rounded-md py-1 hover:bg-gray-300"
+                    onClick={() => handleAddTask(col.id)}
+                  >
+                    + Add Task
+                  </button>
+                </div>
+              )}
+            </Droppable>
+          ))}
         </div>
       </DragDropContext>
-
-      {/* Modal */}
-      {modalVisible && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white rounded-lg p-6 w-80 space-y-4">
-            <h3 className="text-lg font-bold">Edit Task</h3>
-            <input
-              type="text"
-              className="border p-2 w-full rounded"
-              value={selectedTask.name}
-              onChange={(e) =>
-                setSelectedTask({ ...selectedTask, name: e.target.value })
-              }
-            />
-            <input
-              type="text"
-              className="border p-2 w-full rounded"
-              placeholder="Assignee"
-              value={selectedTask.assignee}
-              onChange={(e) =>
-                setSelectedTask({ ...selectedTask, assignee: e.target.value })
-              }
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={handleDelete}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-              >
-                Delete
-              </button>
-              <button
-                onClick={handleSave}
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-              >
-                Save
-              </button>
-            </div>
-            <button
-              onClick={() => setModalVisible(false)}
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
+
