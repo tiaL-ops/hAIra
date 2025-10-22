@@ -291,6 +291,17 @@ const agentInfo = {
         return sorted;
       });
 
+      // Update quota information from response
+      if (response.data.messagesUsedToday !== undefined) {
+        setMessagesUsed(response.data.messagesUsedToday);
+      }
+      if (response.data.dailyLimit !== undefined) {
+        setDailyLimit(response.data.dailyLimit);
+      }
+      if (response.data.quotaExceeded !== undefined) {
+        setQuotaExceeded(response.data.quotaExceeded);
+      }
+
       // Refresh tasks after receiving new messages (AI agents might have created new tasks)
       setTimeout(() => {
         refreshTasks();

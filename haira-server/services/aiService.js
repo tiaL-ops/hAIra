@@ -171,7 +171,11 @@ export async function generateContextAwareResponse(agentId, projectId, userId, c
       userTasks: context.userTasks.length,
       unassignedTasks: context.unassignedTasks.length,
       conversationHistory: context.conversationHistory.length,
-      previousDaysContext: context.previousDaysContext.length
+      previousDaysContext: context.previousDaysContext.length,
+      potentialTasks: context.potentialTasks?.length || 0,
+      actionItems: context.actionItems?.length || 0,
+      keyTopics: context.keyTopics?.length || 0,
+      hasEnhancedContext: !!context.enhancedConversationSummary
     });
     
     // Build enhanced prompt with full awareness

@@ -14,10 +14,74 @@ import { AI_AGENTS } from '../config/aiAgents.js';
 import { trimToSentences, getProjectDay, decideResponders } from '../utils/chatUtils.js';
 import { storeMessage, getConversationHistory, getConversationSummary } from '../config/conversationMemory.js';
 import { storeProjectData, formatTasksForAI, extractTasksFromChat } from '../config/taskMemory.js';
+import { clearOldContextCache } from '../services/dailyContextCache.js';
+import { getAgentContext } from '../services/contextService.js'; // Import for intelligent sign-off
 
 const router = express.Router();
 const USE_SUBCOLLECTIONS = true;
 const USE_ENHANCED_CONTEXT = true; // Enable full context awareness for AI agents
+
+/**
+ * Generate intelligent sign-off message that addresses the last message and summarizes tasks
+ * @param {string} lastMessage - The user's last message
+ * @param {Object} context - Enhanced context with tasks and conversation insights
+ * @param {number} currentDay - Current project day
+ * @returns {Promise<string>} Intelligent sign-off message
+ */
+async function generateIntelligentSignOff(lastMessage, context, currentDay) {
+  try {
+    // Build task summary for sign-off
+    let taskSummary = '';
+    if (context.allTasks && context.allTasks.length > 0) {
+      const activeTasks = context.allTasks.filter(task => !task.completed);
+      const completedTasks = context.allTasks.filter(task => task.completed);
+      
+      if (activeTasks.length > 0) {
+        taskSummary = `\n\n📋 Today's progress: We have ${activeTasks.length} active tasks`;
+        if (completedTasks.length > 0) {
+          taskSummary += ` and completed ${completedTasks.length} tasks`;
+        }
+        taskSummary += '.';
+      }
+    }
+    
+    // Build conversation insights summary
+    let insightsSummary = '';
+    if (context.enhancedConversationSummary) {
+      const insights = context.enhancedConversationSummary;
+      if (insights.potentialTasks && insights.potentialTasks.length > 0) {
+        insightsSummary += `\n\n💡 We discussed some potential tasks that might need to be added to the Kanban board.`;
+      }
+      if (insights.actionItems && insights.actionItems.length > 0) {
+        insightsSummary += `\n\n✅ We identified ${insights.actionItems.length} action items to follow up on.`;
+      }
+    }
+    
+    // Create personalized sign-off based on last message
+    const lastMessageLower = lastMessage.toLowerCase();
+    let personalizedResponse = '';
+    
+    if (lastMessageLower.includes('task') || lastMessageLower.includes('work') || lastMessageLower.includes('project')) {
+      personalizedResponse = `Got it! I understand about the tasks and project work.${taskSummary}${insightsSummary}`;
+    } else if (lastMessageLower.includes('tomorrow') || lastMessageLower.includes('next')) {
+      personalizedResponse = `Perfect! Looking forward to continuing tomorrow.`;
+    } else if (lastMessageLower.includes('thanks') || lastMessageLower.includes('thank')) {
+      personalizedResponse = `You're welcome! Happy to help.`;
+    } else {
+      personalizedResponse = `Thanks for the update!`;
+    }
+    
+    // Build the complete intelligent sign-off
+    const signOffMessage = `${personalizedResponse}${taskSummary}${insightsSummary}\n\nSee you tomorrow! 👋`;
+    
+    console.log(`[ChatRoutes] Generated intelligent sign-off: "${signOffMessage}"`);
+    return signOffMessage;
+    
+  } catch (error) {
+    console.error('[ChatRoutes] Error generating intelligent sign-off:', error);
+    return "Great progress today! See you tomorrow.";
+  }
+}
 
 router.get('/:id/chat', verifyFirebaseToken, async (req, res) => {
   try {
@@ -69,6 +133,9 @@ router.get('/:id/chat', verifyFirebaseToken, async (req, res) => {
       );
     }
 
+    // Clean up old context cache periodically
+    clearOldContextCache(id);
+
     // Decide responders "as soon as chat opens"
     // Use the latest user message content if available, otherwise empty string
     const lastUserMsg = (chats || []).find(c => c.senderId === req.user.uid || c.senderId === 'user');
@@ -89,7 +156,7 @@ router.get('/:id/chat', verifyFirebaseToken, async (req, res) => {
       quotaWarning,
       quotaExceeded,
       messagesUsedToday: userMsgsToday,
-      dailyLimit: 10
+      dailyLimit: 7
     });
   } catch (err) {
     console.error('GET /:id/chat ERROR', err);
@@ -212,27 +279,41 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
       responses.push(aiChat);
     }
 
-    // Add sign-off message if quota is reached (7/7 messages)
+    // Add intelligent sign-off message if quota is reached (7/7 messages)
     if (userMsgsToday >= 6) { // This is the 7th message, so add sign-off
-      const signOffMessages = [
-        "OK, let's get to work, see you tomorrow.",
-        "Great progress today! See you tomorrow.",
-        "Alright, time to focus on our tasks. See you tomorrow!",
-        "Perfect! Let's get to work, see you tomorrow."
-      ];
-      
-      const randomSignOff = signOffMessages[Math.floor(Math.random() * signOffMessages.length)];
-      const signOffChat = await addChat(id, randomSignOff, 'rasoa', 'Rasoa', null, USE_SUBCOLLECTIONS);
-      
-      // Store sign-off message in memory
-      storeMessage(id, currentDay, {
-        senderId: 'rasoa',
-        senderName: 'Rasoa',
-        content: randomSignOff,
-        timestamp: signOffChat.timestamp
-      });
-      
-      responses.push(signOffChat);
+      try {
+        // Get enhanced context for intelligent sign-off
+        const context = await getAgentContext(id, userId, currentDay, 'rasoa');
+        
+        // Build intelligent sign-off message
+        const signOffMessage = await generateIntelligentSignOff(content, context, currentDay);
+        
+        const signOffChat = await addChat(id, signOffMessage, 'rasoa', 'Rasoa', null, USE_SUBCOLLECTIONS);
+        
+        // Store sign-off message in memory
+        storeMessage(id, currentDay, {
+          senderId: 'rasoa',
+          senderName: 'Rasoa',
+          content: signOffMessage,
+          timestamp: signOffChat.timestamp
+        });
+        
+        responses.push(signOffChat);
+      } catch (error) {
+        console.error('[ChatRoutes] Error generating intelligent sign-off:', error);
+        // Fallback to simple sign-off
+        const fallbackSignOff = "Great progress today! See you tomorrow.";
+        const signOffChat = await addChat(id, fallbackSignOff, 'rasoa', 'Rasoa', null, USE_SUBCOLLECTIONS);
+        
+        storeMessage(id, currentDay, {
+          senderId: 'rasoa',
+          senderName: 'Rasoa',
+          content: fallbackSignOff,
+          timestamp: signOffChat.timestamp
+        });
+        
+        responses.push(signOffChat);
+      }
     }
 
     return res.status(201).json({ 

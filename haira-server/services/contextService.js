@@ -11,6 +11,12 @@ import {
 } from '../config/conversationMemory.js';
 import { storeProjectData, formatTasksForAI, getProjectTasks } from '../config/taskMemory.js';
 import { AI_AGENTS } from '../config/aiAgents.js';
+import { 
+  storeDailyContext, 
+  getDailyContext, 
+  getEnhancedContextCache,
+  generateConversationSummary 
+} from './dailyContextCache.js';
 
 /**
  * Get comprehensive context for AI agents
@@ -26,7 +32,14 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
   console.log(`[ContextService] Building context for ${agentId} on project ${projectId}, day ${currentDay}`);
   
   try {
-    // 1. Get project data and tasks from Firebase
+    // 1. Check if we have cached context for today
+    const cachedContext = getDailyContext(projectId, currentDay);
+    if (cachedContext && (Date.now() - cachedContext.lastUpdated) < 300000) { // 5 minutes
+      console.log(`[ContextService] Using cached context for ${agentId}`);
+      return getEnhancedContextCache(projectId, currentDay, agentId);
+    }
+    
+    // 2. Get project data and tasks from Firebase
     const projectData = await getProjectWithTasks(projectId, userId);
     
     if (!projectData) {
@@ -34,10 +47,10 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
       return buildEmptyContext(agentId, currentDay);
     }
     
-    // 2. Store in task memory for quick access
+    // 3. Store in task memory for quick access
     storeProjectData(projectId, projectData.tasks, projectData.project);
     
-    // 3. Get conversation history from memory (including previous days)
+    // 4. Get conversation history from memory (including previous days)
     const conversationHistory = getConversationHistory(projectId, currentDay, 15);
     const conversationSummary = getConversationSummary(projectId, currentDay);
     
@@ -45,6 +58,9 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
     const multiDayHistory = getMultiDayHistory(projectId, currentDay, 2, 20); // Last 2 days
     const multiDaySummary = getMultiDaySummary(projectId, currentDay, 2);
     const previousDaysContext = getPreviousDaysContext(projectId, currentDay);
+    
+    // 5. Generate enhanced conversation summary with task extraction
+    const enhancedConversationSummary = generateConversationSummary(projectId, currentDay);
     
     // 4. Organize tasks by assignee
     const tasksByAssignee = organizeTasksByAssignee(projectData.tasks);
@@ -82,6 +98,12 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
       multiDaySummary,
       previousDaysContext,
       
+      // Enhanced conversation insights
+      enhancedConversationSummary,
+      potentialTasks: enhancedConversationSummary.potentialTasks || [],
+      actionItems: enhancedConversationSummary.actionItems || [],
+      keyTopics: enhancedConversationSummary.keyTopics || [],
+      
       // Team context
       teammates: getTeammateInfo(agentId),
       alexAvailable: AI_AGENTS.alex?.activeDays?.includes(currentDay) || false,
@@ -93,6 +115,9 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
     };
     
     console.log(`[ContextService] Context built successfully. Tasks: ${context.allTasks.length}, My tasks: ${context.myTasks.length}`);
+    
+    // Cache the context for quick access
+    storeDailyContext(projectId, currentDay, context);
     
     return context;
     
@@ -384,6 +409,14 @@ export function buildEnhancedPrompt(agentId, context, userMessage) {
   return `
 ${agent.systemPrompt}
 
+=== ENHANCED CONTEXT AWARENESS ===
+You now have access to enhanced context including:
+- Real-time task information from Firestore
+- Conversation insights and potential tasks mentioned
+- Action items identified in discussions
+- Key topics discussed today
+- Full project status and team coordination
+
 === CURRENT CONTEXT ===
 You are: ${context.agentName} (${context.agentRole})
 Project: ${context.projectName}
@@ -396,6 +429,25 @@ ${previousDaysSection}
 
 === TODAY'S CONVERSATION (Day ${context.currentDay}) ===
 ${context.conversationSummary}
+
+${context.enhancedConversationSummary ? `
+=== CONVERSATION INSIGHTS ===
+${context.enhancedConversationSummary.summary}
+
+${context.potentialTasks.length > 0 ? `
+POTENTIAL TASKS MENTIONED IN CONVERSATION:
+${context.potentialTasks.map((task, idx) => `${idx + 1}. ${task.text}`).join('\n')}
+` : ''}
+
+${context.actionItems.length > 0 ? `
+ACTION ITEMS IDENTIFIED:
+${context.actionItems.map((item, idx) => `${idx + 1}. ${item.text}`).join('\n')}
+` : ''}
+
+${context.keyTopics.length > 0 ? `
+KEY TOPICS DISCUSSED: ${context.keyTopics.join(', ')}
+` : ''}
+` : ''}
 
 === CURRENT MESSAGE ===
 User: ${userMessage}
@@ -412,6 +464,13 @@ User: ${userMessage}
 - If asked about project status, use the task information above.
 - When the day changes, acknowledge continuity: "Following up from yesterday..." or "As we discussed earlier..."
 - You can help coordinate tasks even if they're not assigned to you.
+
+=== TASK REMINDER SYSTEM ===
+- If you notice potential tasks mentioned in conversation that aren't in the Kanban board, gently remind the user.
+- Example: "I noticed we discussed [task] - should we add this to the Kanban board so we don't forget?"
+- If there are action items from conversation, suggest adding them as tasks.
+- Be helpful but not pushy about task management.
+- Focus on preventing important work from being forgotten.
 `;
 }
 
