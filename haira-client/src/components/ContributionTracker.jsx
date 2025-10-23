@@ -164,10 +164,10 @@ export default function ContributionTracker({ projectId, showContributions = tru
                     <span className="avatar-emoji">{getMemberAvatar(member)}</span>
                   ) : (
                     <img 
-                    src={getAvatar(aiTeammate)} 
-                    alt={`${aiTeammate.name} avatar`}
-                    className="ai-avatar-image"
-                  />
+                      src={getMemberAvatar(member)} 
+                      alt={`${member.name} avatar`}
+                      className="ai-avatar-image"
+                    />
                   )}
                 </div>
                 <div>

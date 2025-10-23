@@ -689,7 +689,6 @@ function Submission() {
         <AIToolbar
           onSummarize={handleAISummarize}
           onProofread={handleAIProofread}
-          onShowGuide={() => setShowGuide(true)}
           onSubmit={handleSubmission}
           submitting={submitting}
           submitted={submitted}

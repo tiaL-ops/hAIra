@@ -14,6 +14,7 @@ import {
 } from '../api/geminiService.js';
 import { generateAIContribution as callOpenAIContribution } from '../api/openaiService.js';
 import { AI_TEAMMATES, TASK_TYPES } from '../config/aiReportAgents.js';
+import { AIGradingService } from '../services/aiGradingService.js';
 
 const router = express.Router()
 
@@ -1054,6 +1055,65 @@ router.post('/:id/word-contributions/calculate-user', verifyFirebaseToken, async
 
     } catch (error) {
         console.error('Error calculating user word count:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// AI Grading endpoint
+router.post('/:id/ai/grade', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.uid;
+    
+    console.log('AI Grading request received:', { id, userId });
+    
+    try {
+        // Ensure project exists and user has access
+        await ensureProjectExists(id, userId);
+        
+        // Initialize AI grading service
+        const gradingService = new AIGradingService();
+        
+        // Run AI evaluation
+        const grades = await gradingService.evaluateProject(id, userId);
+        
+        // Update project with grades
+        await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
+            grade: {
+                overall: grades.overall,
+                workPercentage: grades.workPercentage.score,
+                responsiveness: grades.responsiveness.score,
+                reportQuality: grades.reportQuality.score
+            },
+            detailedGrades: grades,
+            gradedAt: Date.now()
+        });
+        
+        // Log activity
+        const activityLog = {
+            timestamp: Date.now(),
+            type: 'ai_grading_completion',
+            grades: grades
+        };
+        
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
+        if (projectData && projectData.activityLogs) {
+            projectData.activityLogs.push(activityLog);
+            await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
+                activityLogs: projectData.activityLogs
+            });
+        }
+        
+        res.json({
+            success: true,
+            message: 'AI grading completed successfully',
+            grades: grades
+        });
+        
+    } catch (error) {
+        console.error('AI Grading Error:', error);
         res.status(500).json({ 
             success: false, 
             error: error.message 

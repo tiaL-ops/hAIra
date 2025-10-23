@@ -1,7 +1,7 @@
 // src/components/TextEditor/AIToolbar.jsx
 import React, { useState } from "react";
 
-export default function AIToolbar({ onSummarize, onProofread, onShowGuide, onSubmit, submitting, submitted, saveStatus }) {
+export default function AIToolbar({ onSummarize, onProofread, onSubmit, submitting, submitted, saveStatus }) {
   const [activeTool, setActiveTool] = useState(null);
 
   const handleToolClick = (tool, callback) => {
@@ -23,16 +23,6 @@ export default function AIToolbar({ onSummarize, onProofread, onShowGuide, onSub
           onClick={() => handleToolClick('proofread', onProofread)}
         >
           ✍️ Proofread
-        </button>
-        
-        {/* Help button */}
-        <div className="toolbar-divider"></div>
-        <button 
-          className="toolbar-btn help-btn"
-          onClick={onShowGuide}
-          title="Show writing guide"
-        >
-          ❓ Help
         </button>
       </div>
 

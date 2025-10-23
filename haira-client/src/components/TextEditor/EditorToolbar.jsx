@@ -19,7 +19,7 @@ import {
   HelpCircle,
 } from 'lucide-react'
 
-export default function EditorToolbar({ editor, onShowGuide }) {
+export default function EditorToolbar({ editor }) {
   const [open, setOpen] = useState(false)
   if (!editor) return null
 
@@ -126,9 +126,6 @@ export default function EditorToolbar({ editor, onShowGuide }) {
         
         {/* Help button */}
         <div className="toolbar-divider"></div>
-        <Button onClick={onShowGuide} title="Show writing guide">
-          <HelpCircle size={14} />
-        </Button>
       </div>
     </div>
   )

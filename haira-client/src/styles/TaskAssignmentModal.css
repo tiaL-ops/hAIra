@@ -76,8 +76,8 @@
 }
 
 .task-modal-close {
-  background: #ff4757;
-  border: 3px solid #ff2f3a;
+  background: #ffffff;
+  border: 3px solid #2c3e50;
   border-radius: 8px;
   width: 40px;
   height: 40px;
@@ -87,16 +87,20 @@
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 
-    0 4px 0 #dc2626,
-    0 8px 0 #b91c1c;
-  font-family: 'Jersey 10', monospace;}
+    0 4px 0 #2c3e50,
+    0 8px 0 #1a252f;
+  font-family: 'Jersey 10', monospace;
+  color: #2c3e50;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
 
 .task-modal-close:hover {
-  background: #ff3742;
+  background: #f8f9fa;
   transform: translateY(2px);
   box-shadow: 
-    0 2px 0 #dc2626,
-    0 6px 0 #b91c1c;
+    0 2px 0 #2c3e50,
+    0 6px 0 #1a252f;
 }
 
 .task-modal-body {

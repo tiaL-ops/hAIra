@@ -5,6 +5,7 @@ import { useAuth } from '../App';
 import ContributionTracker from "../components/ContributionTracker";
 import SummaryReflection from "../components/SummaryReflection";
 import SuccessIcon from "../images/Success.png";
+import { getChromeSummary } from "../utils/chromeAPI.js";
 import "../styles/editor.css";
 import "../styles/global.css";
 import "../styles/SubmissionSuccess.css";
@@ -22,7 +23,58 @@ function SubmissionSuccess() {
   const [aiSummary, setAiSummary] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [aiGrades, setAiGrades] = useState(null);
+  const [gradingLoading, setGradingLoading] = useState(false);
+  const [aiGradingTriggered, setAiGradingTriggered] = useState(false);
+  const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
 
+  // Function to trigger AI grading
+  const triggerAIGrading = async () => {
+    if (!auth.currentUser) {
+      setError("User not authenticated");
+      return;
+    }
+
+    setGradingLoading(true);
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(`${backend_host}/api/project/${id}/ai/grade`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('AI Grading Response:', data);
+      
+      if (data.success) {
+        setAiGrades(data.grades);
+        // Replace the existing grade with AI grades and use AI-generated global feedback
+        setGrade(prevGrade => ({
+          ...prevGrade, // Preserve existing properties
+          overall: data.grades.overall,
+          workPercentage: data.grades.workPercentage.score,
+          responsiveness: data.grades.responsiveness.score,
+          reportQuality: data.grades.reportQuality.score,
+          feedback: data.grades.globalFeedback?.feedback || prevGrade.feedback // Use AI feedback or fallback to existing
+        }));
+        setError(null);
+      } else {
+        setError(data.error || 'AI grading failed');
+      }
+    } catch (error) {
+      console.error('AI Grading Error:', error);
+      setError(`AI grading failed: ${error.message}`);
+    } finally {
+      setGradingLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Fetch submission data from backend for the project
@@ -81,6 +133,12 @@ function SubmissionSuccess() {
           }
         }
         
+        // Automatically trigger AI grading after submission data is loaded
+        if (!aiGradingTriggered) {
+          setAiGradingTriggered(true);
+          await triggerAIGrading();
+        }
+        
       } catch (err) {
         console.error("Error fetching submission data:", err);
         setError("Failed to load submission results");
@@ -90,7 +148,7 @@ function SubmissionSuccess() {
     };
 
     fetchSubmissionData();
-  }, [id, navigate, auth]);
+  }, [id, navigate, auth, aiGradingTriggered]);
 
   if (loading) {
     return (
@@ -109,8 +167,8 @@ function SubmissionSuccess() {
         <div className="error-state">
           <h2>Error</h2>
           <p>{error}</p>
-          <button onClick={() => navigate('/')} className="back-btn">
-            ← Back to Home
+          <button onClick={() => navigate(`/project/${id}/submission`)} className="back-btn">
+            ← Back to Submission
           </button>
         </div>
       </div>
@@ -161,9 +219,22 @@ function SubmissionSuccess() {
               </div>
             ) : (
               <div className="no-grade">
-                <p>Grade is being processed...</p>
+                <p>{gradingLoading ? 'AI is evaluating your performance...' : 'Grade is being processed...'}</p>
               </div>
             )}
+            
+            {/* Detailed Analysis Button */}
+            {aiGrades && (
+              <div className="detailed-analysis-button-container">
+                <button 
+                  className="detailed-analysis-btn"
+                  onClick={() => setShowDetailedAnalysis(true)}
+                >
+                  + View Detailed Analysis
+                </button>
+              </div>
+            )}
+            
           </div>
 
           {/* Contribution Tracker - Right Column */}
@@ -185,6 +256,130 @@ function SubmissionSuccess() {
             </div>
             <div className="feedback-content">
               <p>{grade.feedback}</p>
+            </div>
+          </div>
+        )}
+        
+        {/* AI Summary Style Detailed Analysis Modal */}
+        {showDetailedAnalysis && (
+          <div className="ai-summary-overlay" onClick={() => setShowDetailedAnalysis(false)}>
+            <div className="ai-summary-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="ai-summary-header">
+                <div className="header-left">
+                  <span className="brain-icon">🧠</span>
+                  <h2>AI Detailed Analysis</h2>
+                </div>
+                <button 
+                  className="ai-summary-close-btn"
+                  onClick={() => setShowDetailedAnalysis(false)}
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="ai-summary-content">
+                {aiGrades && (
+                  <div className="analysis-content">
+                    {/* Responsiveness Analysis */}
+                    <div className="gaming-analysis-card">
+                      <div className="card-header">
+                        <h3>📊 Responsiveness Analysis</h3>
+                        <div className="score-badge">{aiGrades.responsiveness.score}%</div>
+                      </div>
+                      <div className="card-content">
+                        <p><strong>Reasoning:</strong> {aiGrades.responsiveness.reasoning}</p>
+                        {aiGrades.responsiveness.strengths && aiGrades.responsiveness.strengths.length > 0 && (
+                          <div className="strengths-section">
+                            <h4>💪 Strengths:</h4>
+                            <ul>
+                              {aiGrades.responsiveness.strengths.map((strength, index) => (
+                                <li key={index}>{strength}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {aiGrades.responsiveness.areasForImprovement && aiGrades.responsiveness.areasForImprovement.length > 0 && (
+                          <div className="improvement-section">
+                            <h4>🎯 Areas for Improvement:</h4>
+                            <ul>
+                              {aiGrades.responsiveness.areasForImprovement.map((area, index) => (
+                                <li key={index}>{area}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Work Percentage Analysis */}
+                    <div className="gaming-analysis-card">
+                      <div className="card-header">
+                        <h3>⚡ Work Contribution Analysis</h3>
+                        <div className="score-badge">{aiGrades.workPercentage.score}%</div>
+                      </div>
+                      <div className="card-content">
+                        <p><strong>Reasoning:</strong> {aiGrades.workPercentage.reasoning}</p>
+                        {aiGrades.workPercentage.strengths && aiGrades.workPercentage.strengths.length > 0 && (
+                          <div className="strengths-section">
+                            <h4>💪 Strengths:</h4>
+                            <ul>
+                              {aiGrades.workPercentage.strengths.map((strength, index) => (
+                                <li key={index}>{strength}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {aiGrades.workPercentage.areasForImprovement && aiGrades.workPercentage.areasForImprovement.length > 0 && (
+                          <div className="improvement-section">
+                            <h4>🎯 Areas for Improvement:</h4>
+                            <ul>
+                              {aiGrades.workPercentage.areasForImprovement.map((area, index) => (
+                                <li key={index}>{area}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Report Quality Analysis */}
+                    <div className="gaming-analysis-card">
+                      <div className="card-header">
+                        <h3>📝 Report Quality Analysis</h3>
+                        <div className="score-badge">{aiGrades.reportQuality.score}%</div>
+                      </div>
+                      <div className="card-content">
+                        <p><strong>Reasoning:</strong> {aiGrades.reportQuality.reasoning}</p>
+                        {aiGrades.reportQuality.strengths && aiGrades.reportQuality.strengths.length > 0 && (
+                          <div className="strengths-section">
+                            <h4>💪 Report Strengths:</h4>
+                            <ul>
+                              {aiGrades.reportQuality.strengths.map((strength, index) => (
+                                <li key={index}>{strength}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {aiGrades.reportQuality.areasForImprovement && aiGrades.reportQuality.areasForImprovement.length > 0 && (
+                          <div className="improvement-section">
+                            <h4>🎯 Areas for Improvement:</h4>
+                            <ul>
+                              {aiGrades.reportQuality.areasForImprovement.map((area, index) => (
+                                <li key={index}>{area}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="ai-summary-footer">
+                <span className="sparkle-icon">✨</span>
+                <span>AI-powered analysis generated</span>
+              </div>
             </div>
           </div>
         )}
