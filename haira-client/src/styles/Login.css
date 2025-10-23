@@ -3,7 +3,7 @@
 .login-wrapper {
   min-height: 100vh;
   width: 100%;
-  background: linear-gradient(135deg, #408F8C 0%, #91169C 50%, #B45465 100%);
+  background: #f0f0f0;
   display: flex;
   align-items: center;
   justify-content: center;
