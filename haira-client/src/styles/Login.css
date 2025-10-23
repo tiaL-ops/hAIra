@@ -1,0 +1,260 @@
+/* Login.css - Full screen login with Jersey 10 font */
+
+.login-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+  font-family: 'Jersey 10', sans-serif;
+}
+
+.login-container {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 440px;
+  border: 3px solid #408F8C;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-title {
+  font-family: 'Jersey 10', sans-serif;
+  font-size: 48px;
+  font-weight: 700;
+  color: #408F8C;
+  margin-bottom: 0.5rem;
+}
+
+.login-subtitle {
+  font-family: 'Jersey 10', sans-serif;
+  font-size: 16px;
+  color: #666;
+}
+
+.login-error {
+  margin-bottom: 1.5rem;
+  padding: 12px 16px;
+  background: #fee;
+  border: 2px solid #B45465;
+  border-radius: 8px;
+  color: #B45465;
+  font-size: 14px;
+  font-family: 'Jersey 10', sans-serif;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label {
+  font-family: 'Jersey 10', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.form-input {
+  font-family: 'Jersey 10', sans-serif;
+  width: 100%;
+  padding: 12px 16px;
+  background: #fff;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #408F8C;
+  box-shadow: 0 0 0 3px rgba(64, 143, 140, 0.1);
+}
+
+.form-input::placeholder {
+  color: #999;
+}
+
+.form-input:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.form-hint {
+  font-family: 'Jersey 10', sans-serif;
+  font-size: 12px;
+  color: #666;
+  margin-top: 0.25rem;
+}
+
+.btn-primary {
+  font-family: 'Jersey 10', sans-serif;
+  width: 100%;
+  padding: 14px 20px;
+  background: #408F8C;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 3px 8px rgba(64, 143, 140, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #357a77;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(64, 143, 140, 0.4);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.divider {
+  position: relative;
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #ddd;
+}
+
+.divider-text {
+  font-family: 'Jersey 10', sans-serif;
+  position: relative;
+  display: inline-block;
+  padding: 0 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  color: #666;
+  font-size: 14px;
+}
+
+.btn-google {
+  font-family: 'Jersey 10', sans-serif;
+  width: 100%;
+  padding: 12px 20px;
+  background: white;
+  color: #333;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn-google:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #408F8C;
+}
+
+.btn-google:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.google-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.login-footer {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.toggle-auth-btn {
+  font-family: 'Jersey 10', sans-serif;
+  background: none;
+  border: none;
+  color: #408F8C;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s;
+  padding: 0;
+}
+
+.toggle-auth-btn:hover:not(:disabled) {
+  color: #357a77;
+  text-decoration: underline;
+}
+
+.toggle-auth-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .login-wrapper {
+    padding: 1rem 0.75rem;
+  }
+  
+  .login-container {
+    padding: 2rem 1.5rem;
+  }
+  
+  .login-title {
+    font-size: 36px;
+  }
+}

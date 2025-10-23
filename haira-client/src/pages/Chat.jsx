@@ -28,28 +28,15 @@ function Chat() {
   const [currentProjectDay, setCurrentProjectDay] = useState(1);
   const [testProjectDay, setTestProjectDay] = useState(1);
   const [messagesUsed, setMessagesUsed] = useState(0);
-  const [dailyLimit, setDailyLimit] = useState(7);
+  const [dailyLimit, setDailyLimit] = useState(10);
   const [tasks, setTasks] = useState([]);
-  const [showQuotaWarning, setShowQuotaWarning] = useState(false);
+  const [newTask, setNewTask] = useState('');
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
   const auth = getAuth();
   
   // Ref for auto-scrolling to the bottom
   const messagesContainerRef = useRef(null);
-  const messagesListRef = useRef(null);
-
-  // Function to scroll to bottom
-  const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      const element = messagesContainerRef.current;
-      element.scrollTop = element.scrollHeight;
-      console.log('Scrolling to bottom:', element.scrollTop, element.scrollHeight);
-    }
-    
-    // Fallback: scroll the last message into view
-    if (messagesListRef.current && messagesListRef.current.lastElementChild) {
-      messagesListRef.current.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
-  };
 
   // Agent info (you can replace avatar string with an image URL later)
 const agentInfo = {
@@ -60,55 +47,17 @@ const agentInfo = {
   
   // Auto-scroll to bottom when messages change or when loading finishes
   useEffect(() => {
-    if (!isLoading && messages.length > 0) {
-      // Use multiple attempts to ensure scrolling works
-      requestAnimationFrame(() => {
-        scrollToBottom();
-        setTimeout(scrollToBottom, 50);
-        setTimeout(scrollToBottom, 100);
-        setTimeout(scrollToBottom, 200);
-      });
+    if (messagesContainerRef.current && !isLoading) {
+      setTimeout(() => {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }, 100); // Small delay to ensure all content is rendered
     }
   }, [messages, isLoading]);
-
-  // Force scroll to bottom when component mounts with messages
-  useEffect(() => {
-    if (messages.length > 0 && !isLoading) {
-      const timer = setTimeout(() => {
-        scrollToBottom();
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading, messages.length]);
-
-  // Scroll to bottom when component first loads
-  useEffect(() => {
-    if (messages.length > 0) {
-      // Immediate scroll
-      scrollToBottom();
-      // Then multiple delayed attempts
-      const timer1 = setTimeout(() => scrollToBottom(), 100);
-      const timer2 = setTimeout(() => scrollToBottom(), 300);
-      const timer3 = setTimeout(() => scrollToBottom(), 500);
-      return () => {
-        clearTimeout(timer1);
-        clearTimeout(timer2);
-        clearTimeout(timer3);
-      };
-    }
-  }, []);
-
-  // Scroll to bottom when messages container ref is available
-  useEffect(() => {
-    if (messagesContainerRef.current && messages.length > 0) {
-      console.log('Messages container ref available, scrolling to bottom');
-      scrollToBottom();
-    }
-  }, [messagesContainerRef.current, messages.length]);
-  // active hours util - AI agents are always active until quota reached
+  // active hours util
   const isActiveHours = () => {
-    // AI agents are always active until user reaches 7 messages per day
-    return !quotaExceeded;
+    const now = new Date();
+    const hour = now.getUTCHours();
+    return hour >= activeHoursStart && hour < activeHoursEnd;
   };
 
   // load saved hours
@@ -126,59 +75,33 @@ const agentInfo = {
     setActiveHoursEnd(end);
   };
 
-  // Fetch tasks from Firestore
+  // tasks
   useEffect(() => {
-    const fetchTasks = async () => {
-      if (!id || !currentUser) return;
-      
-      try {
-        const token = await currentUser.getIdToken();
-        const response = await axios.get(`http://localhost:3002/api/project/${id}/kanban`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (response.data.success && response.data.tasks) {
-          console.log('Fetched tasks from Firestore:', response.data.tasks);
-          setTasks(response.data.tasks);
-        }
-      } catch (error) {
-        console.error('Error fetching tasks:', error);
-        // Fallback to localStorage if API fails
-        const savedTasks = localStorage.getItem(`tasks_${id}`);
-        if (savedTasks) {
-          console.log('Using localStorage fallback for tasks');
-          setTasks(JSON.parse(savedTasks));
-        }
-      }
-    };
+    const savedTasks = localStorage.getItem(`tasks_${id}`);
+    if (savedTasks) setTasks(JSON.parse(savedTasks));
+  }, [id]);
 
-    fetchTasks();
-  }, [id, currentUser]);
-
-  // Function to refresh tasks from Firestore
-  const refreshTasks = async () => {
-    if (!id || !currentUser) return;
-    
-    try {
-      const token = await currentUser.getIdToken();
-      const response = await axios.get(`http://localhost:3002/api/project/${id}/kanban`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.data.success && response.data.tasks) {
-        console.log('Refreshed tasks from Firestore:', response.data.tasks);
-        setTasks(response.data.tasks);
-      }
-    } catch (error) {
-      console.error('Error refreshing tasks:', error);
-    }
+  const addTask = () => {
+    if (!newTask.trim()) return;
+    const task = { id: Date.now(), text: newTask, completed: false, createdAt: new Date().toISOString() };
+    const updated = [...tasks, task];
+    setTasks(updated);
+    setNewTask('');
+    setShowTaskForm(false);
+    localStorage.setItem(`tasks_${id}`, JSON.stringify(updated));
   };
 
-  // Tasks are now read-only summary display
+  const toggleTask = (taskId) => {
+    const updated = tasks.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t);
+    setTasks(updated);
+    localStorage.setItem(`tasks_${id}`, JSON.stringify(updated));
+  };
+
+  const deleteTask = (taskId) => {
+    const updated = tasks.filter(t => t.id !== taskId);
+    setTasks(updated);
+    localStorage.setItem(`tasks_${id}`, JSON.stringify(updated));
+  };
 
   // fetch on mount
   useEffect(() => {
@@ -193,43 +116,38 @@ const agentInfo = {
         setIsLoading(true);
         setStatusMessage('');
         const token = await auth.currentUser.getIdToken(true);
-        const [chatResp, projectResp] = await Promise.all([
+        const [chatResp, projectResp, profileResp] = await Promise.all([
           axios.get(`http://localhost:3002/api/project/${id}/chat`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`http://localhost:3002/api/project/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+          axios.get(`http://localhost:3002/api/project/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`http://localhost:3002/api/profile`, { headers: { Authorization: `Bearer ${token}` } })
         ]);
 
         if (isMounted) {
           const project = projectResp.data.project;
           setProjectName(project?.title || project?.name || 'Untitled Project');
 
+          // Set user profile
+          setUserProfile(profileResp.data.user);
+
           const newChats = chatResp.data.chats || [];
-          // Sort chronologically - oldest to newest (ascending order) for proper display
+          // Sort chronologically - oldest to newest (ascending order)
           const sorted = newChats.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
           setMessages(sorted);
-          
-          // Refresh tasks after loading messages
-          setTimeout(() => {
-            refreshTasks();
-          }, 500);
           
           // Get quota information
           if (chatResp.data.quotaExceeded) {
             setQuotaExceeded(true);
-            setStatusMessage(`🚫 Daily message limit reached (${chatResp.data.messagesUsedToday}/7)`);
+            setStatusMessage(`🚫 Daily message limit reached (${chatResp.data.messagesUsedToday}/10)`);
           } else if (chatResp.data.quotaWarning) {
             setQuotaWarning(chatResp.data.quotaWarning);
             setStatusMessage(`⚠️ ${chatResp.data.quotaWarning}`);
-            // Show pop-up warning at 5/7 messages
-            if (chatResp.data.messagesUsedToday >= 5) {
-              setShowQuotaWarning(true);
-            }
           } else {
             setStatusMessage('');
           }
           
           // Set message quota stats
           setMessagesUsed(chatResp.data.messagesUsedToday || 0);
-          setDailyLimit(chatResp.data.dailyLimit || 7);
+          setDailyLimit(chatResp.data.dailyLimit || 10);
           
           // Set current day
           if (chatResp.data.currentProjectDay) {
@@ -280,32 +198,9 @@ const agentInfo = {
 
       setMessages(prev => {
         const updated = [...prev, ...newChats];
-        // Sort chronologically - oldest to newest (ascending order) for proper display
-        const sorted = updated.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        
-        // Force scroll to bottom after state update with multiple attempts
-        setTimeout(() => scrollToBottom(), 50);
-        setTimeout(() => scrollToBottom(), 150);
-        setTimeout(() => scrollToBottom(), 300);
-        
-        return sorted;
+        // Sort chronologically - oldest to newest (ascending order)
+        return updated.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
       });
-
-      // Update quota information from response
-      if (response.data.messagesUsedToday !== undefined) {
-        setMessagesUsed(response.data.messagesUsedToday);
-      }
-      if (response.data.dailyLimit !== undefined) {
-        setDailyLimit(response.data.dailyLimit);
-      }
-      if (response.data.quotaExceeded !== undefined) {
-        setQuotaExceeded(response.data.quotaExceeded);
-      }
-
-      // Refresh tasks after receiving new messages (AI agents might have created new tasks)
-      setTimeout(() => {
-        refreshTasks();
-      }, 1000);
 
       setNewMessage("");
       const clearTimeoutMs = response.data.quotaWarning || response.data.quotaExceeded ? 5000 : 3000;
@@ -328,7 +223,6 @@ const agentInfo = {
   };
 
   // new avatar renderer for list and messages (image or emoji fallback)
-// new avatar renderer for list and messages (image or emoji fallback)
   const Avatar = ({ avatar, alt, size = 48 }) => {
     // Check if the avatar is one of the known emoji fallbacks
     const isEmojiFallback = avatar === '👤' || avatar === '❓';
@@ -338,14 +232,33 @@ const agentInfo = {
       return <span className="avatar" style={{ fontSize: size * 0.6 }}>{avatar}</span>;
     }
 
-    // Otherwise, assume it's an image path (like AlexAvatar or a https:// URL)
+    // Check if it's a base64 image (from user profile)
+    const isBase64 = avatar && avatar.startsWith('data:image/');
+    
+    // Otherwise, assume it's an image path (like AlexAvatar or a https:// URL or base64)
     // and render it as an <img> tag.
-    return <img src={avatar} alt={alt} className="avatar pixel-art" style={{ width: size, height: size }} />;
+    return (
+      <img 
+        src={avatar} 
+        alt={alt} 
+        className={`avatar ${isBase64 ? '' : 'pixel-art'}`}
+        style={{ 
+          width: size, 
+          height: size,
+          borderRadius: isBase64 ? '50%' : '0', // Make user avatars circular
+          objectFit: 'cover'
+        }} 
+      />
+    );
   };
   // sender info helper
   const getSenderInfo = (senderId, senderName) => {
     if (senderId === auth.currentUser?.uid || senderId === 'user') {
-      return { name: 'You', avatar: '👤', role: 'Team Member' };
+      return { 
+        name: userProfile?.name || 'You', 
+        avatar: userProfile?.avatarUrl || '👤', 
+        role: 'Team Member' 
+      };
     }
     if (agentInfo[senderId]) return agentInfo[senderId];
     return { name: senderName || 'Unknown', avatar: '❓', role: 'Member' };
@@ -362,7 +275,7 @@ const agentInfo = {
           
           {/* Message Quota Display */}
           <div className="message-quota">
-            <div className="quota-label">Messages (24h): 
+            <div className="quota-label">Messages Today: 
               <span className={quotaExceeded ? 'quota-exceeded' : messagesUsed >= 7 ? 'quota-warning' : ''}>
                 {messagesUsed}/{dailyLimit}
               </span>
@@ -375,6 +288,29 @@ const agentInfo = {
             </div>
           </div>
         </div>
+
+        {/* User Profile Section */}
+        {userProfile && (
+          <div className="sidebar-section">
+            <h3>👤 Your Profile</h3>
+            <div className="user-profile-card">
+              <div className="profile-avatar-container">
+                <Avatar 
+                  avatar={userProfile.avatarUrl || '👤'} 
+                  alt={userProfile.name || 'User'} 
+                  size={60} 
+                />
+              </div>
+              <div className="profile-info">
+                <div className="profile-name">{userProfile.name || 'User'}</div>
+                <div className="profile-stats">
+                  <span className="stat-item">Level {userProfile.summary?.level || 1}</span>
+                  <span className="stat-item">XP: {userProfile.summary?.xp || 0}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Team Status */}
         <div className="sidebar-section">
@@ -425,30 +361,53 @@ const agentInfo = {
           </div>
         )}
 
-        {/* Task Summary */}
+        {/* Task Management */}
         <div className="sidebar-section">
           <div className="task-section">
-            <h3>📋 Today's Tasks</h3>
-            <div className="task-summary">
+            <div className="task-header">
+              <h3>📋 Tasks</h3>
+              <button className="add-task-btn" onClick={() => setShowTaskForm(!showTaskForm)}>
+                {showTaskForm ? '✖' : '➕'}
+              </button>
+            </div>
+
+            {showTaskForm && (
+              <div className="task-form">
+                <input 
+                  type="text" 
+                  value={newTask} 
+                  onChange={(e) => setNewTask(e.target.value)} 
+                  placeholder="Enter new task..." 
+                  onKeyPress={(e) => e.key === 'Enter' && addTask()} 
+                />
+                <button onClick={addTask}>Add</button>
+              </div>
+            )}
+
+            <div className="task-list">
               {tasks.length === 0 ? (
                 <p className="no-tasks">No tasks yet</p>
               ) : (
-                <div className="task-summary-list">
-                  {tasks.slice(0, 5).map(task => (
-                    <div key={task.id} className={`task-summary-item ${task.completed ? 'completed' : ''}`}>
-                      <span className="task-status">{task.completed ? '✅' : '⏳'}</span>
-                      <div className="task-content">
-                        <div className="task-title">{task.title || task.text || 'Untitled'}</div>
-                        {task.description && (
-                          <div className="task-description">{task.description}</div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {tasks.length > 5 && (
-                    <div className="task-more">+{tasks.length - 5} more tasks</div>
-                  )}
-                </div>
+                <table className="task-table">
+                  <thead><tr><th>Task</th><th>✓</th><th></th></tr></thead>
+                  <tbody>
+                    {tasks.map(task => (
+                      <tr key={task.id} className={task.completed ? 'completed' : ''}>
+                        <td className="task-text">{task.text}</td>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={task.completed}
+                            onChange={() => toggleTask(task.id)}
+                          />
+                        </td>
+                        <td>
+                          <button className="delete-btn" onClick={() => deleteTask(task.id)}>🗑️</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </div>
           </div>
@@ -485,41 +444,17 @@ const agentInfo = {
           {quotaWarning && <div className="quota-warning">{quotaWarning}</div>}
           {quotaExceeded && <div className="quota-exceeded">Daily message limit reached</div>}
         </div>
-
-        {/* Quota Warning Pop-up */}
-        {showQuotaWarning && (
-          <div className="quota-warning-popup">
-            <div className="popup-content">
-              <div className="popup-header">
-                <span className="popup-icon">⚠️</span>
-                <h3>Message Limit Warning</h3>
-              </div>
-              <div className="popup-body">
-                <p>You've used {messagesUsed}/7 messages in the last 24 hours.</p>
-                <p>Only {7 - messagesUsed} messages remaining!</p>
-              </div>
-              <div className="popup-footer">
-                <button 
-                  className="popup-close-btn"
-                  onClick={() => setShowQuotaWarning(false)}
-                >
-                  Got it
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
         {/* Messages Container */}
-        <div className="messages-container" ref={messagesContainerRef}>
+        <div className="messages-container">
           {isLoading ? (
             <div className="loading"><p>Loading team chat...</p></div>
           ) : messages.length === 0 ? (
             <div className="empty-state">
               <p>👋 Start the conversation with your AI teammates!</p>
-              <p className="hint">Alex, Rasoa, and Rakoto are {isActiveHours() ? 'online and ready to help' : 'offline (daily message limit reached)'}</p>
+              <p className="hint">Alex, Rasoa, and Rakoto are {isActiveHours() ? 'online and ready to help' : `currently offline (${activeHoursStart}:00 - ${activeHoursEnd}:00 UTC)`}</p>
             </div>
           ) : (
-            <div className="messages-list" ref={messagesListRef}>
+            <div className="messages-list">
               {messages.map((msg, index) => {
                 const sender = getSenderInfo(msg.senderId, msg.senderName);
                 return (
@@ -587,7 +522,7 @@ const agentInfo = {
               ? `⚠️ ${quotaWarning}`
               : isActiveHours()
               ? '🟢 AI teammates are online and will respond'
-              : '🔴 AI teammates are offline (daily message limit reached)'
+              : `🔴 AI teammates are offline (${activeHoursStart}:00 - ${activeHoursEnd}:00 UTC)`
             }
           </div>
         </div>

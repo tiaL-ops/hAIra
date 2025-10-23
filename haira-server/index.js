@@ -14,8 +14,9 @@ import kanbanRoutes from './routes/KanbanRoutes.js';
 const app = express();
 const port = 3002;
 
+// Allow multiple origins for development
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'http://localhost:5174'],
   credentials: true
 }));
 

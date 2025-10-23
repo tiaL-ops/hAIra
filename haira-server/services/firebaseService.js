@@ -446,6 +446,72 @@ export async function updateUserActiveProject(userId, projectId) {
   });
 }
 
+// Get user profile
+export async function getUserProfile(userId) {
+  const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
+  const userDoc = await userRef.get();
+  
+  if (!userDoc.exists) {
+    return null;
+  }
+  
+  return {
+    id: userId,
+    ...userDoc.data()
+  };
+}
+
+// Update user language preference
+export async function updateUserLanguage(userId, language) {
+  if (language !== 'en' && language !== 'fr') {
+    throw new Error('Invalid language preference');
+  }
+  
+  const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
+  await userRef.update({
+    'preferences.language': language
+  });
+  
+  return { language };
+}
+
+// Update user profile summary
+export async function updateUserSummary(userId, summary) {
+  const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
+  await userRef.update({
+    'summary': summary
+  });
+  
+  return summary;
+}
+
+// Add achievement to user
+export async function addUserAchievement(userId, achievementId) {
+  const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
+  const userDoc = await userRef.get();
+  
+  if (!userDoc.exists) {
+    throw new Error('User not found');
+  }
+  
+  const userData = userDoc.data();
+  const achievements = userData.summary?.achievements || [];
+  
+  // Check if achievement already exists
+  if (achievements.includes(achievementId)) {
+    return achievements;
+  }
+  
+  // Add the new achievement
+  achievements.push(achievementId);
+  
+  await userRef.update({
+    'summary.achievements': achievements
+  });
+  
+  return achievements;
+}
+
 // Get count of user messages in the last 24 hours
 export async function getUserMessageCountSince(projectId, userId, projectStartDate, currentDay) {
   try {
