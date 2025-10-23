@@ -1,15 +1,12 @@
 // src/components/TextEditor/AIToolbar.jsx
 import React, { useState } from "react";
 
-export default function AIToolbar({ onSummarize, onProofread, aiFeedback, onShowGuide, onSubmit, submitting, submitted, saveStatus, onClearFeedback }) {
+export default function AIToolbar({ onSummarize, onProofread, onShowGuide, onSubmit, submitting, submitted, saveStatus }) {
   const [activeTool, setActiveTool] = useState(null);
-  const [showFeedback, setShowFeedback] = useState(false);
 
   const handleToolClick = (tool, callback) => {
     setActiveTool(tool);
     callback();
-    // Always show feedback popup when a tool is clicked
-    setShowFeedback(true);
   };
 
   return (
@@ -27,16 +24,6 @@ export default function AIToolbar({ onSummarize, onProofread, aiFeedback, onShow
         >
           ✍️ Proofread
         </button>
-        {/* AI feedback text - only show when there's actual feedback */}
-        {aiFeedback && (
-          <div 
-            className="ai-suggestions-text clickable"
-            onClick={() => setShowFeedback(!showFeedback)}
-            style={{ cursor: 'pointer' }}
-          >
-            ⚡ AI Feedback Available
-          </div>
-        )}
         
         {/* Help button */}
         <div className="toolbar-divider"></div>
@@ -70,38 +57,6 @@ export default function AIToolbar({ onSummarize, onProofread, aiFeedback, onShow
         )}
         
       </div>
-      
-      {/* AI Feedback Popup - Gaming Style */}
-      {aiFeedback && showFeedback && (
-        <div className="ai-feedback-popup-gaming">
-          <div className="ai-feedback-header">
-            <span className="ai-feedback-title">⚡ AI Feedback</span>
-            <div className="ai-feedback-actions">
-              {onClearFeedback && (
-                <button 
-                  className="clear-feedback-gaming"
-                  onClick={() => {
-                    onClearFeedback();
-                    setShowFeedback(false);
-                  }}
-                  title="Clear feedback"
-                >
-                  🗑️ Clear
-                </button>
-              )}
-              <button 
-                className="close-feedback-gaming"
-                onClick={() => setShowFeedback(false)}
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-          <div className="ai-feedback-content-gaming">
-            {typeof aiFeedback === "string" ? aiFeedback : JSON.stringify(aiFeedback)}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

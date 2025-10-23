@@ -13,6 +13,8 @@ import ProofreadSuggestion from "../components/ProofreadSuggestion";
 import ChromeAIStatus from "../components/ChromeAIStatus";
 import TeamPanel from "../components/TeamPanel";
 import TaskCompletionFeedback from "../components/TaskCompletionFeedback";
+import SummarizeModal from "../components/SummarizeModal";
+import ProofreadModal from "../components/ProofreadModal";
 import { getChromeProofreadSuggestions, getChromeSummary } from "../utils/chromeAPI";
 import { useAITeam } from "../hooks/useAITeam";
 import { AI_TEAMMATES } from "../../../shared/aiReportAgents.js";
@@ -20,6 +22,8 @@ import "../styles/editor.css";
 import "../styles/global.css";
 import "../styles/TeamPanel.css";
 import "../styles/TaskCompletionFeedback.css";
+import "../styles/SummarizeModal.css";
+import "../styles/ProofreadModal.css";
 //------------
 
 const backend_host = "http://localhost:3002";
@@ -43,6 +47,14 @@ function Submission() {
   const [aiSummary, setAiSummary] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Modal states
+  const [showSummarizeModal, setShowSummarizeModal] = useState(false);
+  const [showProofreadModal, setShowProofreadModal] = useState(false);
+  const [summarizeLoading, setSummarizeLoading] = useState(false);
+  const [proofreadLoading, setProofreadLoading] = useState(false);
+  const [summarizeError, setSummarizeError] = useState(null);
+  const [proofreadError, setProofreadError] = useState(null);
   const editorRef = useRef(null);
   
   // Team collaboration state
@@ -381,9 +393,11 @@ function Submission() {
 
   // AI toolbar callbacks
   async function handleAISummarize() {
+    setShowSummarizeModal(true);
+    setSummarizeLoading(true);
+    setSummarizeError(null);
+    
     try {
-      setAiFeedback("🤖 Generating summary...");
-      
       // Gemini fallback function
       const geminiFallback = async () => {
         const token = await getIdTokenSafely();
@@ -408,11 +422,12 @@ function Submission() {
       const summary = result.summary || "No summary generated.";
       const source = result.source || 'unknown (chrome or gemini)';
       
-      setAiFeedback(`📝 Summary (${source}):\n\n${summary}`);
-      setAiSummary(summary);
+      setAiSummary(`📝 Summary (${source}):\n\n${summary}`);
     } catch (err) {
       console.error("AI Summarize error", err);
-      setAiFeedback("❌ AI error: " + err.message);
+      setSummarizeError("AI error: " + err.message);
+    } finally {
+      setSummarizeLoading(false);
     }
   }
 
@@ -437,20 +452,23 @@ function Submission() {
   }
 
   async function handleAIProofread() {
-    try {
-      // First try to capture current selection from textarea
-      let currentSelection = captureCurrentSelection();
-      
-      // Check if user has selected text (use stored selection or captured selection)
-      const textToProofread = selectedText.trim() || (selectionRange?.text || '').trim() || (currentSelection?.text || '').trim();
-      
-      if (!textToProofread) {
-        setAiFeedback("💡 Please select some text to proofread first!");
-        return;
-      }
+    // First try to capture current selection from textarea
+    let currentSelection = captureCurrentSelection();
+    
+    // Check if user has selected text (use stored selection or captured selection)
+    const textToProofread = selectedText.trim() || (selectionRange?.text || '').trim() || (currentSelection?.text || '').trim();
+    
+    if (!textToProofread) {
+      setProofreadError("Please select some text to proofread first!");
+      setShowProofreadModal(true);
+      return;
+    }
 
-      setAiFeedback("🔍 Checking selected text...");
-      
+    setShowProofreadModal(true);
+    setProofreadLoading(true);
+    setProofreadError(null);
+    
+    try {
       // Gemini fallback function
       const geminiFallback = async () => {
         const token = await getIdTokenSafely();
@@ -480,22 +498,42 @@ function Submission() {
           originalText: textToProofread,
           correctedText: result.corrected,
           source: source,
-          errorCount: result.errorCount
+          errorCount: result.errorCount,
+          suggestions: result.corrections ? result.corrections.map(c => ({
+            type: c.type || 'Grammar',
+            issue: `"${c.originalText}"`,
+            suggestion: `"${c.suggestedText}"`,
+            explanation: `This is a ${c.type || 'grammar'} correction.`,
+            confidence: 85
+          })) : []
         });
-        setShowProofreadSuggestion(true);
-        setAiFeedback(`🔧 Found ${result.errorCount} issues in selected text (${source})`);
       } else if (result.hasErrors) {
         // Fallback for Gemini with individual corrections
-        const corrections = result.corrections.map(c => 
-          `• ${c.type}: "${c.originalText}" → "${c.suggestedText}"`
-        ).join('\n');
-        setAiFeedback(`🔧 Found ${result.errorCount} issues (${source}):\n\n${corrections}`);
+        setProofreadData({
+          originalText: textToProofread,
+          source: source,
+          errorCount: result.errorCount,
+          suggestions: result.corrections ? result.corrections.map(c => ({
+            type: c.type || 'Grammar',
+            issue: `"${c.originalText}"`,
+            suggestion: `"${c.suggestedText}"`,
+            explanation: `This is a ${c.type || 'grammar'} correction.`,
+            confidence: 85
+          })) : []
+        });
       } else {
-        setAiFeedback(`✅ No errors found in selected text! (${source})`);
+        setProofreadData({
+          originalText: textToProofread,
+          source: source,
+          errorCount: 0,
+          suggestions: []
+        });
       }
     } catch (err) {
       console.error("AI Proofread error", err);
-      setAiFeedback("❌ AI error: " + err.message);
+      setProofreadError("AI error: " + err.message);
+    } finally {
+      setProofreadLoading(false);
     }
   }
 
@@ -643,13 +681,11 @@ function Submission() {
         <AIToolbar
           onSummarize={handleAISummarize}
           onProofread={handleAIProofread}
-          aiFeedback={aiFeedback}
           onShowGuide={() => setShowGuide(true)}
           onSubmit={handleSubmission}
           submitting={submitting}
           submitted={submitted}
           saveStatus={saveStatus}
-          onClearFeedback={handleClearFeedback}
         />
         
         <ChromeAIStatus />
@@ -737,6 +773,24 @@ function Submission() {
       <EditorGuide 
         isVisible={showGuide} 
         onClose={() => setShowGuide(false)} 
+      />
+      
+      {/* Summarize Modal */}
+      <SummarizeModal
+        isOpen={showSummarizeModal}
+        onClose={() => setShowSummarizeModal(false)}
+        summary={aiSummary}
+        isLoading={summarizeLoading}
+        error={summarizeError}
+      />
+      
+      {/* Proofread Modal */}
+      <ProofreadModal
+        isOpen={showProofreadModal}
+        onClose={() => setShowProofreadModal(false)}
+        proofreadData={proofreadData}
+        isLoading={proofreadLoading}
+        error={proofreadError}
       />
     </div>
   );
