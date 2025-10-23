@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
+import '../styles/ProjectSelection.css';
 
 export default function ProjectSelection() {
   const [loading, setLoading] = useState(true);
@@ -112,43 +113,38 @@ export default function ProjectSelection() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <svg className="animate-spin h-10 w-10 text-cyan-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <p className="mt-3 text-slate-400">Loading your projects...</p>
+      <div className="loading-screen">
+        <div className="loading-content">
+          <div className="loading-spinner-large"></div>
+          <p className="loading-text">Loading your projects...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-12 px-4 sm:px-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">
-            Your Projects
-          </h1>
-          <p className="text-slate-400 mt-2">
+    <div className="projects-wrapper">
+      <div className="projects-container">
+        <div className="projects-header">
+          <h1 className="projects-title">Your Projects</h1>
+          <p className="projects-subtitle">
             Select an existing project or create a new one
           </p>
         </div>
         
         {error && (
-          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm max-w-md mx-auto">
+          <div className="projects-error">
             {error}
           </div>
         )}
 
         {/* Create New Project Form */}
-        <div className="bg-slate-800/80 rounded-xl shadow-lg border border-slate-700 p-6 mb-8 max-w-md mx-auto">
-          <h2 className="text-xl font-semibold text-slate-200 mb-4">Create New Project</h2>
+        <div className="create-project-section">
+          <h2 className="create-project-title">Create New Project</h2>
           
-          <form onSubmit={handleCreateProject} className="space-y-4">
-            <div>
-              <label htmlFor="project-title" className="block text-sm font-medium text-slate-300 mb-2">
+          <form onSubmit={handleCreateProject} className="create-form">
+            <div className="form-group">
+              <label htmlFor="project-title" className="form-label">
                 Project Title
               </label>
               <input
@@ -157,7 +153,7 @@ export default function ProjectSelection() {
                 value={newProjectTitle}
                 onChange={(e) => setNewProjectTitle(e.target.value)}
                 placeholder="My Amazing Project"
-                className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none text-slate-200 placeholder-slate-500 transition"
+                className="form-input"
                 required
                 disabled={creating}
               />
@@ -166,14 +162,11 @@ export default function ProjectSelection() {
             <button
               type="submit"
               disabled={creating}
-              className="w-full py-3 px-4 bg-gradient-to-r from-cyan-600 to-purple-600 text-white font-semibold rounded-lg hover:from-cyan-500 hover:to-purple-500 focus:ring-4 focus:ring-cyan-500/50 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="btn-create"
             >
               {creating ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                <span className="loading-spinner">
+                  <span className="spinner"></span>
                   Creating...
                 </span>
               ) : (
@@ -185,28 +178,25 @@ export default function ProjectSelection() {
 
         {/* Existing Projects */}
         {projects.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="projects-grid">
             {projects.map((project) => (
-              <div 
-                key={project.id} 
-                className="bg-slate-800/80 rounded-xl shadow-lg border border-slate-700 p-6 hover:border-cyan-500/50 hover:shadow-cyan-900/30 transition-all duration-300 hover:scale-[1.02]"
-              >
-                <h3 className="text-xl font-semibold text-slate-200 mb-1">
+              <div key={project.id} className="project-card">
+                <h3 className="project-card-title">
                   {project.title}
                 </h3>
-                <p className="text-sm text-slate-400 mb-4">
-                  Status: <span className="capitalize">{project.status}</span>
+                <p className="project-card-status">
+                  Status: <span>{project.status}</span>
                 </p>
-                <div className="flex space-x-3 mt-4">
+                <div className="project-actions">
                   <button 
                     onClick={() => handleOpenProject(project.id, 'kanban')}
-                    className="flex-1 py-2 px-3 bg-cyan-600/80 hover:bg-cyan-500 text-white text-sm font-medium rounded-md transition"
+                    className="btn-action btn-kanban"
                   >
                     Kanban Board
                   </button>
                   <button 
                     onClick={() => handleOpenProject(project.id, 'chat')}
-                    className="flex-1 py-2 px-3 bg-purple-600/80 hover:bg-purple-500 text-white text-sm font-medium rounded-md transition"
+                    className="btn-action btn-chat"
                   >
                     Chat
                   </button>
@@ -215,8 +205,10 @@ export default function ProjectSelection() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8">
-            <p className="text-slate-400">You don't have any projects yet. Create one to get started!</p>
+          <div className="empty-state">
+            <p className="empty-state-text">
+              You don't have any projects yet. Create one to get started!
+            </p>
           </div>
         )}
       </div>

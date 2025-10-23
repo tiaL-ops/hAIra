@@ -3,6 +3,7 @@ import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Profile.css';
+import bg from '../images/backgroundsky.png'; // put your image here
 
 function Profile() {
   const [profile, setProfile] = useState(null);
@@ -15,7 +16,6 @@ function Profile() {
   const navigate = useNavigate();
   const auth = getAuth();
 
-  // Fetch user profile data
   useEffect(() => {
     const fetchProfile = async () => {
       if (!auth.currentUser) {
@@ -26,15 +26,12 @@ function Profile() {
       try {
         setLoading(true);
         const token = await auth.currentUser.getIdToken();
-        
         const response = await axios.get("http://localhost:3002/api/profile", {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         });
 
         setProfile(response.data.user);
-        setLanguage(response.data.user.preferences.language || 'en');
+        setLanguage(response.data.user?.preferences?.language || 'en');
         setLoading(false);
       } catch (err) {
         console.error("Error fetching profile:", err);
@@ -46,31 +43,20 @@ function Profile() {
     fetchProfile();
   }, [auth, navigate]);
 
-  // Handle language change
   const handleLanguageChange = async (newLanguage) => {
     if (language === newLanguage || !auth.currentUser) return;
 
     try {
       setSaving(true);
       const token = await auth.currentUser.getIdToken();
-      
       await axios.patch("http://localhost:3002/api/profile/preferences", 
         { language: newLanguage },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
+        { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
       );
 
       setLanguage(newLanguage);
       setSaveMessage('Language preference saved');
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setSaveMessage('');
-      }, 3000);
+      setTimeout(() => setSaveMessage(''), 3000);
     } catch (err) {
       console.error("Error updating language preference:", err);
       setSaveMessage('Failed to save language preference');
@@ -79,13 +65,12 @@ function Profile() {
     }
   };
 
-  // Render achievement badges
   const renderAchievements = (achievements) => {
     if (!achievements || achievements.length === 0) {
       return <p className="no-achievements">No achievements yet</p>;
     }
 
-    const achievementLabels = {
+    const labels = {
       'first_project': 'First Project',
       'team_leader': 'Team Leader',
       'high_grade': 'High Grade',
@@ -94,101 +79,101 @@ function Profile() {
 
     return (
       <div className="achievements-container">
-        {achievements.map(achievement => (
-          <div key={achievement} className="achievement-badge">
-            {achievementLabels[achievement] || achievement}
+        {achievements.map(a => (
+          <div key={a} className="achievement-badge">
+            {labels[a] || a}
           </div>
         ))}
       </div>
     );
   };
 
-  if (loading) {
-    return <div className="profile-container loading">Loading profile...</div>;
-  }
-
-  if (error) {
-    return <div className="profile-container error">{error}</div>;
-  }
-
-  if (!profile) {
-    return <div className="profile-container error">Profile not found</div>;
-  }
+  if (loading) return <div className="profile-wrapper loading">Loading profile...</div>;
+  if (error) return <div className="profile-wrapper error">{error}</div>;
+  if (!profile) return <div className="profile-wrapper error">Profile not found</div>;
 
   return (
-    <div className="profile-container">
-      <h1 className="profile-title">My Profile</h1>
-      
-      <div className="profile-section user-info">
-        <h2>User Information</h2>
-        <div className="info-item">
-          <span className="label">Name:</span>
-          <span className="value">{profile.name}</span>
-        </div>
-        <div className="info-item">
-          <span className="label">Email:</span>
-          <span className="value">{profile.email}</span>
-        </div>
-        {profile.activeProject && (
-          <div className="info-item">
-            <span className="label">Active Project:</span>
-            <span className="value">{profile.activeProject.title} ({profile.activeProject.status})</span>
+    <div className="profile-wrapper">
+      <div className="overlay">
+        <header className="top-header">
+          <div className="avatar-circle">
+            <input 
+              type="file" 
+              id="avatar-upload" 
+              accept="image/*" 
+              style={{ display: 'none' }}
+            />
+            <label htmlFor="avatar-upload" className="avatar-label">
+              + Add Picture
+            </label>
           </div>
-        )}
-      </div>
-      
-      <div className="profile-section user-stats">
-        <h2>Profile Summary</h2>
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-value">{profile.summary.xp}</div>
-            <div className="stat-label">XP</div>
+          <div className="user-ident">
+            <div className="info-line">
+              <span className="info-label">Name:</span>
+              <span className="info-value">{profile.name || 'User'}</span>
+            </div>
+            <div className="info-line">
+              <span className="info-label">Email:</span>
+              <span className="info-value">{profile.email || 'N/A'}</span>
+            </div>
+            {profile.activeProject && (
+              <div className="info-line">
+                <span className="info-label">Project:</span>
+                <span className="info-value">{profile.activeProject.title}</span>
+              </div>
+            )}
           </div>
-          
-          <div className="stat-card">
-            <div className="stat-value">{profile.summary.level}</div>
-            <div className="stat-label">Level</div>
+        </header>
+
+        <h2 className="section-title">SCHOOL</h2>
+
+        <main className="main-grid">
+          <div className="left-col">
+            <div className="game-card white">
+              <div className="card-text">Level: {profile.summary?.level ?? 0}</div>
+            </div>
+
+            <div className="game-card white">
+              <div className="card-text">Projects Completed: {profile.summary?.totalProjectsCompleted ?? 0}</div>
+            </div>
+
+            <div className="game-card white">
+              <div className="card-text">Achievements</div>
+            </div>
+
+            <div className="game-card dark">
+              <div className="card-text">Settings</div>
+            </div>
           </div>
-          
-          <div className="stat-card">
-            <div className="stat-value">{profile.summary.totalProjectsCompleted}</div>
-            <div className="stat-label">Projects Completed</div>
+
+          <div className="right-col">
+            <div className="game-card red-pill">
+              <div className="card-text big">Level: {profile.summary?.level ?? 0}</div>
+            </div>
+
+            <div className="game-card white">
+              <div className="card-text">Average Grade: {profile.summary?.averageGrade ?? 'N/A'}</div>
+            </div>
+
+            <div className="game-card white">
+              <div className="card-text">Achievements: {(profile.summary?.achievements?.length) ?? 0}</div>
+            </div>
+
+            <div className="game-card white">
+              <div className="card-text">Language: {language === 'en' ? 'English' : 'Français'}</div>
+              <div className="language-actions">
+                <button className={`lang-btn ${language==='en' ? 'active' : ''}`} onClick={() => handleLanguageChange('en')} disabled={saving}>EN</button>
+                <button className={`lang-btn ${language==='fr' ? 'active' : ''}`} onClick={() => handleLanguageChange('fr')} disabled={saving}>FR</button>
+              </div>
+            </div>
           </div>
-          
-          <div className="stat-card">
-            <div className="stat-value">{profile.summary.averageGrade?.toFixed(1) || '0'}</div>
-            <div className="stat-label">Average Grade</div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="profile-section achievements">
-        <h2>Achievements</h2>
-        {renderAchievements(profile.summary.achievements)}
-      </div>
-      
-      <div className="profile-section preferences">
-        <h2>Settings</h2>
-        <div className="preference-item">
-          <span className="preference-label">Language:</span>
-          <div className="language-selector">
-            <button 
-              className={`language-btn ${language === 'en' ? 'active' : ''}`}
-              onClick={() => handleLanguageChange('en')}
-              disabled={saving || language === 'en'}
-            >
-              English
-            </button>
-            <button 
-              className={`language-btn ${language === 'fr' ? 'active' : ''}`}
-              onClick={() => handleLanguageChange('fr')}
-              disabled={saving || language === 'fr'}
-            >
-              Français
-            </button>
-          </div>
-          {saveMessage && <div className="save-message">{saveMessage}</div>}
-        </div>
+        </main>
+
+        <section className="achievements-section">
+          {renderAchievements(profile.summary?.achievements)}
+        </section>
+
+        {saveMessage && <div className="save-message">{saveMessage}</div>}
       </div>
     </div>
   );
