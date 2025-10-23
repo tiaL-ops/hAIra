@@ -30,15 +30,51 @@ export default function Login() {
         await setDoc(userRef, {
           name: displayName || user.displayName || 'Anonymous',
           email: user.email,
-          activeProjectId: null
+          activeProjectId: null,
+          // Add new schema fields for profile
+          summary: {
+            xp: 0,
+            level: 1,
+            totalProjectsCompleted: 0,
+            averageGrade: 0,
+            achievements: []
+          },
+          preferences: {
+            language: 'en'
+          }
         });
         console.log('User document created in Firestore');
       } else {
         // Update name if it changed
         const currentData = userDoc.data();
+        
+        const updates = {};
+        
         if (currentData.name !== displayName && displayName) {
-          await setDoc(userRef, { name: displayName }, { merge: true });
-          console.log('User name updated in Firestore');
+          updates.name = displayName;
+        }
+        
+        // Ensure the new schema fields exist
+        if (!currentData.summary) {
+          updates.summary = {
+            xp: 0,
+            level: 1,
+            totalProjectsCompleted: 0,
+            averageGrade: 0,
+            achievements: []
+          };
+        }
+        
+        if (!currentData.preferences) {
+          updates.preferences = {
+            language: 'en'
+          };
+        }
+        
+        // Only update if there are changes
+        if (Object.keys(updates).length > 0) {
+          await setDoc(userRef, updates, { merge: true });
+          console.log('User document updated in Firestore');
         }
       }
     } catch (err) {

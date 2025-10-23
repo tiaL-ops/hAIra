@@ -9,9 +9,26 @@ export const COLLECTIONS = {
 
 // Schema for User documents
 export const USER_SCHEMA = {
+  // --- Basic Info ---
   name: String,           // User's display name
   email: String,          // User's email address
-  activeProjectId: String // Reference to user's current active project
+  
+  // --- State ---
+  activeProjectId: String, // Reference to user's current active project
+  
+  // --- Profile Summary ---
+  summary: {
+    xp: Number,                 // Total XP (sum of all grades)
+    level: Number,              // Calculated from XP
+    totalProjectsCompleted: Number,
+    averageGrade: Number,
+    achievements: Array         // e.g. ["first_project", "team_leader"]
+  },
+  
+  // --- User Settings ---
+  preferences: {
+    language: String            // 'en' | 'fr'
+  }
 };
 
 // Schema for Project Template documents

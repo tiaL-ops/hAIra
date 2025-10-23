@@ -1,0 +1,187 @@
+/* Profile.css - Styling for the Profile page */
+
+.profile-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.profile-title {
+  margin-bottom: 2rem;
+  color: #333;
+  text-align: center;
+  font-size: 2.25rem;
+}
+
+.profile-section {
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.profile-section h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #eee;
+  color: #555;
+  font-size: 1.5rem;
+}
+
+/* User Info Section */
+.info-item {
+  display: flex;
+  margin-bottom: 1rem;
+}
+
+.label {
+  font-weight: 600;
+  min-width: 120px;
+  color: #555;
+}
+
+.value {
+  color: #333;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.stat-card {
+  text-align: center;
+  padding: 1.25rem;
+  border-radius: 8px;
+  background: linear-gradient(to bottom right, #f9f9f9, #f1f1f1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #4a6fa5;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Achievements Section */
+.achievements-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.achievement-badge {
+  background: linear-gradient(to bottom, #ffc107, #ffa000);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.no-achievements {
+  color: #888;
+  font-style: italic;
+}
+
+/* Preferences Section */
+.preference-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+
+.preference-label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #555;
+}
+
+.language-selector {
+  display: flex;
+  gap: 1rem;
+}
+
+.language-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  background-color: #f0f0f0;
+  color: #555;
+}
+
+.language-btn.active {
+  background-color: #4a6fa5;
+  color: white;
+}
+
+.language-btn:hover:not(.active):not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.language-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.save-message {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  color: #4caf50;
+}
+
+/* Loading and Error States */
+.loading, .error {
+  text-align: center;
+  padding: 3rem 1rem;
+  font-size: 1.25rem;
+  color: #666;
+}
+
+.error {
+  color: #d32f2f;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 600px) {
+  .info-item {
+    flex-direction: column;
+    margin-bottom: 1.5rem;
+  }
+  
+  .label {
+    margin-bottom: 0.25rem;
+  }
+  
+  .preference-item {
+    align-items: flex-start;
+  }
+  
+  .language-selector {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
