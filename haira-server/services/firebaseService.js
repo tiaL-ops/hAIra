@@ -305,6 +305,10 @@ export async function addTasks(projectId, userId, projectTitle, status, delivera
   projectTitle = projectTitle.trim();
   await ensureProjectExists(projectId);
 
+  let completedAt = 0;
+  if (status === 'done')
+    completedAt = Date.now();
+
   const promises = deliverables.map((item) => {
     let newDeliverable = new Task(
       projectTitle,
@@ -312,7 +316,7 @@ export async function addTasks(projectId, userId, projectTitle, status, delivera
       status,
       item.deliverable,
       Date.now(),
-      0,
+      completedAt,
       Task.PRIORITY.MEDIUM.value
     );
     newDeliverable = newDeliverable.toFirestore();
@@ -324,11 +328,15 @@ export async function addTasks(projectId, userId, projectTitle, status, delivera
 
 export async function updateTask(projectId, id, title, status, userId, description, priority) {
   const collectionName = COLLECTIONS.USER_PROJECTS + '/' + projectId + '/tasks';
+  let completedAt = 0;
+  if (status === 'done')
+    completedAt = Date.now();
   const data = {
     title : title,
     assignedTo : userId,
     status : status,
     description : description,
+    completedAt : completedAt,
     priority : priority
   }
   return await setDocument(collectionName, id, data);
