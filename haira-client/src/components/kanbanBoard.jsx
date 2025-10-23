@@ -15,22 +15,10 @@ const COLOR = {
   fourth: "#93C263",
 };
 
-const fetchTasks = () => {
-
-};
-
-
 const initialData = {
-  todo: [
-    { id: "1", name: "Task 1", assignee: "Alice" },
-    { id: "2", name: "Task 2", assignee: "Bob" },
-  ],
-  inProgress: [
-    { id: "3", name: "Task 3", assignee: "Charlie" },
-  ],
-  done: [
-    { id: "4", name: "Task 4", assignee: "Alice" },
-  ],
+  todo: [],
+  inProgress: [],
+  done: [],
 };
 
 const assignees = ["Alice", "Bob", "Charlie", "David"];
