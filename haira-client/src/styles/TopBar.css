@@ -8,28 +8,30 @@
 
 /* REPLACE your .header-top rules with this */
 .header-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
   padding: 10px 16px;
   background: linear-gradient(180deg,#2ba89f 0%, #2faea3 50%, #36bca9 100%);
   color: var(--text-light);
   border: 4px solid var(--border-color); /* heavy pixel border */
-  border-radius: 12px; /* rounded bar like image */
+  border-radius: 0; /* Remove border radius for full width */
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   box-shadow:
-    7px 7px 0 0 var(--border-color),    /* hard offset shadow */
-    0 0 8px rgba(90,220,140,0.12);      /* subtle glow */
-  position: sticky;
-  top: 0;
-  z-index: 50;
+    0 2px 8px rgba(0,0,0,0.15);
+  z-index: 1000;
+  box-sizing: border-box;
+  height: 70px;
 }
 
-/* constrain to content width */
+/* Inner container for full width layout */
 .header-top .inner {
-  max-width: 1200px;
   width: 100%;
-  margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;

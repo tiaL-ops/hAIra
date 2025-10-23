@@ -1,0 +1,394 @@
+/* Profile.css - Game style with Jersey 10 font and custom colors */
+
+/* Background wrapper - Full screen with white background */
+.profile-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  background: #ffffff;
+  font-family: 'Jersey 10', sans-serif;
+  color: #333;
+  position: relative;
+  margin-top: 70px; /* Space for fixed top bar */
+  box-sizing: border-box;
+}
+
+/* Overlay container */
+.profile-wrapper .overlay {
+  background: transparent;
+  min-height: calc(100vh - 70px);
+  width: 100%;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+/* top area: avatar and name fields */
+.top-header {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+/* Avatar circle with add picture button */
+.avatar-circle {
+  width: 120px;
+  height: 120px;
+  background: #f0f0f0;
+  border: 4px solid #408F8C;
+  border-radius: 50%;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden; /* Clip image to circle */
+  background-size: cover;
+  background-position: center;
+}
+
+.avatar-circle:hover .avatar-label {
+  opacity: 1;
+}
+
+.avatar-label {
+  font-family: 'Jersey 10', sans-serif;
+  font-size: 12px;
+  color: #408F8C;
+  background: rgba(255, 255, 255, 0.95);
+  cursor: pointer;
+  text-align: center;
+  padding: 8px;
+  transition: opacity 0.2s;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  opacity: 0.9;
+  border-top: 1px solid #408F8C;
+}
+
+.avatar-label:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 1);
+}
+
+/* User info - small separate lines without highlight */
+.user-ident {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.info-line {
+  font-family: 'Jersey 10', sans-serif;
+  font-size: 14px;
+  color: #333;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #408F8C;
+}
+
+.info-value {
+  font-weight: 400;
+  color: #555;
+}
+
+/* Section title "SCHOOL" */
+.section-title {
+  font-family: 'Jersey 10', sans-serif;
+  color: #408F8C;
+  font-size: 32px;
+  margin: 2rem 0 1.5rem 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: none;
+}
+
+/* main two-column grid */
+.main-grid {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.left-col, .right-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Card general rules */
+.game-card {
+  font-family: 'Jersey 10', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 14px 18px;
+  border-radius: 8px;
+  min-height: 56px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border: 3px solid rgba(0,0,0,0.05);
+}
+
+/* white card */
+.game-card.white {
+  background: #ffffff;
+  color: #333;
+  border-left: 5px solid #408F8C;
+  box-shadow: 0 2px 8px rgba(64,143,140,0.15);
+}
+
+/* dark settings card */
+.game-card.dark {
+  background: #408F8C;
+  color: #fff;
+  border-left: 5px solid #357a77;
+  box-shadow: 0 2px 8px rgba(64,143,140,0.3);
+}
+
+/* red pill style big one */
+.game-card.red-pill {
+  background: #B45465;
+  color: #fff;
+  font-weight: 700;
+  justify-content: center;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(180,84,101,0.3);
+  min-height: 70px;
+}
+
+/* card text */
+.card-text { 
+  font-size: 16px;
+  font-family: 'Jersey 10', sans-serif;
+}
+
+.card-text.big {
+  font-size: 20px;
+}
+
+/* Pin the language actions to the right inside card */
+.language-actions { 
+  margin-left: auto; 
+  display: flex; 
+  gap: 8px; 
+}
+
+.lang-btn {
+  font-family: 'Jersey 10', sans-serif;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 2px solid #408F8C;
+  cursor: pointer;
+  background: rgba(255,255,255,0.9);
+  color: #408F8C;
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.lang-btn.active {
+  background: #408F8C;
+  color: white;
+  border-color: #408F8C;
+}
+
+.lang-btn:hover:not(:disabled) {
+  background: #91169C;
+  color: white;
+  border-color: #91169C;
+}
+
+.lang-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Achievements container near bottom */
+.achievements-section { 
+  margin-top: 2rem; 
+}
+
+.achievements-container { 
+  display: flex; 
+  flex-wrap: wrap; 
+  gap: 12px; 
+}
+
+.achievement-badge {
+  font-family: 'Jersey 10', sans-serif;
+  background: #408F8C;
+  padding: 10px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 14px;
+  color: white;
+  box-shadow: 0 2px 6px rgba(64,143,140,0.3);
+  border: 2px solid #357a77;
+}
+
+.no-achievements {
+  font-family: 'Jersey 10', sans-serif;
+  color: #999;
+  font-style: italic;
+  font-size: 14px;
+}
+
+/* Save message style */
+.save-message {
+  font-family: 'Jersey 10', sans-serif;
+  margin-top: 16px;
+  padding: 10px 16px;
+  background: #e8f5f4;
+  color: #408F8C;
+  border-radius: 6px;
+  width: fit-content;
+  font-weight: 700;
+  border: 2px solid #408F8C;
+}
+
+/* Loading/error states */
+.loading, .error {
+  font-family: 'Jersey 10', sans-serif;
+  color: #333;
+  text-align: center;
+  padding: 3rem;
+  font-size: 18px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .profile-wrapper .overlay {
+    padding: 1.5rem 1rem;
+  }
+  
+  .main-grid { 
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .top-header { 
+    flex-direction: column; 
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .avatar-circle { 
+    width: 100px; 
+    height: 100px; 
+  }
+  
+  .user-ident {
+    align-items: center;
+    text-align: center;
+    width: 100%;
+  }
+  
+  .info-line { 
+    font-size: 13px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .section-title {
+    font-size: 24px;
+    text-align: center;
+    margin: 1.5rem 0 1rem 0;
+  }
+  
+  .game-card {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+  
+  .card-text.big {
+    font-size: 18px;
+  }
+  
+  .language-actions {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .profile-wrapper .overlay {
+    padding: 1rem 0.75rem;
+  }
+  
+  .top-header {
+    gap: 1rem;
+  }
+  
+  .avatar-circle {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .avatar-label {
+    font-size: 10px;
+  }
+  
+  .info-line {
+    font-size: 12px;
+  }
+  
+  .section-title {
+    font-size: 20px;
+  }
+  
+  .game-card {
+    padding: 10px 12px;
+    min-height: 48px;
+  }
+  
+  .card-text {
+    font-size: 14px;
+  }
+  
+  .card-text.big {
+    font-size: 16px;
+  }
+  
+  .lang-btn {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+  
+  .achievement-badge {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 400px) {
+  .profile-wrapper .overlay {
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .main-grid {
+    gap: 0.75rem;
+  }
+  
+  .left-col, .right-col {
+    gap: 0.75rem;
+  }
+  
+  .info-line {
+    font-size: 11px;
+  }
+  
+  .section-title {
+    font-size: 18px;
+  }
+}
