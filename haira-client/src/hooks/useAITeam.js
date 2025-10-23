@@ -4,7 +4,7 @@ import axios from 'axios';
 
 const backend_host = "http://localhost:3002";
 
-export const useAITeam = (projectId, editorRef) => {
+export const useAITeam = (projectId, editorRef, onAddComment = null) => {
   const [loadingAIs, setLoadingAIs] = useState(new Set());
   const [taskCompletionMessages, setTaskCompletionMessages] = useState([]);
 
@@ -78,53 +78,6 @@ export const useAITeam = (projectId, editorRef) => {
   })
   }, [editorRef]);
 
-  // Insert AI review text as plain text without HTML wrapping
-  const insertReviewText = useCallback((text, aiType) => {
-    if (!editorRef.current) return;
-
-    const editor = editorRef.current;
-    
-    // Move cursor to end of document
-    const docSize = editor.state.doc.content.size;
-    editor.commands.setTextSelection({ from: docSize, to: docSize });
-    
-    // Insert the text first
-    editor.commands.insertContent(`<p>${text}</p>`);
-    
-    // Then apply red color and highlight using TipTap commands
-    const newDocSize = editor.state.doc.content.size;
-    const textLength = text.length;
-    editor.commands.setTextSelection({ 
-      from: newDocSize - textLength - 7, // -7 for <p></p> tags
-      to: newDocSize - 4 // -4 for </p> tag
-    });
-    editor.commands.setColor('#DC2626');
-    editor.commands.setHighlight({ color: '#FEF2F2' }); // Light red highlight
-  }, [editorRef]);
-
-  // Insert AI suggest text as plain text without HTML wrapping
-  const insertSuggestText = useCallback((text, aiType) => {
-    if (!editorRef.current) return;
-
-    const editor = editorRef.current;
-    
-    // Move cursor to end of document
-    const docSize = editor.state.doc.content.size;
-    editor.commands.setTextSelection({ from: docSize, to: docSize });
-    
-    // Insert the text first
-    editor.commands.insertContent(`<p>${text}</p>`);
-    
-    // Then apply orange color and highlight using TipTap commands
-    const newDocSize = editor.state.doc.content.size;
-    const textLength = text.length;
-    editor.commands.setTextSelection({ 
-      from: newDocSize - textLength - 7, // -7 for <p></p> tags
-      to: newDocSize - 4 // -4 for </p> tag
-    });
-    editor.commands.setColor('#EA580C');
-    editor.commands.setHighlight({ color: '#FFF7ED' }); // Light orange highlight
-  }, [editorRef]);
 
   // Add AI comment to the editor
   const addAIComment = useCallback((text, aiType, taskType = '') => {
@@ -234,9 +187,19 @@ export const useAITeam = (projectId, editorRef) => {
       } else if (responseType === 'comment') {
         addAIComment(aiResponse, aiType, taskType);
       } else if (responseType === 'review') {
-        insertReviewText(aiResponse, aiType);
+        // Only add as a comment in the sidebar, not in the editor
+        if (onAddComment) {
+          const aiName = aiType === 'ai_manager' ? 'Alex (AI Manager)' : 'Sam (AI Helper)';
+          const commentText = `Review by ${aiName}:\n${aiResponse}`;
+          onAddComment(commentText, 'review', aiName);
+        }
       } else if (responseType === 'suggest') {
-        insertSuggestText(aiResponse, aiType);
+        // Only add as a comment in the sidebar, not in the editor
+        if (onAddComment) {
+          const aiName = aiType === 'ai_manager' ? 'Alex (AI Manager)' : 'Sam (AI Helper)';
+          const commentText = `Suggestion by ${aiName}:\n${aiResponse}`;
+          onAddComment(commentText, 'suggestion', aiName);
+        }
       }
 
       // Add completion message to the feedback system

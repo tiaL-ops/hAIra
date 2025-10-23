@@ -1,5 +1,7 @@
 // src/components/TextEditor/CommentBubble.jsx
 import React, { useState } from "react";
+import AlexAvatar from "../../assets/alex-avatar.svg";
+import SamAvatar from "../../assets/sam-avatar.svg";
 
 export default function CommentBubble({ comment, onReply, onResolve, onHighlightClick }) {
   const [replyText, setReplyText] = useState("");
@@ -30,16 +32,40 @@ export default function CommentBubble({ comment, onReply, onResolve, onHighlight
     return date.toLocaleDateString();
   };
 
+  // Determine comment type styling
+  const getCommentTypeClass = () => {
+    if (comment.type === 'review') return 'comment-review';
+    if (comment.type === 'suggestion') return 'comment-suggestion';
+    return '';
+  };
+
+  // Get appropriate avatar based on author
+  const getAuthorAvatar = () => {
+    if (comment.author?.includes('Alex')) {
+      return <img src={AlexAvatar} alt="Alex" className="custom-avatar" />;
+    }
+    if (comment.author?.includes('Sam')) {
+      return <img src={SamAvatar} alt="Sam" className="custom-avatar" />;
+    }
+    if (comment.author === 'You') return '👤';
+    return '👥';
+  };
+
   return (
-    <div className={`comment-bubble ${comment.resolved ? 'resolved' : ''}`}>
+    <div className={`comment-bubble ${comment.resolved ? 'resolved' : ''} ${getCommentTypeClass()}`}>
       <div className="comment-header">
         <div className="comment-author">
           <div className="author-avatar">
-            {comment.author === 'AI Alex' ? '🤖' : comment.author === 'You' ? '👤' : '👥'}
+            {getAuthorAvatar()}
           </div>
           <div className="author-info">
             <strong>{comment.author}</strong>
             <span className="comment-time">{formatTime(comment.createdAt)}</span>
+            {comment.type && (
+              <span className={`comment-type-badge ${comment.type}`}>
+                {comment.type === 'review' ? '📝 Review' : comment.type === 'suggestion' ? '💡 Suggestion' : ''}
+              </span>
+            )}
           </div>
         </div>
         <div className="comment-actions">

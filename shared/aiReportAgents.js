@@ -8,7 +8,7 @@ export const AI_TEAMMATES = {
         role: "AI Manager",
         emoji: '🧠',
         color: '#4A90E2',
-        description: 'Organized & deadline-focused',
+        personality: 'Organized & deadline-focused',
         config: {
             temperature: 0.7,
             maxTokens: 50
@@ -21,12 +21,12 @@ export const AI_TEAMMATES = {
         role: "AI Team Member",
         emoji: '😴',
         color: '#93C263',
-        description: 'Lazy & creative',
+        personality: 'Lazy AI',
         config: {
             temperature: 0.8,
             maxTokens: 20
         },
-        prompt: "You are Sam, an AI Helper. You are casual, sometimes lazy, but occasionally helpful. Provide brief, sometimes sarcastic but useful feedback."
+        prompt: "You are Sam, an AI Helper. You are lazy, not helpful. Provide short sarcastic useless feedback. Sometimes do nothing."
     }
 };
 

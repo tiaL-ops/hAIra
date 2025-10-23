@@ -593,45 +593,7 @@ Do not include anything else.
     }
 });
 
-// Multi-agent AI response endpoint
-router.post('/:id/ai/respond', verifyFirebaseToken, async (req, res) => {
-    const { id } = req.params;
-    const { prompt, persona } = req.body;
-    
-    if (!prompt || !persona) {
-        return res.status(400).json({ error: 'Prompt and persona are required' });
-    }
 
-    if (!['lala', 'mino'].includes(persona)) {
-        return res.status(400).json({ error: 'Persona must be either "lala" or "mino"' });
-    }
-
-    try {
-        let aiTeammate;
-        if (persona === 'lala') {
-            aiTeammate = AI_TEAMMATES.MANAGER;
-        } else if (persona === 'mino') {
-            aiTeammate = AI_TEAMMATES.LAZY;
-        }
-
-        const aiResponse = await generateAIContribution(prompt, aiTeammate.config, aiTeammate.prompt);
-        const cleanedResponse = cleanAIResponse(aiResponse)
-
-        res.json({
-            success: true,
-            response: cleanedResponse,
-            persona: persona,
-            timestamp: Date.now()
-        });
-
-    } catch (err) {
-        console.error('AI Response error:', err);
-        res.status(500).json({ 
-            success: false,
-            error: err.message 
-        });
-    }
-});
 
 // AI Write Section endpoint
 router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
@@ -654,20 +616,16 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
         const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
         
         // Use Chrome Write API for writing tasks
-        const taskPrompt = `Write a section for "${sectionName || 'the project'}" based on the current content. 
+        const taskPrompt = `Based on you persona, write a section for "${sectionName || 'the project'}" based on the current content. 
         Current content: ${currentContent || 'No content yet.'}
         
         Provide a well-structured section that fits with the existing content.`;
         
         // Try Chrome Write API first, fallback to Gemini
         let aiResponse;
-        try {
-            const chromeResponse = await getChromeWriteSuggestion(taskPrompt);
-            aiResponse = chromeResponse;
-        } catch (chromeError) {
-            console.log('Chrome Write API failed, using Gemini:', chromeError.message);
-            aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
-        }
+       
+        console.log('Calling AI for writing task...');
+        aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
 
         const cleanedResponse = cleanAIResponse(aiResponse);
         const aiName = aiTeammate.name;
@@ -731,7 +689,7 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         // Clean the content to remove HTML markup for better AI review
         const cleanedContent = cleanContentForReview(currentContent);
         
-        const taskPrompt = `Review the following content and provide helpful feedback on:
+        const taskPrompt = `Based on your persona, review the following content and provide exactly 4 bullet points of helpful feedback. Each bullet point should start with a dash (-) and focus on:
         - Content quality and clarity
         - Logical flow and organization  
         - Completeness of ideas
@@ -740,7 +698,7 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         Content to review:
         ${cleanedContent || 'No content to review.'}
         
-        IMPORTANT: Provide your feedback in plain text only. Do not use any HTML tags, markdown formatting, or special characters. Just write clear, helpful feedback in simple text format.`;
+        IMPORTANT: Format your response as exactly 4 bullet points, each starting with a dash (-). Do not use any HTML tags, markdown formatting, or special characters. Just write clear, helpful feedback in simple bullet point format.`;
         
         const aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
         const cleanedResponse = cleanAIResponse(aiResponse);
@@ -804,10 +762,10 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         // Clean the content to remove HTML markup for better AI suggestions
         const cleanedContent = cleanContentForReview(currentContent);
         
-        const taskPrompt = `Suggest specific improvements for this content:
+        const taskPrompt = `Based on your persona, suggest exactly 3 key bullet points for improvements for this content. Each bullet point should start with a dash (-) and be specific and actionable:
         ${cleanedContent || 'No content to improve.'}
         
-        IMPORTANT: Provide your suggestions in plain text only. Do not use any HTML tags, markdown formatting, or special characters. Just write clear, actionable suggestions in simple text format.`;
+        IMPORTANT: Format your response as exactly 3 bullet points, each starting with a dash (-). Do not use any HTML tags, markdown formatting, or special characters. Just write clear, actionable suggestions in simple bullet point format.`;
         
         const aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
         const cleanedResponse = cleanAIResponse(aiResponse);

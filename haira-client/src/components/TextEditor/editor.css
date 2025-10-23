@@ -146,6 +146,7 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  border: 3px solid #10b981; /* Green border like in collaborative mode */
 }
 
 .editor-header {
@@ -317,6 +318,7 @@
 /* Enhanced Comment Bubbles */
 .comment-bubble {
   background: #f8f9fa;
+  color: #1f2937 !important;
   margin-bottom: 1rem;
   border-radius: var(--radius);
   padding: 1rem;
@@ -340,12 +342,14 @@
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 0.8rem;
+  color: #0f172a !important;
 }
 
 .comment-author {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  color: #0f172a !important;
 }
 
 .author-avatar {
@@ -411,7 +415,7 @@
 }
 
 .comment-content {
-  color: var(--color-text);
+  color: #1f2937 !important;
   line-height: 1.5;
   margin-bottom: 0.8rem;
 }
@@ -1878,4 +1882,137 @@ button:disabled {
   .suggestion-actions {
     flex-direction: column;
   }
+}
+
+/* AI Text Color Coding - Block Elements for Regular Editor */
+/* Make these styles more specific to override any conflicting styles */
+.editor-container .ProseMirror div.ai-comment[data-ai-type="ai_manager"],
+.ProseMirror div.ai-comment[data-ai-type="ai_manager"] {
+  color: #4A90E2 !important; /* Alex - Blue */
+  background-color: rgba(74, 144, 226, 0.1) !important;
+  padding: 8px 12px !important;
+  margin: 8px 0 !important;
+  border-radius: 6px !important;
+  border-left: 4px solid #4A90E2 !important;
+  display: block !important;
+  font-family: 'Jersey 10', monospace !important;
+  line-height: 1.5 !important;
+}
+
+.editor-container .ProseMirror div.ai-comment[data-ai-type="ai_helper"],
+.ProseMirror div.ai-comment[data-ai-type="ai_helper"] {
+  color: #93C263 !important; /* Sam - Green */
+  background-color: rgba(147, 194, 99, 0.1) !important;
+  padding: 8px 12px !important;
+  margin: 8px 0 !important;
+  border-radius: 6px !important;
+  border-left: 4px solid #93C263 !important;
+  display: block !important;
+  font-family: 'Jersey 10', monospace !important;
+  line-height: 1.5 !important;
+}
+
+/* Review text - Red */
+.editor-container .ProseMirror div.ai-review,
+.ProseMirror div.ai-review {
+  color: #DC2626 !important;
+  background-color: #FEF2F2 !important;
+  padding: 8px 12px !important;
+  margin: 8px 0 !important;
+  border-radius: 6px !important;
+  border-left: 4px solid #DC2626 !important;
+  display: block !important;
+  font-family: 'Jersey 10', monospace !important;
+  line-height: 1.5 !important;
+}
+
+/* Suggestion text - Orange */
+.editor-container .ProseMirror div.ai-suggestion,
+.ProseMirror div.ai-suggestion {
+  color: #EA580C !important;
+  background-color: #FFF7ED !important;
+  padding: 8px 12px !important;
+  margin: 8px 0 !important;
+  border-radius: 6px !important;
+  border-left: 4px solid #EA580C !important;
+  display: block !important;
+  font-family: 'Jersey 10', monospace !important;
+  line-height: 1.5 !important;
+}
+
+/* Ensure AI content doesn't affect surrounding text */
+.editor-container .ProseMirror div.ai-comment *,
+.editor-container .ProseMirror div.ai-review *,
+.editor-container .ProseMirror div.ai-suggestion *,
+.ProseMirror div.ai-comment *,
+.ProseMirror div.ai-review *,
+.ProseMirror div.ai-suggestion * {
+  color: inherit !important;
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Comment Type Styling */
+.comment-bubble.comment-review {
+  border-left: 4px solid #DC2626;
+  background-color: #FEF2F2;
+  color: #1F2937 !important;
+}
+
+.comment-bubble.comment-review .comment-content {
+  color: #1F2937 !important; /* Dark gray text for better readability */
+}
+
+.comment-bubble.comment-suggestion {
+  border-left: 4px solid #EA580C;
+  background-color: #FFF7ED;
+  color: #1F2937 !important;
+}
+
+.comment-bubble.comment-suggestion .comment-content {
+  color: #1F2937 !important; /* Dark gray text for better readability */
+}
+
+/* Additional specificity to ensure dark text for AI comments */
+.sidebar .comment-bubble.comment-review .comment-content,
+.sidebar .comment-bubble.comment-suggestion .comment-content {
+  color: #1F2937 !important;
+  font-weight: 500 !important;
+}
+
+/* Override any inherited text color for AI comment content */
+.comment-bubble.comment-review .comment-content *,
+.comment-bubble.comment-suggestion .comment-content * {
+  color: #1F2937 !important;
+}
+
+.comment-type-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.comment-type-badge.review {
+  background-color: #DC2626;
+  color: white;
+}
+
+.comment-type-badge.suggestion {
+  background-color: #EA580C;
+  color: white;
+}
+
+/* Custom Avatar Styling */
+.custom-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }

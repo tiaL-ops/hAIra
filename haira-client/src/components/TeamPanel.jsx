@@ -1,9 +1,23 @@
 import React, { useState } from 'react';
 import { AI_TEAMMATES, TASK_TYPES } from '../../../shared/aiReportAgents.js';
 import TaskAssignmentModal from './TaskAssignmentModal';
+import AlexAvatar from '../assets/alex-avatar.svg';
+import SamAvatar from '../assets/sam-avatar.svg';
 
 export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMembers = [] }) {
   const [selectedTeammate, setSelectedTeammate] = useState(null);
+
+  // Get appropriate avatar for AI teammates
+  const getAIAvatar = (teammate) => {
+    if (teammate.id === 'ai_manager' || teammate.name === 'Alex') {
+      return <img src={AlexAvatar} alt="Alex" className="team-avatar" />;
+    }
+    if (teammate.id === 'ai_helper' || teammate.name === 'Sam') {
+      return <img src={SamAvatar} alt="Sam" className="team-avatar" />;
+    }
+    // Fallback to emoji for other teammates
+    return teammate.emoji;
+  };
 
   const handleAIClick = (teammate) => {
     console.log('TeamPanel handleAIClick called:', { teammate });
@@ -71,7 +85,7 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
               onClick={() => handleAIClick(teammate)}
             >
               <div className="ai-avatar" style={{ backgroundColor: teammate.color }}>
-                {teammate.emoji}
+                {getAIAvatar(teammate)}
               </div>
               <div className="ai-info">
                 <h4>{teammate.name}</h4>

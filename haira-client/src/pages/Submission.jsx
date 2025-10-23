@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getAuth } from "firebase/auth";
 import { useAuth } from '../App';
@@ -15,6 +15,7 @@ import TeamPanel from "../components/TeamPanel";
 import TaskCompletionFeedback from "../components/TaskCompletionFeedback";
 import { getChromeProofreadSuggestions, getChromeSummary } from "../utils/chromeAPI";
 import { useAITeam } from "../hooks/useAITeam";
+import { AI_TEAMMATES } from "../../../shared/aiReportAgents.js";
 import "../styles/editor.css";
 import "../styles/global.css";
 import "../styles/TeamPanel.css";
@@ -48,6 +49,19 @@ function Submission() {
   const [teamContext, setTeamContext] = useState(null);
   const [projectData, setProjectData] = useState(null);
   
+  // Function to add AI comments to sidebar
+  const handleAddAIComment = useCallback((text, type, author) => {
+    const newComment = {
+      id: Date.now() + Math.random(),
+      author: author,
+      text: text,
+      type: type, // 'review' or 'suggestion'
+      createdAt: Date.now(),
+      resolved: false,
+    };
+    setComments((c) => [newComment, ...c]);
+  }, []);
+
   // AI Team hook
   const { 
     performAITask, 
@@ -55,7 +69,7 @@ function Submission() {
     loadingAIs,
     taskCompletionMessages, 
     removeCompletionMessage 
-  } = useAITeam(id, editorRef);
+  } = useAITeam(id, editorRef, handleAddAIComment);
   
   // Proofread suggestion modal state
   const [showProofreadSuggestion, setShowProofreadSuggestion] = useState(false);
@@ -92,23 +106,17 @@ function Submission() {
         console.log('Team setup:', { team, hasAITeammates, hasOldAITeammates });
         
         if (!hasAITeammates || hasOldAITeammates) {
-          // Add or update AI teammates
+          // Add or update AI teammates using centralized configuration
           const defaultAITeammates = [
             {
-              id: 'ai_manager',
-              name: 'Alex (Project Manager)',
-              role: 'AI Manager',
-              personality: 'organized, deadline-focused, detail-oriented',
-              color: '#4A90E2',
+              ...AI_TEAMMATES.MANAGER,
+              name: `${AI_TEAMMATES.MANAGER.name} (Project Manager)`,
               isActive: true,
               type: 'ai'
             },
             {
-              id: 'ai_helper',
-              name: 'Sam (Helper)',
-              role: 'AI Helper',
-              personality: 'lazy, creative, finds shortcuts',
-              color: '#93C263',
+              ...AI_TEAMMATES.LAZY,
+              name: `${AI_TEAMMATES.LAZY.name} (Helper)`,
               isActive: true,
               type: 'ai'
             }
@@ -138,23 +146,21 @@ function Submission() {
           // We have existing AI teammates with correct IDs, but update their persona/config
           const updatedTeam = team.map(member => {
             if (member.type === 'ai') {
-              // Update AI teammates with latest persona configurations
+              // Update AI teammates with latest persona configurations from centralized config
               if (member.id === 'ai_manager') {
                 return {
                   ...member,
-                  name: 'Alex (Project Manager)',
-                  role: 'AI Manager',
+                  ...AI_TEAMMATES.MANAGER,
+                  name: `${AI_TEAMMATES.MANAGER.name} (Project Manager)`,
                   personality: 'organized, deadline-focused, detail-oriented',
-                  color: '#4A90E2',
                   isActive: true
                 };
               } else if (member.id === 'ai_helper') {
                 return {
                   ...member,
-                  name: 'Sam (Helper)',
-                  role: 'AI Helper',
+                  ...AI_TEAMMATES.LAZY,
+                  name: `${AI_TEAMMATES.LAZY.name} (Helper)`,
                   personality: 'lazy, creative, finds shortcuts',
-                  color: '#93C263',
                   isActive: true
                 };
               }

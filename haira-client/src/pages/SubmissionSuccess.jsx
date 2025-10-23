@@ -161,17 +161,6 @@ function SubmissionSuccess() {
             <ContributionTracker projectId={id} showContributions={true} />
           </div>
         </div>
-
-        {/* AI Summary & Reflection */}
-        <div className="summary-section">
-          <h2>📝 AI Summary & Reflection</h2>
-          <SummaryReflection 
-            projectId={id} 
-            reportContent={submission?.content || ""} 
-            aiSummary={aiSummary}
-          />
-        </div>
-
         
       </div>
     </div>
