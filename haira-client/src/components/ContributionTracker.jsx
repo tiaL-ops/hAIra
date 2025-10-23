@@ -213,7 +213,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
       <div className="tracker-tips">
         <span className="tip-item">💡 Word-based contributions</span>
         <span className="tip-item">📝 Auto-tracked when AI writes</span>
-      </div>
+      </div>image.png
     </div>
   );
 }

@@ -26,7 +26,7 @@
   display: flex;
   gap: 1rem; /* Add gap between main editor and sidebar */
   padding: 0;
-  padding-top: 100px; /* Adjusted to match image positioning */
+  padding-top: 150px; /* Account for TopBar (70px) + AIToolbar (60px) + spacing (20px) */
   align-items: flex-start;
   background: var(--color-bg);
   min-height: 100vh;
@@ -52,30 +52,56 @@
 
 /* Project Title Header */
 .project-title-header {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-  border: 1px solid #475569;
-  border-radius: 8px;
-  padding: 1rem 1.5rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #9169C0 0%, #a67fd1 50%, #b894e6 100%);
+  border: 3px solid #7a4f9a;
+  border-radius: 16px;
+  padding: 1.5rem 1.8rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.project-title-header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
 }
 
 .project-title {
-  margin: 0 0 0.5rem 0;
-  color: #f1f5f9;
-  font-size: 1.5rem;
+  margin: 0 0 0.8rem 0;
+  color: #ffffff;
+  font-size: 1.6rem;
   font-weight: 700;
   font-family: "Jersey 10", sans-serif;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 1;
+  line-height: 1.2;
 }
 
 .project-description {
   margin: 0;
-  color: #cbd5e1;
-  font-size: 0.9rem;
-  font-family: "Times New Roman", Times, serif;
-  line-height: 1.4;
-  opacity: 0.9;
+  color: #f3e8ff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  font-family: "Jersey 10", sans-serif;
+  line-height: 1.3;
+  position: relative;
+  z-index: 1;
 }
 
 /* Enhanced Toolbar - AIToolbar (red wine gaming style) */
@@ -87,16 +113,16 @@
   color: white;
   padding: 0.8rem 1.2rem;
   border: 4px solid #7a2d32; /* Gaming-style heavy border */
-  border-radius: 12px;
+  border-radius: 0; /* Full width, no rounded corners */
   box-shadow: 
-    7px 7px 0 0 #7a2d32,    /* Hard offset shadow for gaming effect */
+    0 4px 0 #7a2d32,    /* Hard offset shadow for gaming effect */
     0 0 8px rgba(180, 86, 90, 0.12);      /* Subtle glow */
   position: fixed;
-  top: 80px; /* Below the header */
-  left: 20px;
-  right: 20px;
+  top: 70px; /* Below the TopBar */
+  left: 0;
+  right: 0;
   z-index: 40;
-  max-width: calc(100vw - 40px);
+  height: 60px;
 }
 
 /* Editor Toolbar (red wine) */
@@ -943,7 +969,7 @@
 
 /* Button Styles */
 button {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Jersey 10', monospace;
   font-weight: 500;
   transition: all 0.2s ease;
 }

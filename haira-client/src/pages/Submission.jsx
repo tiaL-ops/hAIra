@@ -10,7 +10,6 @@ import EditorArea from "../components/TextEditor/EditorArea";
 import CommentSidebar from "../components/TextEditor/CommentSidebar";
 import EditorGuide from "../components/TextEditor/EditorGuide";
 import ProofreadSuggestion from "../components/ProofreadSuggestion";
-import ChromeAIStatus from "../components/ChromeAIStatus";
 import TeamPanel from "../components/TeamPanel";
 import TaskCompletionFeedback from "../components/TaskCompletionFeedback";
 import SummarizePopup from "../components/SummarizePopup";
@@ -697,7 +696,6 @@ function Submission() {
           saveStatus={saveStatus}
         />
         
-        <ChromeAIStatus />
         
         {/* Project Title */}
         {projectData && (

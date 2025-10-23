@@ -45,7 +45,7 @@
   color: white; /* White text for main title */
   font-size: 1rem;
   font-weight: 700;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Jersey 10', monospace;
 }
 
 .team-panel-header p {
@@ -53,7 +53,7 @@
   color: #cbd5e1; /* Light gray for subtitle */
   font-size: 0.8rem;
   font-weight: 400;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Jersey 10', monospace;
 }
 
 .ai-teammates {
@@ -117,7 +117,7 @@
   color: #1f2937; /* Dark text for white background */
   font-size: 0.9rem;
   font-weight: 700;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Jersey 10', monospace;
 }
 
 .ai-info p {
@@ -131,7 +131,7 @@
   font-size: 0.75rem;
   color: #9ca3af; /* Light gray for role */
   font-weight: 500;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Jersey 10', monospace;
 }
 
 .ai-status {
