@@ -91,6 +91,47 @@
   font-weight: normal;
 }
 
+/* User Profile Card in Sidebar */
+.user-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(64, 143, 140, 0.1);
+  border: 2px solid var(--primary-teal);
+  border-radius: 12px;
+  margin-top: 8px;
+}
+
+.profile-avatar-container {
+  flex-shrink: 0;
+}
+
+.profile-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  font-family: 'Jersey 10', sans-serif;
+}
+
+.profile-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.stat-item {
+  color: var(--accent-green);
+  font-family: 'Jersey 10', sans-serif;
+}
+
 /* Message quota styles */
 .message-quota {
   margin-top: 10px;

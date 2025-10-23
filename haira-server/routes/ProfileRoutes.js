@@ -41,6 +41,7 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
       user: {
         name: userData.name,
         email: userData.email,
+        avatarUrl: userData.avatarUrl || null,
         summary: userData.summary || {
           xp: 0,
           level: 1,
@@ -82,6 +83,45 @@ router.patch('/preferences', verifyFirebaseToken, async (req, res) => {
   } catch (error) {
     console.error('Error updating user preferences:', error);
     res.status(500).json({ error: 'Failed to update user preferences' });
+  }
+});
+
+// Update user avatar
+router.patch('/avatar', verifyFirebaseToken, async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const { avatarData } = req.body;
+    
+    if (!avatarData) {
+      return res.status(400).json({ error: 'No avatar data provided' });
+    }
+
+    // Validate that it's a base64 image
+    if (!avatarData.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Invalid image format' });
+    }
+
+    // Check size (2MB limit)
+    const sizeInBytes = (avatarData.length * 3) / 4;
+    const sizeInMB = sizeInBytes / (1024 * 1024);
+    
+    if (sizeInMB > 2) {
+      return res.status(400).json({ error: 'Image size exceeds 2MB limit' });
+    }
+    
+    const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
+    await userRef.update({
+      avatarUrl: avatarData,
+      updatedAt: new Date().toISOString()
+    });
+    
+    res.json({
+      success: true,
+      avatarUrl: avatarData
+    });
+  } catch (error) {
+    console.error('Error updating user avatar:', error);
+    res.status(500).json({ error: 'Failed to update user avatar' });
   }
 });
 

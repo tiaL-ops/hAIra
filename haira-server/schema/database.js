@@ -12,6 +12,7 @@ export const USER_SCHEMA = {
   // --- Basic Info ---
   name: String,           // User's display name
   email: String,          // User's email address
+  avatarUrl: String,      // Profile picture (base64 or URL)
   
   // --- State ---
   activeProjectId: String, // Reference to user's current active project

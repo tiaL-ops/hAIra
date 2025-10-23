@@ -42,20 +42,35 @@
   justify-content: center;
   position: relative;
   flex-shrink: 0;
+  overflow: hidden; /* Clip image to circle */
+  background-size: cover;
+  background-position: center;
+}
+
+.avatar-circle:hover .avatar-label {
+  opacity: 1;
 }
 
 .avatar-label {
   font-family: 'Jersey 10', sans-serif;
   font-size: 12px;
   color: #408F8C;
+  background: rgba(255, 255, 255, 0.95);
   cursor: pointer;
   text-align: center;
   padding: 8px;
   transition: opacity 0.2s;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  opacity: 0.9;
+  border-top: 1px solid #408F8C;
 }
 
 .avatar-label:hover {
-  opacity: 0.8;
+  opacity: 1;
+  background: rgba(255, 255, 255, 1);
 }
 
 /* User info - small separate lines without highlight */
