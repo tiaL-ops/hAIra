@@ -76,6 +76,28 @@ function cleanContentForReview(htmlContent) {
         .trim();
 }
 
+// Generate AI-specific completion messages
+async function generateCompletionMessage(aiType, taskType) {
+    const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
+    
+    const completionPrompts = {
+        write: `Generate a short, casual completion message (1-2 sentences max) for when you finish writing a section. Be true to your personality: ${aiTeammate.personality}. Make it sound natural and in character.`,
+        review: `Generate a short, casual completion message (1-2 sentences max) for when you finish reviewing content. Be true to your personality: ${aiTeammate.personality}. Make it sound natural and in character.`,
+        suggest: `Generate a short, casual completion message (1-2 sentences max) for when you finish suggesting improvements. Be true to your personality: ${aiTeammate.personality}. Make it sound natural and in character.`
+    };
+    
+    const prompt = completionPrompts[taskType] || completionPrompts.write;
+    
+    try {
+        const response = await generateAIContribution(prompt, aiTeammate.config, aiTeammate.prompt);
+        return cleanAIResponse(response);
+    } catch (error) {
+        console.error('Error generating completion message:', error);
+        // Fallback to default messages
+        return aiType === 'ai_manager' ? '✅ Done — anything else to assign?' : '😴 I did something… kind of.';
+    }
+}
+
 // Update AI contribution percentage automatically
 async function updateAIContribution(projectId, aiType, taskType) {
     try {
@@ -631,7 +653,7 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
         const aiName = aiTeammate.name;
         const prefixedResponse = `[${aiName}] ${cleanedResponse}`;
 
-        const completionMessage = aiType === 'ai_manager' ? '✅ Done — anything else to assign?' : '😴 I did something… kind of.';
+        const completionMessage = await generateCompletionMessage(aiType, 'write');
 
         // Log activity
         const activityLog = {
@@ -705,7 +727,7 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         const aiName = aiTeammate.name;
         const prefixedResponse = `[${aiName}] ${cleanedResponse}`;
 
-        const completionMessage = aiType === 'ai_manager' ? '✅ Done — anything else to assign?' : '😴 I did something… kind of.';
+        const completionMessage = await generateCompletionMessage(aiType, 'review');
 
         // Log activity
         const activityLog = {
@@ -772,7 +794,7 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         const aiName = aiTeammate.name;
         const prefixedResponse = `[${aiName}] ${cleanedResponse}`;
 
-        const completionMessage = aiType === 'ai_manager' ? '✅ Done — anything else to assign?' : '😴 I did something… kind of.';
+        const completionMessage = await generateCompletionMessage(aiType, 'suggest');
 
         // Log activity
         const activityLog = {

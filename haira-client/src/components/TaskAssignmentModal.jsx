@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import '../styles/TaskAssignmentModal.css';
+import AlexAvatar from '../images/Alex.png';
+import SamAvatar from '../images/Sam.png';
 
 const TaskAssignmentModal = ({ 
   isOpen, 
@@ -10,6 +12,16 @@ const TaskAssignmentModal = ({
 }) => {
   const [sectionName, setSectionName] = useState('');
   const [selectedTaskType, setSelectedTaskType] = useState('write');
+
+  // Get the correct avatar based on AI teammate
+  const getAvatar = (aiTeammate) => {
+    if (aiTeammate.id === 'ai_manager') {
+      return AlexAvatar;
+    } else if (aiTeammate.id === 'ai_helper') {
+      return SamAvatar;
+    }
+    return AlexAvatar; // fallback
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -52,7 +64,11 @@ const TaskAssignmentModal = ({
         <div className="task-modal-body">
           <div className="ai-teammate-info">
             <div className="ai-teammate-avatar" style={{ backgroundColor: aiTeammate.color }}>
-              {aiTeammate.emoji}
+              <img 
+                src={getAvatar(aiTeammate)} 
+                alt={`${aiTeammate.name} avatar`}
+                className="ai-avatar-image"
+              />
             </div>
             <div className="ai-teammate-details">
               <h4>{aiTeammate.name}</h4>

@@ -42,6 +42,13 @@
   font-size: 1.25rem;
 }
 
+.ai-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .ai-name {
   font-weight: 600;
   color: #1e293b;

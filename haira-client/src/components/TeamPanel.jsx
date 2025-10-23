@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { AI_TEAMMATES, TASK_TYPES } from '../../../shared/aiReportAgents.js';
 import TaskAssignmentModal from './TaskAssignmentModal';
-import AlexAvatar from '../assets/alex-avatar.svg';
-import SamAvatar from '../assets/sam-avatar.svg';
+
+import AlexAvatar from '../images/Alex.png';
+import SamAvatar from '../images/Sam.png';
 
 export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMembers = [] }) {
   const [selectedTeammate, setSelectedTeammate] = useState(null);
@@ -72,8 +73,10 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
   return (
     <div className="team-panel">
       <div className="team-panel-header">
-        <h3>🤖 AI Team Tasks</h3>
-        <p>Assign tasks to your AI teammates</p>
+        <div className="team-icon">🤖</div>
+        <div className="header-text">
+          <h3>Assign tasks to teammates</h3>
+        </div>
       </div>
 
       <div className="ai-teammates">
@@ -81,18 +84,16 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
           <div key={teammate.id} className="ai-teammate">
             <div 
               className="ai-teammate-card"
-              style={{ borderColor: teammate.color }}
               onClick={() => handleAIClick(teammate)}
             >
-              <div className="ai-avatar" style={{ backgroundColor: teammate.color }}>
+              <div className="ai-avatar">
                 {getAIAvatar(teammate)}
               </div>
               <div className="ai-info">
                 <h4>{teammate.name}</h4>
-                <p>{teammate.description}</p>
                 <span className="ai-role">{teammate.role}</span>
               </div>
-              <div className="ai-status">
+              <div className={`ai-status ${loadingAIs.has(teammate.id) ? 'loading' : 'completed'}`}>
                 {loadingAIs.has(teammate.id) ? '⏳' : '✅'}
               </div>
             </div>

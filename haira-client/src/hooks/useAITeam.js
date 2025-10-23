@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { getAuth } from 'firebase/auth';
 import axios from 'axios';
+import { AI_TEAMMATES } from '../../../shared/aiReportAgents.js';
 
 const backend_host = "http://localhost:3002";
 
@@ -27,8 +28,8 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
 
     const editor = editorRef.current;
     const colors = {
-      ai_manager: '#4A90E2', // Blue
-      ai_helper: '#93C263'   // Green
+      ai_manager: AI_TEAMMATES.MANAGER.color,
+      ai_helper: AI_TEAMMATES.LAZY.color
     };
 
     // Use red for review tasks, otherwise use default colors
@@ -87,8 +88,8 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     const { from, to } = editor.state.selection;
     
     const colors = {
-      ai_manager: '#4A90E2',
-      ai_helper: '#93C263'
+      ai_manager: AI_TEAMMATES.MANAGER.color,
+      ai_helper: AI_TEAMMATES.LAZY.color
     };
     
     const backgrounds = {
@@ -189,14 +190,16 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       } else if (responseType === 'review') {
         // Only add as a comment in the sidebar, not in the editor
         if (onAddComment) {
-          const aiName = aiType === 'ai_manager' ? 'Alex (AI Manager)' : 'Sam (AI Helper)';
+          const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
+          const aiName = `${aiTeammate.name} (${aiTeammate.role})`;
           const commentText = `Review by ${aiName}:\n${aiResponse}`;
           onAddComment(commentText, 'review', aiName);
         }
       } else if (responseType === 'suggest') {
         // Only add as a comment in the sidebar, not in the editor
         if (onAddComment) {
-          const aiName = aiType === 'ai_manager' ? 'Alex (AI Manager)' : 'Sam (AI Helper)';
+          const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
+          const aiName = `${aiTeammate.name} (${aiTeammate.role})`;
           const commentText = `Suggestion by ${aiName}:\n${aiResponse}`;
           onAddComment(commentText, 'suggestion', aiName);
         }

@@ -8,6 +8,7 @@ export const AI_TEAMMATES = {
         role: "AI Manager",
         emoji: '🧠',
         color: '#4A90E2',
+        avatar: '/src/images/Alex.png',
         personality: 'Organized & deadline-focused',
         config: {
             temperature: 0.7,
@@ -21,6 +22,7 @@ export const AI_TEAMMATES = {
         role: "AI Team Member",
         emoji: '😴',
         color: '#93C263',
+        avatar: '/src/images/Sam.png',
         personality: 'Lazy AI',
         config: {
             temperature: 0.8,

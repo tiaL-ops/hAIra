@@ -1,15 +1,20 @@
 import React from 'react';
+import { AI_TEAMMATES } from '../../../shared/aiReportAgents.js';
+import AlexAvatar from '../images/Alex.png';
+import SamAvatar from '../images/Sam.png';
 
 const AI_CONFIG = {
   ai_manager: {
-    emoji: '🧠',
-    color: '#4A90E2',
-    name: 'Alex (Project Manager)'
+    emoji: AI_TEAMMATES.MANAGER.emoji,
+    color: AI_TEAMMATES.MANAGER.color,
+    name: `${AI_TEAMMATES.MANAGER.name} (${AI_TEAMMATES.MANAGER.role})`,
+    avatar: AlexAvatar
   },
   ai_helper: {
-    emoji: '😴',
-    color: '#93C263',
-    name: 'Sam (Helper)'
+    emoji: AI_TEAMMATES.LAZY.emoji,
+    color: AI_TEAMMATES.LAZY.color,
+    name: `${AI_TEAMMATES.LAZY.name} (${AI_TEAMMATES.LAZY.role})`,
+    avatar: SamAvatar
   }
 };
 
@@ -30,7 +35,11 @@ export default function TaskCompletionFeedback({ messages, onRemoveMessage }) {
             style={{ borderLeftColor: config.color }}
           >
             <div className="message-header">
-              <span className="ai-emoji">{config.emoji}</span>
+              <img 
+                src={config.avatar} 
+                alt={`${config.name} avatar`}
+                className="ai-avatar"
+              />
               <span className="ai-name">{config.name}</span>
               <button
                 className="close-message"

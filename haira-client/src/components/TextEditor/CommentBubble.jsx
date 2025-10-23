@@ -1,7 +1,7 @@
 // src/components/TextEditor/CommentBubble.jsx
 import React, { useState } from "react";
-import AlexAvatar from "../../assets/alex-avatar.svg";
-import SamAvatar from "../../assets/sam-avatar.svg";
+import AlexAvatar from "../../images/Alex.png";
+import SamAvatar from "../../images/Sam.png";
 
 export default function CommentBubble({ comment, onReply, onResolve, onHighlightClick }) {
   const [replyText, setReplyText] = useState("");
@@ -42,10 +42,10 @@ export default function CommentBubble({ comment, onReply, onResolve, onHighlight
   // Get appropriate avatar based on author
   const getAuthorAvatar = () => {
     if (comment.author?.includes('Alex')) {
-      return <img src={AlexAvatar} alt="Alex" className="custom-avatar" />;
+      return <img src={AlexAvatar} alt="Alex" className="author-avatar" />;
     }
     if (comment.author?.includes('Sam')) {
-      return <img src={SamAvatar} alt="Sam" className="custom-avatar" />;
+      return <img src={SamAvatar} alt="Sam" className="author-avatar" />;
     }
     if (comment.author === 'You') return '👤';
     return '👥';

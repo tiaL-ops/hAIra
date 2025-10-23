@@ -348,35 +348,43 @@
 .comment-author {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 12px;
   color: #0f172a !important;
+  margin-bottom: 8px;
 }
 
 .author-avatar {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: var(--color-purple);
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1rem;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .author-info {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 2px;
+  flex: 1;
 }
 
 .author-info strong {
   font-size: 0.9rem;
-  color: var(--color-text);
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
 }
 
 .comment-time {
   font-size: 0.75rem;
-  color: var(--color-text-light);
+  color: #6b7280;
+  font-weight: 400;
 }
 
 .comment-actions {
@@ -2009,10 +2017,14 @@ button:disabled {
 
 /* Custom Avatar Styling */
 .custom-avatar {
-  width: 32px;
-  height: 32px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: none;
+  transition: transform 0.2s ease;
+}
+
+.custom-avatar:hover {
+  transform: scale(1.05);
 }
