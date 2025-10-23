@@ -163,7 +163,7 @@ export async function generateContextAwareResponse(agentId, projectId, userId, c
     const context = await getAgentContext(projectId, userId, currentDay, agentId);
     
     // Log context details
-    console.log(`[AI Service] Context for ${agentId}:`, {
+    console.log(`[AI Service] ✅ Context received for ${agentId}:`, {
       projectName: context.projectName,
       totalTasks: context.allTasks.length,
       myTasks: context.myTasks.length,
@@ -178,16 +178,45 @@ export async function generateContextAwareResponse(agentId, projectId, userId, c
       hasEnhancedContext: !!context.enhancedConversationSummary
     });
     
+    // CRITICAL: Verify tasks are in context
+    if (context.allTasks.length === 0) {
+      console.log(`[AI Service] ⚠️⚠️⚠️ NO TASKS IN CONTEXT for ${agentId}!`);
+    } else {
+      console.log(`[AI Service] 🎯 Tasks in context for ${agentId}:`);
+      context.allTasks.forEach((task, idx) => {
+        console.log(`[AI Service]   ${idx + 1}. "${task.description || task.title}" [${task.status}] -> ${task.assignedTo}`);
+      });
+    }
+    
     // Build enhanced prompt with full awareness
     const enhancedPrompt = buildEnhancedPrompt(agentId, context, userMessage);
     
-    console.log(`[AI Service] Enhanced prompt length: ${enhancedPrompt.length} characters`);
-    console.log(`[AI Service] Prompt preview:`, enhancedPrompt.substring(0, 200) + '...');
+    console.log(`[AI Service] ✅ Enhanced prompt built for ${agentId}:`);
+    console.log(`[AI Service]    - Prompt length: ${enhancedPrompt.length} characters`);
+    console.log(`[AI Service]    - Tasks in prompt: ${context.allTasks.length}`);
+    console.log(`[AI Service]    - Conversation messages: ${context.conversationHistory.length}`);
+    
+    // Log a snippet of the task section in the prompt
+    if (context.allTasks.length > 0) {
+      const taskSection = enhancedPrompt.match(/=== ALL PROJECT TASKS ===([\s\S]*?)(?:===|$)/)?.[1] || '';
+      if (taskSection) {
+        console.log(`[AI Service] Task section preview (first 500 chars):`, taskSection.substring(0, 500));
+      }
+    }
+    
+    // Log the COMPLETE task section to verify it's there
+    const taskSectionMatch = enhancedPrompt.match(/=== ALL PROJECT TASKS FROM FIRESTORE ===([\s\S]*?)(?:===|$)/);
+    if (taskSectionMatch) {
+      console.log(`[AI Service] 🔍 FULL TASK SECTION BEING SENT TO AI:`);
+      console.log(taskSectionMatch[0].substring(0, 1000));
+    } else {
+      console.log(`[AI Service] ⚠️⚠️⚠️ NO TASK SECTION FOUND IN PROMPT!`);
+    }
     
     // Generate response
     const response = await callOpenAI(userMessage, enhancedPrompt);
     
-    console.log(`[AI Service] Generated response for ${agentId} with context awareness`);
+    console.log(`[AI Service] ✅ Generated response for ${agentId} with context awareness`);
     console.log(`[AI Service] Response preview:`, response.substring(0, 100) + '...');
     
     return response;
