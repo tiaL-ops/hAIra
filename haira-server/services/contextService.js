@@ -514,4 +514,3 @@ export default {
   buildEnhancedPrompt,
   getTaskAssignmentGuide
 };
-
