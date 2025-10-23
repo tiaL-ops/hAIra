@@ -54,17 +54,28 @@ function SubmissionSuccess() {
         // Generate AI summary if we have content
         if (data.submission?.content) {
           try {
-            const summaryResponse = await fetch(`${backend_host}/api/project/${id}/ai/summarize`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-              },
-              body: JSON.stringify({ content: data.submission.content }),
-            });
-            
-            const summaryData = await summaryResponse.json();
-            setAiSummary(summaryData?.result || summaryData?.summary || "");
+            // Call server-side AI fallback function
+            const serverSideFallback = async () => {
+              const token = await getIdTokenSafely();
+              const res = await axios.post(`${backend_host}/api/project/${id}/ai/summarize`, 
+                { content: data.submission.content },
+                {
+                  headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                  }
+                }
+              );
+              return {
+                summary: res.data?.result || res.data?.summary || "No summary returned.",
+                source: 'gemini'
+              };
+            };
+
+            // Try Chrome AI first, fallback to Server-side AI
+            const summaryData = await getChromeSummary(data.submission.content, serverSideFallback);
+      
+            setAiSummary( summaryData?.summary || "");
           } catch (summaryErr) {
             console.error("Failed to generate summary:", summaryErr);
           }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AI_TEAMMATES, TASK_TYPES } from '../../../shared/aiReportAgents.js';
+import { AI_TEAMMATES, TASK_TYPES } from '../../../haira-server/config/aiReportAgents.js';
 import TaskAssignmentModal from './TaskAssignmentModal';
 
 import AlexAvatar from '../images/Alex.png';
@@ -10,14 +10,14 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
 
   // Get appropriate avatar for AI teammates
   const getAIAvatar = (teammate) => {
-    if (teammate.id === 'ai_manager' || teammate.name === 'Alex') {
-      return <img src={AlexAvatar} alt="Alex" className="team-avatar" />;
+    switch(teammate.name) {
+      case AI_TEAMMATES.MANAGER.name:
+        return  <img src={AlexAvatar} alt="Alex" className="team-avatar" />;;
+      case AI_TEAMMATES.LAZY.name:
+        return <img src={SamAvatar} alt="Sam" className="team-avatar" />;
+      default:
+        return teammate.emoji;
     }
-    if (teammate.id === 'ai_helper' || teammate.name === 'Sam') {
-      return <img src={SamAvatar} alt="Sam" className="team-avatar" />;
-    }
-    // Fallback to emoji for other teammates
-    return teammate.emoji;
   };
 
   const handleAIClick = (teammate) => {

@@ -10,9 +10,9 @@ import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
 import { 
     generateGradeResponse,
     generateAIResponse,
-    generateAIContribution,
-    getChromeWriteSuggestion
+    generateAIContribution as callGeminiContribution,
 } from '../api/geminiService.js';
+import { generateAIContribution as callOpenAIContribution } from '../api/openaiService.js';
 import { AI_TEAMMATES, TASK_TYPES } from '../config/aiReportAgents.js';
 
 const router = express.Router()
@@ -61,6 +61,47 @@ function cleanAIResponse(text) {
       .trim();
 }
 
+function convertMarkdownToHTML(markdown) {
+    if (!markdown) return '';
+    
+    return markdown
+        // Convert headers first
+        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+        // Convert bold text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        // Convert italic text
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        // Convert numbered lists
+        .replace(/^\d+\.\s+(.*)$/gm, '<li>$1</li>')
+        // Convert bullet points
+        .replace(/^[-*]\s+(.*)$/gm, '<li>$1</li>')
+        // Wrap consecutive list items in ul/ol tags
+        .replace(/(<li>.*<\/li>)/gs, (match) => {
+            const lines = match.split('\n');
+            const listItems = lines.filter(line => line.trim().startsWith('<li>'));
+            if (listItems.length > 0) {
+                const isNumbered = lines.some(line => /^\d+\./.test(line.trim()));
+                const tag = isNumbered ? 'ol' : 'ul';
+                return `<${tag}>${listItems.join('')}</${tag}>`;
+            }
+            return match;
+        })
+        // Convert double line breaks to paragraph breaks
+        .replace(/\n\n/g, '</p><p>')
+        // Wrap text blocks in paragraphs (but not headers or lists)
+        .replace(/^(?!<[h1-6]|<[uo]l|<li)(.*)$/gm, (match, content) => {
+            if (content.trim() === '') return '';
+            return `<p>${content}</p>`;
+        })
+        // Clean up empty paragraphs and fix paragraph wrapping around headers
+        .replace(/<p><\/p>/g, '')
+        .replace(/<p>\s*<\/p>/g, '')
+        .replace(/<p>(<h[1-6]>.*<\/h[1-6]>)<\/p>/g, '$1')
+        .replace(/<p><\/p>/g, '');
+}
+
 // Clean HTML content for AI review - extract readable text
 function cleanContentForReview(htmlContent) {
     if (!htmlContent) return '';
@@ -89,8 +130,9 @@ async function generateCompletionMessage(aiType, taskType) {
     const prompt = completionPrompts[taskType] || completionPrompts.write;
     
     try {
-        const response = await generateAIContribution(prompt, aiTeammate.config, aiTeammate.prompt);
-        return cleanAIResponse(response);
+        // const response = await generateAIContribution(prompt, aiTeammate.config, aiTeammate.prompt);
+        const aiResponse = await callOpenAIContribution(prompt, aiTeammate.config, aiTeammate.prompt)
+        return cleanAIResponse(aiResponse);
     } catch (error) {
         console.error('Error generating completion message:', error);
         // Fallback to default messages
@@ -647,11 +689,13 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
         let aiResponse;
        
         console.log('Calling AI for writing task...');
-        aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
+        // aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
+        aiResponse = await callOpenAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
 
         const cleanedResponse = cleanAIResponse(aiResponse);
+        const htmlResponse = convertMarkdownToHTML(cleanedResponse);
         const aiName = aiTeammate.name;
-        const prefixedResponse = `[${aiName}] ${cleanedResponse}`;
+        const prefixedResponse = `[${aiName}] ${htmlResponse}`;
 
         const completionMessage = await generateCompletionMessage(aiType, 'write');
 
@@ -722,7 +766,8 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         
         IMPORTANT: Format your response as exactly 4 bullet points, each starting with a dash (-). Do not use any HTML tags, markdown formatting, or special characters. Just write clear, helpful feedback in simple bullet point format.`;
         
-        const aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
+        // const aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
+        const aiResponse = await callOpenAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
         const cleanedResponse = cleanAIResponse(aiResponse);
         const aiName = aiTeammate.name;
         const prefixedResponse = `[${aiName}] ${cleanedResponse}`;
@@ -789,7 +834,8 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         
         IMPORTANT: Format your response as exactly 3 bullet points, each starting with a dash (-). Do not use any HTML tags, markdown formatting, or special characters. Just write clear, actionable suggestions in simple bullet point format.`;
         
-        const aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
+        // const aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
+        const aiResponse = await callOpenAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
         const cleanedResponse = cleanAIResponse(aiResponse);
         const aiName = aiTeammate.name;
         const prefixedResponse = `[${aiName}] ${cleanedResponse}`;

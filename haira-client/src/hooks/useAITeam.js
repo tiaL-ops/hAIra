@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { getAuth } from 'firebase/auth';
 import axios from 'axios';
-import { AI_TEAMMATES } from '../../../shared/aiReportAgents.js';
+import { AI_TEAMMATES } from '../../../haira-server/config/aiReportAgents.js';
 import AlexAvatar from '../images/Alex.png';
 import SamAvatar from '../images/Sam.png';
 

@@ -16,7 +16,7 @@ import SummarizePopup from "../components/SummarizePopup";
 import ProofreadPopup from "../components/ProofreadPopup";
 import { getChromeProofreadSuggestions, getChromeSummary } from "../utils/chromeAPI";
 import { useAITeam } from "../hooks/useAITeam";
-import { AI_TEAMMATES } from "../../../shared/aiReportAgents.js";
+import { AI_TEAMMATES } from "../../../haira-server/config/aiReportAgents.js";
 import "../styles/editor.css";
 import "../styles/global.css";
 import "../styles/TeamPanel.css";
@@ -410,8 +410,8 @@ function Submission() {
     setSummarizeError(null);
     
     try {
-      // Gemini fallback function
-      const geminiFallback = async () => {
+      // Call server-side AI fallback function
+      const serverSideFallback = async () => {
         const token = await getIdTokenSafely();
         const res = await axios.post(`${backend_host}/api/project/${id}/ai/summarize`, 
           { content: reportContent },
@@ -429,7 +429,7 @@ function Submission() {
       };
 
       // Try Chrome AI first, fallback to Gemini
-      const result = await getChromeSummary(reportContent, geminiFallback);
+      const result = await getChromeSummary(reportContent, serverSideFallback);
       
       const summary = result.summary || "No summary generated.";
       const source = result.source || 'unknown (chrome or gemini)';
@@ -484,8 +484,8 @@ function Submission() {
     setProofreadError(null);
     
     try {
-      // Gemini fallback function
-      const geminiFallback = async () => {
+      // Call server-side AI fallback function
+      const serverSideFallback = async () => {
         const token = await getIdTokenSafely();
         const res = await axios.post(`${backend_host}/api/project/${id}/ai/proofread`, 
           { content: textToProofread },
@@ -503,7 +503,7 @@ function Submission() {
       };
 
       // Try Chrome AI first, fallback to Gemini
-      const result = await getChromeProofreadSuggestions(textToProofread, geminiFallback);
+      const result = await getChromeProofreadSuggestions(textToProofread, serverSideFallback);
       
       const source = result.source || 'unknown';
       

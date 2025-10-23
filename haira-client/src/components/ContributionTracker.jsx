@@ -1,7 +1,7 @@
 // src/components/ContributionTracker.jsx
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
-import { AI_TEAMMATES } from '../../../shared/aiReportAgents.js';
+import { AI_TEAMMATES } from '../../../haira-server/config/aiReportAgents.js';
 // Use public folder for images to avoid import issues
 import AlexAvatar from '../images/Alex.png';
 import SamAvatar from '../images/Sam.png';
@@ -94,15 +94,6 @@ export default function ContributionTracker({ projectId, showContributions = tru
     loadWordContributions();
   }, [projectId, editorContent]);
 
-  const updateContribution = async (index, newPercent) => {
-    // For word-based contributions, we don't allow manual percentage adjustments
-    // since they should be calculated based on actual word counts
-    console.log("Manual contribution adjustment disabled - contributions are based on word count");
-    
-    // Optionally, we could implement a manual override system here
-    // but for now, we'll keep it read-only based on actual word counts
-  };
-
 
   // Utility to get token
   async function getIdTokenSafely() {
@@ -123,20 +114,18 @@ export default function ContributionTracker({ projectId, showContributions = tru
     return colors[index % colors.length];
   };
 
+  //Get Avatar dynamically
   const getMemberAvatar = (member) => {
-    if (member.name === 'You') {
-      return '👤';
+    switch(member.name) {
+      case 'You':
+        return '👤';
+      case AI_TEAMMATES.MANAGER.name:
+        return AlexAvatar;
+      case AI_TEAMMATES.LAZY.name:
+        return SamAvatar;
+      default:
+        return '🤖';
     }
-    
-    // Check if it's an AI teammate
-    if (member.name === AI_TEAMMATES.MANAGER.name || member.name === 'Alex') {
-      return AlexAvatar;
-    } else if (member.name === AI_TEAMMATES.LAZY.name || member.name === 'Sam') {
-      return SamAvatar;
-    }
-    
-    // Fallback for other AI members
-    return '🤖';
   };
 
   const getMemberColor = (member) => {
@@ -175,10 +164,10 @@ export default function ContributionTracker({ projectId, showContributions = tru
                     <span className="avatar-emoji">{getMemberAvatar(member)}</span>
                   ) : (
                     <img 
-                      src={getMemberAvatar(member)} 
-                      alt={`${member.name} avatar`}
-                      className="avatar-image"
-                    />
+                    src={getAvatar(aiTeammate)} 
+                    alt={`${aiTeammate.name} avatar`}
+                    className="ai-avatar-image"
+                  />
                   )}
                 </div>
                 <div>

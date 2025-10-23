@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import '../styles/TaskAssignmentModal.css';
+import { AI_TEAMMATES } from '../../../haira-server/config/aiReportAgents.js';
 import AlexAvatar from '../images/Alex.png';
 import SamAvatar from '../images/Sam.png';
 
@@ -15,12 +16,14 @@ const TaskAssignmentModal = ({
 
   // Get the correct avatar based on AI teammate
   const getAvatar = (aiTeammate) => {
-    if (aiTeammate.id === 'ai_manager') {
-      return AlexAvatar;
-    } else if (aiTeammate.id === 'ai_helper') {
-      return SamAvatar;
+    switch(aiTeammate.name) {
+      case AI_TEAMMATES.MANAGER.name:
+        return AlexAvatar;
+      case AI_TEAMMATES.LAZY.name:
+        return SamAvatar;
+      default:
+        return '🤖';
     }
-    return AlexAvatar; // fallback
   };
 
   const handleSubmit = (e) => {
