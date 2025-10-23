@@ -4,8 +4,10 @@ import { getAuth } from "firebase/auth";
 import { useAuth } from '../App';
 import ContributionTracker from "../components/ContributionTracker";
 import SummaryReflection from "../components/SummaryReflection";
+import SuccessIcon from "../images/Success.png";
 import "../styles/editor.css";
 import "../styles/global.css";
+import "../styles/SubmissionSuccess.css";
 
 const backend_host = "http://localhost:3002";
 
@@ -107,12 +109,16 @@ function SubmissionSuccess() {
   return (
     <div className="submission-success-container">
       <div className="success-header">
-        <div className="success-icon">✅</div>
-        <h1>Report Submitted Successfully!</h1>
-        <p>Your project report has been submitted and reviewed by AI.</p>
-        <button onClick={() => navigate('/')} className="back-btn">
-          ← Back to Projects
-        </button>
+        <div className="success-icon">
+          <img src={SuccessIcon} alt="Success" />
+        </div>
+        <div className="success-header-content">
+          <h1>Report Submitted Successfully!</h1>
+          <p>Your project report has been submitted and reviewed by AI.</p>
+          <button onClick={() => navigate('/')} className="back-btn">
+            ← Back to Projects
+          </button>
+        </div>
       </div>
 
       <div className="success-content">
@@ -120,7 +126,7 @@ function SubmissionSuccess() {
         <div className="results-row">
           {/* Grade Section - Left Column */}
           <div className="grade-section">
-            <h2>🎯 AI Grade & Feedback</h2>
+            <h2>🎯 Final Grade</h2>
             {grade && Object.keys(grade).length > 0 ? (
               <div className="grade-card">
                 <div className="grade-score">
@@ -141,12 +147,6 @@ function SubmissionSuccess() {
                     <span>{grade.reportQuality || 0}%</span>
                   </div>
                 </div>
-                {grade.feedback && (
-                  <div className="grade-feedback">
-                    <h3>AI Feedback:</h3>
-                    <p>{grade.feedback}</p>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="no-grade">
@@ -161,6 +161,18 @@ function SubmissionSuccess() {
             <ContributionTracker projectId={id} showContributions={true} />
           </div>
         </div>
+
+        {/* AI Feedback Panel - Full Width Below Grade and Contributions */}
+        {grade && grade.feedback && (
+          <div className="ai-feedback-panel">
+            <div className="feedback-header">
+              <h2>💬  Project Feedback</h2>
+            </div>
+            <div className="feedback-content">
+              <p>{grade.feedback}</p>
+            </div>
+          </div>
+        )}
         
       </div>
     </div>

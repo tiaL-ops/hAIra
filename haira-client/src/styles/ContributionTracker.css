@@ -1,0 +1,232 @@
+/* ContributionTracker.css - 2D Pixelart Gaming Style */
+.contribution-tracker-container {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  font-family: 'Jersey 10', monospace;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.tracker-header {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #4a5568;
+}
+
+.header-title h2 {
+  margin: 0 0 4px 0;
+  font-size: 1rem;
+  color: #ffffff;
+  font-weight: 700;
+  text-shadow: 2px 2px 0 #1a202c;
+}
+
+.tracker-subheader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tracker-subheader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.total-contribution {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.warning {
+  color: #f56565;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.contributions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex: 1;
+}
+
+.contribution-item {
+  background: #2d3748;
+  border: 2px solid #4a5568;
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 
+    0 2px 0 #4a5568,
+    0 4px 0 #2d3748;
+  transition: all 0.2s ease;
+}
+
+.contribution-item:hover {
+  border-color: #68d391;
+  box-shadow: 
+    0 4px 0 #68d391,
+    0 8px 0 #4a5568;
+}
+
+.member-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.member-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.member-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.avatar-emoji {
+  font-size: 1rem;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.member-name div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.member-name strong {
+  font-size: 0.9rem;
+  color: #ffffff;
+  font-weight: 600;
+  text-shadow: 1px 1px 0 #1a202c;
+}
+
+.member-name small {
+  font-size: 0.7rem;
+  color: #cbd5e0;
+}
+
+.contribution-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.contribution-display {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.percent-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #48bb78;
+  min-width: 25px;
+  text-align: center;
+  text-shadow: 1px 1px 0 #1a202c;
+}
+
+.percent-label {
+  font-size: 0.9rem;
+  color: #cbd5e0;
+  font-weight: 600;
+}
+
+.word-count {
+  display: flex;
+  align-items: center;
+}
+
+.word-count-label {
+  font-size: 0.65rem;
+  color: #a0aec0;
+  font-weight: 500;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 6px;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.tracker-footer {
+  padding-top: 16px;
+  border-top: 2px solid #4a5568;
+}
+
+.tracker-tips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #cbd5e0;
+  font-style: italic;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #cbd5e0;
+  font-size: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .contribution-tracker-container {
+    padding: 16px;
+  }
+  
+  .member-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .contribution-controls {
+    align-items: flex-start;
+  }
+}

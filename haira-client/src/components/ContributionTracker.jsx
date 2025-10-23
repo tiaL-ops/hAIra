@@ -1,6 +1,11 @@
 // src/components/ContributionTracker.jsx
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
+import { AI_TEAMMATES } from '../../../shared/aiReportAgents.js';
+// Use public folder for images to avoid import issues
+import AlexAvatar from '../images/Alex.png';
+import SamAvatar from '../images/Sam.png';
+import '../styles/ContributionTracker.css';
 
 const backend_host = "http://localhost:3002";
 
@@ -80,6 +85,31 @@ export default function ContributionTracker({ projectId, showContributions = tru
     return colors[index % colors.length];
   };
 
+  const getMemberAvatar = (member) => {
+    if (member.name === 'You') {
+      return '👤';
+    }
+    
+    // Check if it's an AI teammate
+    if (member.name === AI_TEAMMATES.MANAGER.name || member.name === 'Alex') {
+      return AlexAvatar;
+    } else if (member.name === AI_TEAMMATES.LAZY.name || member.name === 'Sam') {
+      return SamAvatar;
+    }
+    
+    // Fallback for other AI members
+    return '🤖';
+  };
+
+  const getMemberColor = (member) => {
+    if (member.name === AI_TEAMMATES.MANAGER.name) {
+      return AI_TEAMMATES.MANAGER.color;
+    } else if (member.name === AI_TEAMMATES.LAZY.name) {
+      return AI_TEAMMATES.LAZY.color;
+    }
+    return getContributionColor(contributions.indexOf(member));
+  };
+
   // Don't show contributions during submission phase
   if (!showContributions) {
     return null;
@@ -97,12 +127,17 @@ export default function ContributionTracker({ projectId, showContributions = tru
   return (
     <div className="contribution-tracker-container">
       <div className="tracker-header">
-        <h3>📊 Contribution Tracker</h3>
-        <div className="total-contribution">
-          Total: {totalContribution}%
-          {totalContribution !== 100 && (
-            <span className="warning">⚠️ Should equal 100%</span>
-          )}
+        <div className="header-title">
+          <h2>Team Contributions</h2>
+          <div className="tracker-subheader">
+            <h3>📊 Contribution Tracker</h3>
+            <div className="total-contribution">
+              Total: {totalContribution}%
+              {totalContribution !== 100 && (
+                <span className="warning">⚠️ Should equal 100%</span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       
@@ -111,24 +146,37 @@ export default function ContributionTracker({ projectId, showContributions = tru
           <div key={index} className="contribution-item">
             <div className="member-info">
               <div className="member-name">
-                <span className="member-avatar">
-                  {member.name === 'You' ? '👤' : member.name.includes('AI') ? '🤖' : '👥'}
-                </span>
+                <div className="member-avatar">
+                  {typeof getMemberAvatar(member) === 'string' ? (
+                    <span className="avatar-emoji">{getMemberAvatar(member)}</span>
+                  ) : (
+                    <img 
+                      src={getMemberAvatar(member)} 
+                      alt={`${member.name} avatar`}
+                      className="avatar-image"
+                    />
+                  )}
+                </div>
                 <div>
                   <strong>{member.name}</strong>
                   <small>{member.role}</small>
                 </div>
               </div>
               <div className="contribution-controls">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={member.percent}
-                  onChange={(e) => updateContribution(index, parseInt(e.target.value) || 0)}
-                  className="contribution-input"
-                />
-                <span className="percent-label">%</span>
+                <div className="contribution-display">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={member.percent}
+                    onChange={(e) => updateContribution(index, parseInt(e.target.value) || 0)}
+                    className="percent-input"
+                  />
+                  <span className="percent-label">%</span>
+                </div>
+                <div className="word-count">
+                  <span className="word-count-label">{member.wordCount || 0} words</span>
+                </div>
               </div>
             </div>
             
@@ -137,7 +185,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
                 className="progress-bar"
                 style={{ 
                   width: `${member.percent}%`,
-                  backgroundColor: getContributionColor(index)
+                  backgroundColor: getMemberColor(member)
                 }}
               />
             </div>
@@ -147,7 +195,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
       
       <div className="tracker-footer">
         <div className="tracker-tips">
-          💡 Adjust percentages to reflect actual contribution to the project
+          💡 Contributions are automatically calculated based on word count in the final report
         </div>
       </div>
     </div>
