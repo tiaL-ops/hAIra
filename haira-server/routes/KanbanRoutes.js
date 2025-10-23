@@ -30,7 +30,6 @@ router.get('/:id/kanban', verifyFirebaseToken, async (req, res) => {
     }
 });
 
-
 router.post('/:id/kanban', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;
     const { title } = req.body;
@@ -80,5 +79,22 @@ Do not include anything else.
     }
 });
 
+router.post('/:id/tasks', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const { title, taskUserId, description} = req.body;
+
+    if (!title || !taskUserId || !description) {
+        return res.status(400).json({ error: 'missing required field' });
+    }
+    try {
+        const datatask = await addTasks(id, taskUserId, title, [{deliverable : description}]);
+        res.status(201).json({ success: true, ...datatask });
+    } catch (err) {
+        res.status(500).json({ 
+            success: false,
+            error: err.message
+        });
+    }
+});
 
 export default router;

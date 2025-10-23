@@ -88,16 +88,27 @@ useEffect(() => {
     });
   };
 
-  const handleAddTask = (column) => {
+  const handleAddTask = async (column) => {
     const newTask = {
       id: uuidv4(),
-      name: "New Task",
+      name: "New task",
       assignee: assignees[0],
     };
-    setTasks({
-      ...tasks,
-      [column]: [...tasks[column], newTask],
-    });
+    const token = await auth.currentUser.getIdToken(true);
+    const data = { title : id, taskUserId : newTask.assignee , description : newTask.name };
+    const kanbanData = await axios.post(
+      `http://localhost:3002/api/project/${id}/tasks`,
+      data,
+      { headers: { Authorization: `Bearer ${token}` } });
+    if (kanbanData.data.success) {
+      setTasks({
+        ...tasks,
+        [column]: [...tasks[column], newTask],
+      });
+    } else {
+      alert('no task added!');
+    }
+  
   };
 
   const handleSaveTask = (column, task) => {
