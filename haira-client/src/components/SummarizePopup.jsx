@@ -18,7 +18,7 @@ const SummarizePopup = ({ isOpen, onClose, summary, isLoading, error }) => {
           </button>
         </div>
 
-        {/* Content */}
+        {/* Content - Scrollable */}
         <div className="popup-content">
           {isLoading ? (
             <div className="loading-container">
@@ -52,14 +52,6 @@ const SummarizePopup = ({ isOpen, onClose, summary, isLoading, error }) => {
           )}
         </div>
 
-        {/* Actions */}
-        {!isLoading && !error && summary && (
-          <div className="popup-actions">
-            <button className="action-btn close-btn" onClick={onClose}>
-              <span className="btn-text">Got it!</span>
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

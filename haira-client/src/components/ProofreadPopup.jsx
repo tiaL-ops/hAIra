@@ -87,7 +87,7 @@ const ProofreadPopup = ({ isOpen, onClose, proofreadData, isLoading, error, onAp
           )}
         </div>
 
-        {/* Actions */}
+        {/* Actions - Only show when there's proofread data */}
         {!isLoading && !error && proofreadData && (
           <div className="popup-actions">
             <button className="action-btn discard-btn" onClick={handleDiscard}>
