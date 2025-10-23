@@ -13,6 +13,8 @@ import ProofreadSuggestion from "../components/ProofreadSuggestion";
 import ChromeAIStatus from "../components/ChromeAIStatus";
 import TeamPanel from "../components/TeamPanel";
 import TaskCompletionFeedback from "../components/TaskCompletionFeedback";
+import ProofreadPopup from "../components/ProofreadPopup";
+import SummarizePopup from "../components/SummarizePopup";
 import { getChromeProofreadSuggestions, getChromeSummary } from "../utils/chromeAPI";
 import { useAITeam } from "../hooks/useAITeam";
 import { AI_TEAMMATES } from "../../../shared/aiReportAgents.js";
@@ -20,6 +22,8 @@ import "../styles/editor.css";
 import "../styles/global.css";
 import "../styles/TeamPanel.css";
 import "../styles/TaskCompletionFeedback.css";
+import "../styles/ProofreadPopup.css";
+import "../styles/SummarizePopup.css";
 //------------
 
 const backend_host = "http://localhost:3002";
@@ -44,6 +48,27 @@ function Submission() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const editorRef = useRef(null);
+  
+  // Popup states
+  const [showProofreadPopup, setShowProofreadPopup] = useState(false);
+  const [showSummarizePopup, setShowSummarizePopup] = useState(false);
+  const [proofreadData, setProofreadData] = useState(null);
+  const [summarizeData, setSummarizeData] = useState(null);
+  const [proofreadLoading, setProofreadLoading] = useState(false);
+  const [summarizeLoading, setSummarizeLoading] = useState(false);
+  const [proofreadError, setProofreadError] = useState(null);
+  const [summarizeError, setSummarizeError] = useState(null);
+  
+  // Function to clear text selection
+  const clearTextSelection = () => {
+    if (editorRef.current) {
+      const editor = editorRef.current;
+      // Clear any text selection in the editor
+      editor.commands.setTextSelection({ from: 0, to: 0 });
+    }
+    setSelectionRange(null);
+    setSelectedText("");
+  };
   
   // Team collaboration state
   const [teamContext, setTeamContext] = useState(null);
@@ -71,9 +96,7 @@ function Submission() {
     removeCompletionMessage 
   } = useAITeam(id, editorRef, handleAddAIComment);
   
-  // Proofread suggestion modal state
-  const [showProofreadSuggestion, setShowProofreadSuggestion] = useState(false);
-  const [proofreadData, setProofreadData] = useState(null);
+  // Text selection state
   const [selectedText, setSelectedText] = useState("");
 
   // Load project data and draft content
@@ -381,9 +404,11 @@ function Submission() {
 
   // AI toolbar callbacks
   async function handleAISummarize() {
+    setShowSummarizePopup(true);
+    setSummarizeLoading(true);
+    setSummarizeError(null);
+    
     try {
-      setAiFeedback("🤖 Generating summary...");
-      
       // Gemini fallback function
       const geminiFallback = async () => {
         const token = await getIdTokenSafely();
@@ -408,11 +433,15 @@ function Submission() {
       const summary = result.summary || "No summary generated.";
       const source = result.source || 'unknown (chrome or gemini)';
       
-      setAiFeedback(`📝 Summary (${source}):\n\n${summary}`);
-      setAiSummary(summary);
+      setSummarizeData({
+        summary: summary,
+        source: source
+      });
     } catch (err) {
       console.error("AI Summarize error", err);
-      setAiFeedback("❌ AI error: " + err.message);
+      setSummarizeError("AI error: " + err.message);
+    } finally {
+      setSummarizeLoading(false);
     }
   }
 
@@ -437,20 +466,23 @@ function Submission() {
   }
 
   async function handleAIProofread() {
-    try {
-      // First try to capture current selection from textarea
-      let currentSelection = captureCurrentSelection();
-      
-      // Check if user has selected text (use stored selection or captured selection)
-      const textToProofread = selectedText.trim() || (selectionRange?.text || '').trim() || (currentSelection?.text || '').trim();
-      
-      if (!textToProofread) {
-        setAiFeedback("💡 Please select some text to proofread first!");
-        return;
-      }
+    // First try to capture current selection from textarea
+    let currentSelection = captureCurrentSelection();
+    
+    // Check if user has selected text (use stored selection or captured selection)
+    const textToProofread = selectedText.trim() || (selectionRange?.text || '').trim() || (currentSelection?.text || '').trim();
+    
+    if (!textToProofread) {
+      setProofreadError("Please select some text to proofread first!");
+      setShowProofreadPopup(true);
+      return;
+    }
 
-      setAiFeedback("🔍 Checking selected text...");
-      
+    setShowProofreadPopup(true);
+    setProofreadLoading(true);
+    setProofreadError(null);
+    
+    try {
       // Gemini fallback function
       const geminiFallback = async () => {
         const token = await getIdTokenSafely();
@@ -475,27 +507,37 @@ function Submission() {
       const source = result.source || 'unknown';
       
       if (result.hasErrors && result.corrected) {
-        // Show interactive suggestion modal
+        // Show interactive suggestion popup
         setProofreadData({
           originalText: textToProofread,
           correctedText: result.corrected,
           source: source,
           errorCount: result.errorCount
         });
-        setShowProofreadSuggestion(true);
-        setAiFeedback(`🔧 Found ${result.errorCount} issues in selected text (${source})`);
       } else if (result.hasErrors) {
         // Fallback for Gemini with individual corrections
         const corrections = result.corrections.map(c => 
           `• ${c.type}: "${c.originalText}" → "${c.suggestedText}"`
         ).join('\n');
-        setAiFeedback(`🔧 Found ${result.errorCount} issues (${source}):\n\n${corrections}`);
+        setProofreadData({
+          originalText: textToProofread,
+          correctedText: `Found ${result.errorCount} issues:\n\n${corrections}`,
+          source: source,
+          errorCount: result.errorCount
+        });
       } else {
-        setAiFeedback(`✅ No errors found in selected text! (${source})`);
+        setProofreadData({
+          originalText: textToProofread,
+          correctedText: "No errors found! Text looks good.",
+          source: source,
+          errorCount: 0
+        });
       }
     } catch (err) {
       console.error("AI Proofread error", err);
-      setAiFeedback("❌ AI error: " + err.message);
+      setProofreadError("AI error: " + err.message);
+    } finally {
+      setProofreadLoading(false);
     }
   }
 
@@ -533,22 +575,15 @@ function Submission() {
     setAiFeedback("✅ Suggestion applied successfully!");
     
     // Clear selection
-    setSelectionRange(null);
-    setSelectedText("");
+    clearTextSelection();
   }
 
   // Handle discarding proofread suggestion
   function handleDiscardSuggestion() {
     setAiFeedback("❌ Suggestion discarded");
-    setSelectionRange(null);
-    setSelectedText("");
+    clearTextSelection();
   }
 
-  // Handle closing proofread suggestion modal
-  function handleCloseSuggestion() {
-    setShowProofreadSuggestion(false);
-    setProofreadData(null);
-  }
 
   // Handle clearing AI feedback
   function handleClearFeedback() {
@@ -643,13 +678,11 @@ function Submission() {
         <AIToolbar
           onSummarize={handleAISummarize}
           onProofread={handleAIProofread}
-          aiFeedback={aiFeedback}
           onShowGuide={() => setShowGuide(true)}
           onSubmit={handleSubmission}
           submitting={submitting}
           submitted={submitted}
           saveStatus={saveStatus}
-          onClearFeedback={handleClearFeedback}
         />
         
         <ChromeAIStatus />
@@ -683,7 +716,6 @@ function Submission() {
 
       <div className="right-sidebar">
         {/* Team Panel - positioned above CommentSidebar */}
-        {console.log('TeamPanel render check:', { teamContext, submitted, loadingAIs })}
         {teamContext && (
           <TeamPanel
             onAssignTask={handleAssignAITask}
@@ -723,20 +755,32 @@ function Submission() {
         />
       </div>
 
-      {/* Proofread Suggestion Modal */}
-      {showProofreadSuggestion && proofreadData && (
-        <ProofreadSuggestion
-          originalText={proofreadData.originalText}
-          correctedText={proofreadData.correctedText}
-          onApply={handleApplySuggestion}
-          onDiscard={handleDiscardSuggestion}
-          onClose={handleCloseSuggestion}
-        />
-      )}
-      
       <EditorGuide 
         isVisible={showGuide} 
         onClose={() => setShowGuide(false)} 
+      />
+      
+      {/* Proofread Popup */}
+      <ProofreadPopup
+        isOpen={showProofreadPopup}
+        onClose={() => {
+          setShowProofreadPopup(false);
+          clearTextSelection();
+        }}
+        proofreadData={proofreadData}
+        isLoading={proofreadLoading}
+        error={proofreadError}
+        onApply={handleApplySuggestion}
+        onDiscard={handleDiscardSuggestion}
+      />
+      
+      {/* Summarize Popup */}
+      <SummarizePopup
+        isOpen={showSummarizePopup}
+        onClose={() => setShowSummarizePopup(false)}
+        summary={summarizeData?.summary}
+        isLoading={summarizeLoading}
+        error={summarizeError}
       />
     </div>
   );
