@@ -71,23 +71,6 @@ useEffect(() => {
     fetchData();
   }, []);
 
-  const onDragEnd = (result) => {
-    const { source, destination } = result;
-    if (!destination) return;
-
-    const sourceCol = [...tasks[source.droppableId]];
-    const [moved] = sourceCol.splice(source.index, 1);
-
-    const destCol = [...tasks[destination.droppableId]];
-    destCol.splice(destination.index, 0, moved);
-
-    setTasks({
-      ...tasks,
-      [source.droppableId]: sourceCol,
-      [destination.droppableId]: destCol,
-    });
-  };
-
   const handleAddTask = async (column) => {
     const newTask = {
       id: uuidv4(),
@@ -111,13 +94,15 @@ useEffect(() => {
   
   };
 
-  const handleSaveTask = async (column, task) => {
+  const handleSaveTask = async (column, task, updateState = true) => {
     const token = await auth.currentUser.getIdToken(true);
     const data = { taskId : task.id, title : id, status : column, userId : task.assignee , description : task.name };
     const kanbanData = await axios.put(
       `http://localhost:3002/api/project/${id}/tasks`,
       data,
       { headers: { Authorization: `Bearer ${token}` } });
+    if (!updateState)
+      return;
     if (kanbanData.data.success) {
       setTasks({
         ...tasks,
@@ -146,6 +131,24 @@ useEffect(() => {
     } else {
       alert('no task deleted');
     }
+  };
+ 
+  const onDragEnd = async (result) => {
+    const { source, destination } = result;
+    if (!destination) return;
+
+    const sourceCol = [...tasks[source.droppableId]];
+    const [moved] = sourceCol.splice(source.index, 1);
+
+    const destCol = [...tasks[destination.droppableId]];
+    destCol.splice(destination.index, 0, moved);
+    
+    handleSaveTask(destination.droppableId, moved, false);
+    setTasks({
+      ...tasks,
+      [source.droppableId]: sourceCol,
+      [destination.droppableId]: destCol,
+    });
   };
 
   const columns = [
