@@ -312,7 +312,8 @@ export async function addTasks(projectId, userId, projectTitle, status, delivera
       status,
       item.deliverable,
       Date.now(),
-      0
+      0,
+      Task.PRIORITY.MEDIUM.value
     );
     newDeliverable = newDeliverable.toFirestore();
     return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'tasks', newDeliverable);
@@ -321,13 +322,14 @@ export async function addTasks(projectId, userId, projectTitle, status, delivera
   return await Promise.all(promises);
 }
 
-export async function updateTask(projectId, id, title, status, userId, description) {
+export async function updateTask(projectId, id, title, status, userId, description, priority) {
   const collectionName = COLLECTIONS.USER_PROJECTS + '/' + projectId + '/tasks';
   const data = {
     title : title,
     assignedTo : userId,
     status : status,
-    description : description
+    description : description,
+    priority : priority
   }
   return await setDocument(collectionName, id, data);
 }

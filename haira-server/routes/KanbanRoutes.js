@@ -2,6 +2,7 @@ import express from 'express';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
 import { addTasks, updateTask, deleteTask, ensureProjectExists, getProjectWithTasks } from '../services/firebaseService.js';
 import { generateDeliverablesResponse } from '../api/geminiService.js';
+import Task from '../models/KanbanModels.js';
 
 const router = express.Router();
 
@@ -78,6 +79,22 @@ Do not include anything else.
     }
 });
 
+router.get('/tasks/priority', verifyFirebaseToken, async (req, res) => {
+    try {
+        const priority = [];
+        const data = Object.entries(Task.PRIORITY);
+        data.map(([key, value]) => {
+            priority.push(value);
+        });
+        res.status(201).json({ success: true, priority: priority });
+    } catch (err) {
+        res.status(500).json({ 
+            success: false,
+            error: err.message
+        });
+    }
+});
+
 router.post('/:id/tasks', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;
     const { title, taskUserId, status, description} = req.body;
@@ -98,12 +115,12 @@ router.post('/:id/tasks', verifyFirebaseToken, async (req, res) => {
 
 router.put('/:id/tasks', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;
-    const { taskId, title, status, userId, description} = req.body;
-    if (!taskId || !title || !status || !userId || !description) {
+    const { taskId, title, status, userId, description, priority } = req.body;
+    if (!taskId || !title || !status || !userId || !description || !priority) {
         return res.status(400).json({ error: 'missing required field' });
     }
     try {
-        const datatask = await updateTask(id, taskId, title, status, userId, description);
+        const datatask = await updateTask(id, taskId, title, status, userId, description, priority);
         res.status(201).json({ success: true, ...datatask });
     } catch (err) {
         res.status(500).json({ 

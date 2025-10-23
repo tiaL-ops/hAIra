@@ -29,6 +29,7 @@ export default function KanbanBoard() {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState(initialData);
   const [editingTask, setEditingTask] = useState(null);
+  const [priority, setPriority] = useState([]);
   
 useEffect(() => {
     let isMounted = true;
@@ -44,10 +45,13 @@ useEffect(() => {
         const tasks = kanbanData.data.tasks;
         let data = {todo : [], inProgress : [], done : []};
         tasks.map((item) => {
-          let tmp = { id: item.id, name: item.description, assignee: item.assignedTo};
+          let tmp = { id: item.id, name: item.description, assignee: item.assignedTo, priority: item.priority};
           data[item.status].push(tmp);
         });
         setTasks(data);
+
+        const priorityData = await axios.get(`http://localhost:3002/api/project/tasks/priority`, { headers: { Authorization: `Bearer ${token}` } });
+        setPriority(priorityData.data.priority);
      }
       catch (err) {
         console.error('[Client] Error fetching data:', err);
@@ -85,7 +89,7 @@ useEffect(() => {
 
   const handleSaveTask = async (column, task, updateState = true) => {
     const token = await auth.currentUser.getIdToken(true);
-    const data = { taskId : task.id, title : id, status : column, userId : task.assignee , description : task.name };
+    const data = { taskId : task.id, title : id, status : column, userId : task.assignee , description : task.name, priority : task.priority };
     const kanbanData = await axios.put(
       `http://localhost:3002/api/project/${id}/tasks`,
       data,
@@ -184,6 +188,7 @@ useEffect(() => {
                               <div className="text-sm text-gray-500">
                                 {task.assignee}
                               </div>
+                              <div className="text-sm text-gray-500">{priority.find(item => item.value == task.priority)?.name}</div>
                             </div>
                             <button
                               onClick={() =>
@@ -221,6 +226,22 @@ useEffect(() => {
                                 {assignees.map((a) => (
                                   <option key={a} value={a}>
                                     {a}
+                                  </option>
+                                ))}
+                              </select>
+                              <select
+                                className="w-full border p-1 rounded mb-2"
+                                value={editingTask.priority}
+                                onChange={(e) =>
+                                  setEditingTask({
+                                    ...editingTask,
+                                    priority: e.target.value,
+                                  })
+                                }
+                              >
+                                {priority.map((p) => (
+                                  <option key={p.value} value={p.value}>
+                                    {p.name}
                                   </option>
                                 ))}
                               </select>
