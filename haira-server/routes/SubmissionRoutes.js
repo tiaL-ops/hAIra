@@ -828,5 +828,192 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
     }
 });
 
+// Track word count contribution
+router.post('/:id/word-contributions/track', verifyFirebaseToken, async (req, res) => {
+    try {
+        const { id: projectId } = req.params;
+        const { contributorId, contributorName, contributorRole, wordCount, taskType } = req.body;
+        const userId = req.user.uid;
+
+        console.log('Tracking word contribution:', { projectId, contributorId, contributorName, wordCount });
+
+        // Ensure project exists
+        await ensureProjectExists(projectId, userId);
+
+        // Get current project data
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
+        if (!projectData) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        // Initialize wordContributions if it doesn't exist
+        let wordContributions = projectData.wordContributions || {
+            user: { words: 0, percentage: 0 },
+            alex: { words: 0, percentage: 0 },
+            sam: { words: 0, percentage: 0 }
+        };
+
+        // Update the contributor's word count
+        if (contributorId === 'ai_manager' || contributorName === 'Alex') {
+            wordContributions.alex.words += wordCount;
+        } else if (contributorId === 'ai_helper' || contributorName === 'Sam') {
+            wordContributions.sam.words += wordCount;
+        }
+
+        // Calculate total words and percentages
+        const totalWords = wordContributions.user.words + wordContributions.alex.words + wordContributions.sam.words;
+        
+        if (totalWords > 0) {
+            wordContributions.user.percentage = Math.round((wordContributions.user.words / totalWords) * 100 * 100) / 100;
+            wordContributions.alex.percentage = Math.round((wordContributions.alex.words / totalWords) * 100 * 100) / 100;
+            wordContributions.sam.percentage = Math.round((wordContributions.sam.words / totalWords) * 100 * 100) / 100;
+        }
+
+        // Save updated word contributions
+        await updateDocument(COLLECTIONS.USER_PROJECTS, projectId, {
+            wordContributions: wordContributions,
+            wordContributionsUpdatedAt: Date.now()
+        });
+
+        console.log(`Updated word contributions:`, wordContributions);
+
+        res.json({ 
+            success: true, 
+            message: 'Word contribution tracked successfully',
+            wordContributions: wordContributions
+        });
+
+    } catch (error) {
+        console.error('Error tracking word contribution:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Get word contributions
+router.get('/:id/word-contributions', verifyFirebaseToken, async (req, res) => {
+    try {
+        const { id: projectId } = req.params;
+        const userId = req.user.uid;
+
+        // Ensure project exists
+        await ensureProjectExists(projectId, userId);
+
+        // Get project data
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
+        if (!projectData) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        // Initialize wordContributions if it doesn't exist
+        let wordContributions = projectData.wordContributions || {
+            user: { words: 0, percentage: 0 },
+            alex: { words: 0, percentage: 0 },
+            sam: { words: 0, percentage: 0 }
+        };
+
+        // Calculate current percentages
+        const totalWords = wordContributions.user.words + wordContributions.alex.words + wordContributions.sam.words;
+        
+        if (totalWords > 0) {
+            wordContributions.user.percentage = Math.round((wordContributions.user.words / totalWords) * 100 * 100) / 100;
+            wordContributions.alex.percentage = Math.round((wordContributions.alex.words / totalWords) * 100 * 100) / 100;
+            wordContributions.sam.percentage = Math.round((wordContributions.sam.words / totalWords) * 100 * 100) / 100;
+        }
+
+        res.json({
+            success: true,
+            wordContributions: wordContributions,
+            totalWords: totalWords
+        });
+
+    } catch (error) {
+        console.error('Error getting word contributions:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Calculate user word count from final report content
+router.post('/:id/word-contributions/calculate-user', verifyFirebaseToken, async (req, res) => {
+    try {
+        const { id: projectId } = req.params;
+        const { content } = req.body;
+        const userId = req.user.uid;
+
+        console.log('Calculating user word count from content');
+
+        // Ensure project exists
+        await ensureProjectExists(projectId, userId);
+
+        // Get current project data
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
+        if (!projectData) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        // Calculate user word count by removing AI contributions
+        let userContent = content || '';
+        
+        // Remove AI contribution headers and content
+        // This regex removes content between AI contribution headers
+        userContent = userContent.replace(/<div class="ai-contribution-header"[^>]*>.*?<\/div>/gs, '');
+        userContent = userContent.replace(/\[Alex\][^<]*/g, '');
+        userContent = userContent.replace(/\[Sam\][^<]*/g, '');
+        
+        // Remove HTML tags for word counting
+        userContent = userContent.replace(/<[^>]*>/g, ' ');
+        
+        // Calculate word count
+        const userWordCount = userContent.trim().split(/\s+/).filter(word => word.length > 0).length;
+
+        // Get current word contributions
+        let wordContributions = projectData.wordContributions || {
+            user: { words: 0, percentage: 0 },
+            alex: { words: 0, percentage: 0 },
+            sam: { words: 0, percentage: 0 }
+        };
+
+        // Update user word count
+        wordContributions.user.words = userWordCount;
+
+        // Recalculate percentages
+        const totalWords = wordContributions.user.words + wordContributions.alex.words + wordContributions.sam.words;
+        
+        if (totalWords > 0) {
+            wordContributions.user.percentage = Math.round((wordContributions.user.words / totalWords) * 100 * 100) / 100;
+            wordContributions.alex.percentage = Math.round((wordContributions.alex.words / totalWords) * 100 * 100) / 100;
+            wordContributions.sam.percentage = Math.round((wordContributions.sam.words / totalWords) * 100 * 100) / 100;
+        }
+
+        // Save updated word contributions
+        await updateDocument(COLLECTIONS.USER_PROJECTS, projectId, {
+            wordContributions: wordContributions,
+            wordContributionsUpdatedAt: Date.now()
+        });
+
+        console.log(`Updated user word count: ${userWordCount} words`);
+
+        res.json({ 
+            success: true, 
+            message: 'User word count calculated successfully',
+            userWordCount: userWordCount,
+            wordContributions: wordContributions,
+            totalWords: totalWords
+        });
+
+    } catch (error) {
+        console.error('Error calculating user word count:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
 export default router;
 

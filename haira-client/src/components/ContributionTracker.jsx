@@ -9,48 +9,21 @@ import '../styles/ContributionTracker.css';
 
 const backend_host = "http://localhost:3002";
 
-export default function ContributionTracker({ projectId, showContributions = true }) {
+export default function ContributionTracker({ projectId, showContributions = true, editorContent = '' }) {
   const [contributions, setContributions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalContribution, setTotalContribution] = useState(0);
 
-  // Load contributions from backend API
-  useEffect(() => {
-    const loadContributions = async () => {
-      if (!projectId) return;
-      try {
-        setIsLoading(true);
-        const token = await getIdTokenSafely();
-        
-        const response = await axios.get(`${backend_host}/api/project/${projectId}/contributions`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (response.data.success) {
-          setContributions(response.data.contributions);
-          setTotalContribution(response.data.totalContribution);
-        }
-      } catch (err) {
-        console.error("Error loading contributions:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadContributions();
-  }, [projectId]);
-
-  const updateContribution = async (index, newPercent) => {
-    const updated = [...contributions];
-    updated[index].percent = Math.max(0, Math.min(100, newPercent));
-    setContributions(updated);
+  // Calculate user word count from editor content
+  const calculateUserWordCount = async (content) => {
+    if (!projectId || !content) return;
     
     try {
       const token = await getIdTokenSafely();
-      const response = await axios.post(`${backend_host}/api/project/${projectId}/contributions`, {
-        contributions: updated
+      if (!token) return;
+      
+      await axios.post(`${backend_host}/api/project/${projectId}/word-contributions/calculate-user`, {
+        content: content
       }, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -58,13 +31,78 @@ export default function ContributionTracker({ projectId, showContributions = tru
         }
       });
       
-      if (response.data.success) {
-        setTotalContribution(response.data.totalContribution);
-      }
+      console.log("User word count calculated successfully");
     } catch (err) {
-      console.error("Error updating contribution:", err);
+      console.error("Error calculating user word count:", err);
     }
   };
+
+  // Load word contributions from backend API
+  useEffect(() => {
+    const loadWordContributions = async () => {
+      if (!projectId) return;
+      try {
+        setIsLoading(true);
+        const token = await getIdTokenSafely();
+        
+        // First, calculate user word count from current content if available
+        if (editorContent) {
+          await calculateUserWordCount(editorContent);
+        }
+        
+        const response = await axios.get(`${backend_host}/api/project/${projectId}/word-contributions`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.data.success) {
+          const wordContributions = response.data.wordContributions;
+          
+          // Convert wordContributions to the format expected by the component
+          const contributions = [
+            {
+              name: "You",
+              percent: wordContributions.user.percentage,
+              role: "Student",
+              wordCount: wordContributions.user.words
+            },
+            {
+              name: "Alex",
+              percent: wordContributions.alex.percentage,
+              role: "AI Manager",
+              wordCount: wordContributions.alex.words
+            },
+            {
+              name: "Sam",
+              percent: wordContributions.sam.percentage,
+              role: "AI Helper",
+              wordCount: wordContributions.sam.words
+            }
+          ];
+          
+          setContributions(contributions);
+          setTotalContribution(response.data.totalWords);
+        }
+      } catch (err) {
+        console.error("Error loading word contributions:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadWordContributions();
+  }, [projectId, editorContent]);
+
+  const updateContribution = async (index, newPercent) => {
+    // For word-based contributions, we don't allow manual percentage adjustments
+    // since they should be calculated based on actual word counts
+    console.log("Manual contribution adjustment disabled - contributions are based on word count");
+    
+    // Optionally, we could implement a manual override system here
+    // but for now, we'll keep it read-only based on actual word counts
+  };
+
 
   // Utility to get token
   async function getIdTokenSafely() {
@@ -126,20 +164,6 @@ export default function ContributionTracker({ projectId, showContributions = tru
 
   return (
     <div className="contribution-tracker-container">
-      <div className="tracker-header">
-        <div className="header-title">
-          <h2>Team Contributions</h2>
-          <div className="tracker-subheader">
-            <h3>📊 Contribution Tracker</h3>
-            <div className="total-contribution">
-              Total: {totalContribution}%
-              {totalContribution !== 100 && (
-                <span className="warning">⚠️ Should equal 100%</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
       
       <div className="contributions-list">
         {contributions.map((member, index) => (
@@ -164,14 +188,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
               </div>
               <div className="contribution-controls">
                 <div className="contribution-display">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={member.percent}
-                    onChange={(e) => updateContribution(index, parseInt(e.target.value) || 0)}
-                    className="percent-input"
-                  />
+                  <span className="percent-value">{member.percent.toFixed(1)}</span>
                   <span className="percent-label">%</span>
                 </div>
                 <div className="word-count">
@@ -193,10 +210,9 @@ export default function ContributionTracker({ projectId, showContributions = tru
         ))}
       </div>
       
-      <div className="tracker-footer">
-        <div className="tracker-tips">
-          💡 Contributions are automatically calculated based on word count in the final report
-        </div>
+      <div className="tracker-tips">
+        <span className="tip-item">💡 Word-based contributions</span>
+        <span className="tip-item">📝 Auto-tracked when AI writes</span>
       </div>
     </div>
   );

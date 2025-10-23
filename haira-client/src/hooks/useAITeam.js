@@ -25,7 +25,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
   };
 
   // Insert AI text at the end of document with color marking and avatar
-  const insertAIText = useCallback((text, aiType, taskType = '') => {
+  const insertAIText = useCallback(async (text, aiType, taskType = '') => {
     if (!editorRef.current) return;
 
     const editor = editorRef.current;
@@ -40,6 +40,9 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     const aiRole = aiTeammate.role;
     const aiColor = aiTeammate.color;
     const aiAvatar = aiType === 'ai_manager' ? AlexAvatar : SamAvatar;
+
+    // Calculate word count for contribution tracking
+    const wordCount = text.trim().split(/\s+/).filter(word => word.length > 0).length;
 
     // Use red for review tasks, otherwise use default colors
     const color = (taskType === 'review') ? '#DC2626' : (colors[aiType] || '#000000');
@@ -86,7 +89,31 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       const highlightColor = aiType === 'ai_manager' ? '#EFF6FF' : '#F0F9FF';
       editor.commands.setHighlight({ color: highlightColor });
     }
-  }, [editorRef]);
+
+    // Track word count contribution for write tasks
+    if (wordCount > 0 && projectId && taskType === 'write_section') {
+      try {
+        const token = await getIdTokenSafely();
+        if (token) {
+          await axios.post(`${backend_host}/api/project/${projectId}/word-contributions/track`, {
+            contributorId: aiType,
+            contributorName: aiName,
+            contributorRole: aiRole,
+            wordCount: wordCount,
+            taskType: taskType
+          }, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          console.log(`Tracked ${wordCount} words for ${aiName} (${aiType})`);
+        }
+      } catch (error) {
+        console.error('Error tracking word count contribution:', error);
+      }
+    }
+  }, [editorRef, projectId, getIdTokenSafely]);
 
 
   // Add AI comment to the editor
