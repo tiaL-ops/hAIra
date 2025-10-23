@@ -321,10 +321,22 @@ export async function addTasks(projectId, userId, projectTitle, deliverables) {
   return await Promise.all(promises);
 }
 
+export async function updateTask(projectId, id, title, status, userId, description) {
+  const collectionName = COLLECTIONS.USER_PROJECTS + '/' + projectId + '/tasks';
+  const data = {
+    title : title,
+    assignedTo : userId,
+    status : status,
+    description : description
+  }
+  return await setDocument(collectionName, id, data);
+}
+
 export async function deleteTask(projectId, taskId) {
   const collectionName = COLLECTIONS.USER_PROJECTS + '/' + projectId + '/tasks';
   return await deleteDocument(collectionName, taskId);
 }
+
 
 // Create a UserProject document if it doesn't exist
 export async function ensureProjectExists(projectId, userId = 'default_user', templateId = 'default_template', title = null) {

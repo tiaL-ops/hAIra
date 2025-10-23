@@ -111,14 +111,24 @@ useEffect(() => {
   
   };
 
-  const handleSaveTask = (column, task) => {
-    setTasks({
-      ...tasks,
-      [column]: tasks[column].map((t) =>
-        t.id === task.id ? task : t
-      ),
-    });
-    setEditingTask(null);
+  const handleSaveTask = async (column, task) => {
+    const token = await auth.currentUser.getIdToken(true);
+    const data = { taskId : task.id, title : id, status : column, userId : task.assignee , description : task.name };
+    const kanbanData = await axios.put(
+      `http://localhost:3002/api/project/${id}/tasks`,
+      data,
+      { headers: { Authorization: `Bearer ${token}` } });
+    if (kanbanData.data.success) {
+      setTasks({
+        ...tasks,
+        [column]: tasks[column].map((t) =>
+          t.id === task.id ? task : t
+        ),
+      });
+      setEditingTask(null);
+    } else {
+      alert('no task saved');
+    }
   };
 
   const handleDeleteTask = async (column, taskId) => {
