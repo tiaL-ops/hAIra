@@ -121,12 +121,21 @@ useEffect(() => {
     setEditingTask(null);
   };
 
-  const handleDeleteTask = (column, taskId) => {
-    setTasks({
-      ...tasks,
-      [column]: tasks[column].filter((t) => t.id !== taskId),
-    });
-    setEditingTask(null);
+  const handleDeleteTask = async (column, taskId) => {
+    const token = await auth.currentUser.getIdToken(true);
+    const data = { taskId : taskId };
+    const kanbanData = await axios.delete(
+      `http://localhost:3002/api/project/${id}/tasks`,
+      { headers: { Authorization: `Bearer ${token}` }, data: data });
+    if (kanbanData.data.success) {
+      setTasks({
+        ...tasks,
+        [column]: tasks[column].filter((t) => t.id !== taskId),
+      });
+      setEditingTask(null);
+    } else {
+      alert('no task deleted');
+    }
   };
 
   const columns = [

@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
-import { addTasks, ensureProjectExists, getProjectWithTasks } from '../services/firebaseService.js';
+import { addTasks, deleteTask, ensureProjectExists, getProjectWithTasks } from '../services/firebaseService.js';
 import { generateDeliverablesResponse } from '../api/geminiService.js';
 
 const router = express.Router();
@@ -88,6 +88,24 @@ router.post('/:id/tasks', verifyFirebaseToken, async (req, res) => {
     }
     try {
         const datatask = await addTasks(id, taskUserId, title, [{deliverable : description}]);
+        res.status(201).json({ success: true, ...datatask });
+    } catch (err) {
+        res.status(500).json({ 
+            success: false,
+            error: err.message
+        });
+    }
+});
+
+router.delete('/:id/tasks', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const { taskId } = req.body;
+
+    if (!taskId) {
+        return res.status(400).json({ error: 'missing required field' });
+    }
+    try {
+        const datatask = await deleteTask(id, taskId);
         res.status(201).json({ success: true, ...datatask });
     } catch (err) {
         res.status(500).json({ 
