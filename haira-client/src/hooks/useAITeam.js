@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { getAuth } from 'firebase/auth';
 import axios from 'axios';
 import { AI_TEAMMATES } from '../../../shared/aiReportAgents.js';
+import AlexAvatar from '../images/Alex.png';
+import SamAvatar from '../images/Sam.png';
 
 const backend_host = "http://localhost:3002";
 
@@ -22,7 +24,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     return null;
   };
 
-  // Insert AI text at the end of document with color marking
+  // Insert AI text at the end of document with color marking and avatar
   const insertAIText = useCallback((text, aiType, taskType = '') => {
     if (!editorRef.current) return;
 
@@ -32,6 +34,13 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       ai_helper: AI_TEAMMATES.LAZY.color
     };
 
+    // Get AI teammate info
+    const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
+    const aiName = aiTeammate.name;
+    const aiRole = aiTeammate.role;
+    const aiColor = aiTeammate.color;
+    const aiAvatar = aiType === 'ai_manager' ? AlexAvatar : SamAvatar;
+
     // Use red for review tasks, otherwise use default colors
     const color = (taskType === 'review') ? '#DC2626' : (colors[aiType] || '#000000');
     
@@ -39,12 +48,28 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     const docSize = editor.state.doc.content.size;
     editor.commands.setTextSelection({ from: docSize, to: docSize });
     
-    // Insert the text first
-    editor.commands.insertContent(`<p>${text}</p>`);
+    // Create avatar HTML element
+    const avatarHtml = `
+      <div class="ai-contribution-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 8px; background: linear-gradient(135deg, ${aiColor}20 0%, ${aiColor}10 100%); border-radius: 8px; border-left: 3px solid ${aiColor};">
+        <div class="ai-contribution-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, ${aiColor} 0%, ${aiColor}CC 100%); display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.3);">
+          <img src="${aiAvatar}" alt="${aiName}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+        </div>
+        <div class="ai-contribution-info" style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-weight: 600; color: ${aiColor}; font-size: 0.9rem;">${aiName}</span>
+          <span style="font-size: 0.75rem; color: #6b7280;">${aiRole}</span>
+        </div>
+      </div>
+    `;
     
-    // Then apply color and highlight using TipTap commands
+    // Insert avatar header and text
+    editor.commands.insertContent(`${avatarHtml}<p>${text}</p>`);
+    
+    // Apply color and highlight to the text content only
     const newDocSize = editor.state.doc.content.size;
     const textLength = text.length;
+    const headerLength = avatarHtml.length;
+    
+    // Select only the text content (not the avatar header)
     editor.commands.setTextSelection({ 
       from: newDocSize - textLength - 7, // -7 for <p></p> tags
       to: newDocSize - 4 // -4 for </p> tag
@@ -61,22 +86,6 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       const highlightColor = aiType === 'ai_manager' ? '#EFF6FF' : '#F0F9FF';
       editor.commands.setHighlight({ color: highlightColor });
     }
-
-    const editorState = useEditorState({
-    editor,
-    selector: ctx => {
-      return {
-        color: ctx.editor.getAttributes('textStyle').color,
-        isPurple: ctx.editor.isActive('textStyle', { color: '#958DF1' }),
-        isRed: ctx.editor.isActive('textStyle', { color: '#F98181' }),
-        isOrange: ctx.editor.isActive('textStyle', { color: '#FBBC88' }),
-        isYellow: ctx.editor.isActive('textStyle', { color: '#FAF594' }),
-        isBlue: ctx.editor.isActive('textStyle', { color: '#70CFF8' }),
-        isTeal: ctx.editor.isActive('textStyle', { color: '#94FADB' }),
-        isGreen: ctx.editor.isActive('textStyle', { color: '#B9F18D' }),
-      }
-    },
-  })
   }, [editorRef]);
 
 

@@ -13,8 +13,8 @@ import ProofreadSuggestion from "../components/ProofreadSuggestion";
 import ChromeAIStatus from "../components/ChromeAIStatus";
 import TeamPanel from "../components/TeamPanel";
 import TaskCompletionFeedback from "../components/TaskCompletionFeedback";
-import ProofreadPopup from "../components/ProofreadPopup";
 import SummarizePopup from "../components/SummarizePopup";
+import ProofreadPopup from "../components/ProofreadPopup";
 import { getChromeProofreadSuggestions, getChromeSummary } from "../utils/chromeAPI";
 import { useAITeam } from "../hooks/useAITeam";
 import { AI_TEAMMATES } from "../../../shared/aiReportAgents.js";
@@ -22,8 +22,8 @@ import "../styles/editor.css";
 import "../styles/global.css";
 import "../styles/TeamPanel.css";
 import "../styles/TaskCompletionFeedback.css";
-import "../styles/ProofreadPopup.css";
 import "../styles/SummarizePopup.css";
+import "../styles/ProofreadPopup.css";
 //------------
 
 const backend_host = "http://localhost:3002";
@@ -47,17 +47,19 @@ function Submission() {
   const [aiSummary, setAiSummary] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const editorRef = useRef(null);
   
   // Popup states
-  const [showProofreadPopup, setShowProofreadPopup] = useState(false);
   const [showSummarizePopup, setShowSummarizePopup] = useState(false);
+  const [showProofreadPopup, setShowProofreadPopup] = useState(false);
+  const [summarizeLoading, setSummarizeLoading] = useState(false);
+  const [proofreadLoading, setProofreadLoading] = useState(false);
+  const [summarizeError, setSummarizeError] = useState(null);
+  const [proofreadError, setProofreadError] = useState(null);
+  const editorRef = useRef(null);
+  
+  // Data states
   const [proofreadData, setProofreadData] = useState(null);
   const [summarizeData, setSummarizeData] = useState(null);
-  const [proofreadLoading, setProofreadLoading] = useState(false);
-  const [summarizeLoading, setSummarizeLoading] = useState(false);
-  const [proofreadError, setProofreadError] = useState(null);
-  const [summarizeError, setSummarizeError] = useState(null);
   
   // Function to clear text selection
   const clearTextSelection = () => {
@@ -512,25 +514,35 @@ function Submission() {
           originalText: textToProofread,
           correctedText: result.corrected,
           source: source,
-          errorCount: result.errorCount
+          errorCount: result.errorCount,
+          suggestions: result.corrections ? result.corrections.map(c => ({
+            type: c.type || 'Grammar',
+            issue: `"${c.originalText}"`,
+            suggestion: `"${c.suggestedText}"`,
+            explanation: `This is a ${c.type || 'grammar'} correction.`,
+            confidence: 85
+          })) : []
         });
       } else if (result.hasErrors) {
         // Fallback for Gemini with individual corrections
-        const corrections = result.corrections.map(c => 
-          `• ${c.type}: "${c.originalText}" → "${c.suggestedText}"`
-        ).join('\n');
         setProofreadData({
           originalText: textToProofread,
-          correctedText: `Found ${result.errorCount} issues:\n\n${corrections}`,
           source: source,
-          errorCount: result.errorCount
+          errorCount: result.errorCount,
+          suggestions: result.corrections ? result.corrections.map(c => ({
+            type: c.type || 'Grammar',
+            issue: `"${c.originalText}"`,
+            suggestion: `"${c.suggestedText}"`,
+            explanation: `This is a ${c.type || 'grammar'} correction.`,
+            confidence: 85
+          })) : []
         });
       } else {
         setProofreadData({
           originalText: textToProofread,
-          correctedText: "No errors found! Text looks good.",
           source: source,
-          errorCount: 0
+          errorCount: 0,
+          suggestions: []
         });
       }
     } catch (err) {
@@ -760,6 +772,15 @@ function Submission() {
         onClose={() => setShowGuide(false)} 
       />
       
+      {/* Summarize Popup */}
+      <SummarizePopup
+        isOpen={showSummarizePopup}
+        onClose={() => setShowSummarizePopup(false)}
+        summary={summarizeData?.summary}
+        isLoading={summarizeLoading}
+        error={summarizeError}
+      />
+      
       {/* Proofread Popup */}
       <ProofreadPopup
         isOpen={showProofreadPopup}
@@ -772,15 +793,6 @@ function Submission() {
         error={proofreadError}
         onApply={handleApplySuggestion}
         onDiscard={handleDiscardSuggestion}
-      />
-      
-      {/* Summarize Popup */}
-      <SummarizePopup
-        isOpen={showSummarizePopup}
-        onClose={() => setShowSummarizePopup(false)}
-        summary={summarizeData?.summary}
-        isLoading={summarizeLoading}
-        error={summarizeError}
       />
     </div>
   );

@@ -20,12 +20,12 @@
 }
 
 .proofread-popup {
-  background: #201A31;
-  border: 2px solid #4a9eff;
-  border-radius: 12px;
+  background: #20B2AA;
+  border: 3px solid #008B8B;
+  border-radius: 16px;
   box-shadow: 
-    0 4px 0 #2563eb,
-    0 8px 0 #1d4ed8;
+    0 6px 0 #008B8B,
+    0 12px 0 #006666;
   max-width: 600px;
   width: 90%;
   max-height: 80vh;
@@ -52,9 +52,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px;
-  background: #4a9eff;
-  border-radius: 10px 10px 0 0;
-  border-bottom: 2px solid #2563eb;
+  background: #20B2AA;
+  border-radius: 13px 13px 0 0;
+  border-bottom: 3px solid #008B8B;
 }
 
 .popup-title {
@@ -64,7 +64,8 @@
   color: #ffffff;
   font-size: 1.4rem;
   font-weight: 700;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 2px 2px 0px #000000;
+  font-family: 'Jersey 10', monospace;
 }
 
 .popup-icon {
@@ -74,26 +75,27 @@
 
 .popup-close-btn {
   background: #ff4757;
-  border: 2px solid #ff2f3a;
-  border-radius: 6px;
-  width: 36px;
-  height: 36px;
+  border: 3px solid #ff2f3a;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 
-    0 2px 0 #dc2626,
-    0 4px 0 #b91c1c;
+    0 4px 0 #dc2626,
+    0 8px 0 #b91c1c;
+  font-family: 'Jersey 10', monospace;
 }
 
 .popup-close-btn:hover {
   background: #ff3742;
-  transform: translateY(1px);
+  transform: translateY(2px);
   box-shadow: 
-    0 1px 0 #dc2626,
-    0 3px 0 #b91c1c;
+    0 2px 0 #dc2626,
+    0 6px 0 #b91c1c;
 }
 
 .close-icon {
@@ -109,6 +111,8 @@
   color: #ffffff;
   width: 100%;
   box-sizing: border-box;
+  background: #1a1a1a;
+  font-family: 'Jersey 10', monospace;
 }
 
 /* Loading State */
@@ -187,36 +191,39 @@
 }
 
 .text-box {
-  background: #2D3748;
-  border: 2px solid #4A5568;
-  border-radius: 8px;
+  background: #ffffff;
+  border: 3px solid #000000;
+  border-radius: 12px;
   padding: 16px;
   box-shadow: 
-    0 2px 0 #2D3748,
-    0 4px 0 #1A202C;
+    0 4px 0 #000000,
+    0 8px 0 #333333;
   width: 100%;
   box-sizing: border-box;
+  color: #000000;
+  font-family: 'Jersey 10', monospace;
 }
 
 .original-text {
   border-color: #ff6b6b;
   box-shadow: 
-    0 2px 0 #dc2626,
-    0 4px 0 #b91c1c;
+    0 4px 0 #dc2626,
+    0 8px 0 #b91c1c;
 }
 
 .corrected-text {
   border-color: #10b981;
   box-shadow: 
-    0 2px 0 #059669,
-    0 4px 0 #047857;
+    0 4px 0 #059669,
+    0 8px 0 #047857;
 }
 
 .text-content {
   font-size: 1rem;
   line-height: 1.6;
-  color: #ffffff;
+  color: #000000;
   word-wrap: break-word;
+  font-family: 'Jersey 10', monospace;
 }
 
 /* Arrow */
@@ -252,11 +259,15 @@
   justify-content: center;
   gap: 8px;
   padding: 12px;
-  background: #2D3748;
-  border: 1px solid #4A5568;
-  border-radius: 6px;
+  background: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 8px;
   font-size: 0.9rem;
-  color: #A0AEC0;
+  color: #000000;
+  font-family: 'Jersey 10', monospace;
+  box-shadow: 
+    0 2px 0 #000000,
+    0 4px 0 #333333;
 }
 
 .source-icon {
@@ -269,9 +280,9 @@
   justify-content: center;
   gap: 16px;
   padding: 20px 24px;
-  background: #201A31;
-  border-radius: 0 0 10px 10px;
-  border-top: 2px solid #4A5568;
+  background: #1a1a1a;
+  border-radius: 0 0 13px 13px;
+  border-top: 3px solid #008B8B;
 }
 
 .action-btn {
@@ -295,16 +306,18 @@
   border-color: #ff2f3a;
   color: white;
   box-shadow: 
-    0 2px 0 #dc2626,
-    0 4px 0 #b91c1c;
+    0 4px 0 #dc2626,
+    0 8px 0 #b91c1c;
+  font-family: 'Jersey 10', monospace;
+  font-weight: bold;
 }
 
 .discard-btn:hover {
   background: #ff3742;
-  transform: translateY(1px);
+  transform: translateY(2px);
   box-shadow: 
-    0 1px 0 #dc2626,
-    0 3px 0 #b91c1c;
+    0 2px 0 #dc2626,
+    0 6px 0 #b91c1c;
 }
 
 .apply-btn {
@@ -312,16 +325,18 @@
   border-color: #059669;
   color: white;
   box-shadow: 
-    0 2px 0 #059669,
-    0 4px 0 #047857;
+    0 4px 0 #059669,
+    0 8px 0 #047857;
+  font-family: 'Jersey 10', monospace;
+  font-weight: bold;
 }
 
 .apply-btn:hover {
   background: #059669;
-  transform: translateY(1px);
+  transform: translateY(2px);
   box-shadow: 
-    0 1px 0 #059669,
-    0 3px 0 #047857;
+    0 2px 0 #059669,
+    0 6px 0 #047857;
 }
 
 .btn-icon {
