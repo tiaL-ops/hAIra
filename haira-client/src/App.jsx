@@ -6,7 +6,7 @@ import TopBar from './components/TopBar';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Classroom from './pages/Classroom';
-import Project from './pages/Project';
+
 import Chat from './pages/Chat';
 import Submission from './pages/Submission';
 import SubmissionSuccess from './pages/SubmissionSuccess';
@@ -96,11 +96,7 @@ function App() {
             </ProtectedRoute>
           } />
           
-          <Route path="/project" element={
-            <ProtectedRoute>
-              <Project />
-            </ProtectedRoute>
-          } />
+         
           
           <Route path="/project/:id/chat" element={
             <ProtectedRoute>

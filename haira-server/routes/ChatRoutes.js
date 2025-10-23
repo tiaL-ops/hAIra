@@ -19,7 +19,7 @@ import { getAgentContext } from '../services/contextService.js'; // Import for i
 
 const router = express.Router();
 const USE_SUBCOLLECTIONS = true;
-const USE_ENHANCED_CONTEXT = true; // Enable full context awareness for AI agents
+let USE_ENHANCED_CONTEXT = true; // Enable full context awareness for AI agents
 
 /**
  * Generate intelligent sign-off message that addresses the last message and summarizes tasks
@@ -97,11 +97,23 @@ router.get('/:id/chat', verifyFirebaseToken, async (req, res) => {
       // Store project data and tasks in memory for AI context
       if (projectData) {
         console.log(`[ChatRoutes][GET] Project title: ${projectData.project?.title || projectData.project?.name || 'Untitled'}`);
+        console.log(`[ChatRoutes][GET] Tasks fetched from Firestore: ${projectData.tasks?.length || 0}`);
+        
+        if (projectData.tasks && projectData.tasks.length > 0) {
+          console.log(`[ChatRoutes][GET] Task summary from Firestore:`);
+          projectData.tasks.forEach((task, index) => {
+            console.log(`[ChatRoutes][GET]   Task ${index + 1}: "${task.title || task.text}" -> ${task.assignedTo || 'unassigned'} [${task.status || 'no status'}]`);
+          });
+        }
+        
         storeProjectData(
           id, 
           projectData.tasks || [], 
           projectData.project || { title: 'Untitled Project' }
         );
+        console.log(`[ChatRoutes][GET] ✅ Project data stored in memory for AI agents`);
+      } else {
+        console.log(`[ChatRoutes][GET] ⚠️ No project data found for project ${id}`);
       }
     } catch (e) {
       // Non-fatal for listing chats, just log
@@ -175,6 +187,32 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
 
     if (USE_SUBCOLLECTIONS) await ensureProjectExists(id, userId);
     const projectData = await getProjectWithTasks(id, userId);
+    
+    // Store project data and tasks in memory for AI context immediately
+    if (projectData) {
+      console.log(`[ChatRoutes][POST] Storing project data - Title: ${projectData.project?.title || projectData.project?.name || 'Untitled'}`);
+      console.log(`[ChatRoutes][POST] Tasks count: ${projectData.tasks?.length || 0}`);
+      
+      if (projectData.tasks && projectData.tasks.length > 0) {
+        console.log(`[ChatRoutes][POST] Task details from Firestore:`);
+        projectData.tasks.forEach((task, index) => {
+          console.log(`[ChatRoutes][POST]   Task ${index + 1}:`, {
+            id: task.id,
+            title: task.title || task.text || 'No title',
+            assignedTo: task.assignedTo,
+            status: task.status
+          });
+        });
+      }
+      
+      storeProjectData(
+        id, 
+        projectData.tasks || [], 
+        projectData.project || { title: 'Untitled Project' }
+      );
+      console.log(`[ChatRoutes][POST] ✅ Project data stored in memory for context service`);
+    }
+    
     const projectStart = new Date(projectData?.project?.startDate || Date.now());
     const currentDay = getProjectDay(projectStart, testProjectDay);
 
@@ -242,21 +280,31 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
       }
       
       if (!USE_ENHANCED_CONTEXT || !text) {
-        // Standard context method (fallback)
+        // Standard context method (fallback) - include Firestore tasks explicitly
         const recent = await getChats(id, USE_SUBCOLLECTIONS);
         const dbConv = recent.slice(-15).map(c => `${c.senderName}: ${c.text || c.content}`).join('\n');
         const conv = memoryConversation || dbConv;
-        
-        const specialContext = alexMentioned && agentId !== 'alex' 
+
+        const specialContext = alexMentioned && agentId !== 'alex'
           ? `IMPORTANT: Alex was mentioned but is not available today (Day ${currentDay}). Acknowledge this briefly if relevant to the question.`
           : null;
-        
-        prompt = buildContextualPrompt(agentId, { 
-          projectData, 
-          conversationSummary: conv, 
-          currentDay, 
-          specialContext 
-        }, recent);
+
+        // Ensure tasks are formatted for fallback prompt
+        const formattedTasks = formatTasksForAI(id);
+
+        prompt = buildContextualPrompt(
+          agentId,
+          {
+            name: projectData?.project?.title || projectData?.project?.name || 'Untitled Project',
+            currentDay,
+            userName: req.user?.name || 'User',
+            alexAvailable: AI_AGENTS.alex.activeDays.includes(currentDay),
+            tasks: formattedTasks,
+            conversationSummary: conv,
+            specialContext
+          },
+          recent
+        );
 
         text = await generateAIResponse(content, prompt).catch(e => {
           console.error('AI error', e);
