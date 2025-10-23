@@ -78,12 +78,13 @@ useEffect(() => {
       assignee: assignees[0],
     };
     const token = await auth.currentUser.getIdToken(true);
-    const data = { title : id, taskUserId : newTask.assignee , description : newTask.name };
+    const data = { title : id, taskUserId : newTask.assignee , status : column, description : newTask.name };
     const kanbanData = await axios.post(
       `http://localhost:3002/api/project/${id}/tasks`,
       data,
       { headers: { Authorization: `Bearer ${token}` } });
     if (kanbanData.data.success) {
+      newTask.id = kanbanData.data[0].id;
       setTasks({
         ...tasks,
         [column]: [...tasks[column], newTask],
@@ -142,7 +143,7 @@ useEffect(() => {
 
     const destCol = [...tasks[destination.droppableId]];
     destCol.splice(destination.index, 0, moved);
-    
+
     handleSaveTask(destination.droppableId, moved, false);
     setTasks({
       ...tasks,

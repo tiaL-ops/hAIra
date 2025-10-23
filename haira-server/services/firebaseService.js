@@ -301,7 +301,7 @@ export async function updateUserProject(projectId, content, grade, status = "sub
   
 }
 
-export async function addTasks(projectId, userId, projectTitle, deliverables) {
+export async function addTasks(projectId, userId, projectTitle, status, deliverables = []) {
   projectTitle = projectTitle.trim();
   await ensureProjectExists(projectId);
 
@@ -309,7 +309,7 @@ export async function addTasks(projectId, userId, projectTitle, deliverables) {
     let newDeliverable = new Task(
       projectTitle,
       userId,
-      "todo",
+      status,
       item.deliverable,
       Date.now(),
       0

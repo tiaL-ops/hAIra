@@ -61,10 +61,9 @@ Do not include anything else.
             .trim();
 
         let deliverables = JSON.parse(cleaned);
-
-        console.log("From Kanban: generating deliverables")
-        await addTasks(id, userId, title, deliverables);
-        console.log("From Kanban: tasks added to project data")
+        console.log("From Kanban: generating deliverables");
+        await addTasks(id, userId, title, 'todo', deliverables);
+        console.log("From Kanban: tasks added to project data");
 
         res.status(201).json({
             success: true,
@@ -81,13 +80,13 @@ Do not include anything else.
 
 router.post('/:id/tasks', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;
-    const { title, taskUserId, description} = req.body;
+    const { title, taskUserId, status, description} = req.body;
 
     if (!title || !taskUserId || !description) {
         return res.status(400).json({ error: 'missing required field' });
     }
     try {
-        const datatask = await addTasks(id, taskUserId, title, [{deliverable : description}]);
+        const datatask = await addTasks(id, taskUserId, title, status, [{deliverable : description}]);
         res.status(201).json({ success: true, ...datatask });
     } catch (err) {
         res.status(500).json({ 
