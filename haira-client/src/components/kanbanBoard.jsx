@@ -190,146 +190,144 @@ export default function KanbanBoard({ id }) {
   ];
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="editor-container flex gap-4">
-          {columns.map((col) => (
-            <Droppable key={col.id} droppableId={col.id}>
-              {(provided) => (
+    <DragDropContext onDragEnd={onDragEnd}>
+      <div className="page-block flex gap-4">
+        {columns.map((col) => (
+          <Droppable key={col.id} droppableId={col.id}>
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="page-block-col flex-1 bg-white rounded-xl p-4 shadow-lg"
+              >
                 <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className="main-editor flex-1 bg-white rounded-xl p-4 shadow-lg"
+                  className="add-comment-btn text-center"
+                  style={{ backgroundColor: col.color }}
                 >
-                  <div
-                    className="add-comment-btn text-center"
-                    style={{ backgroundColor: col.color }}
-                  >
-                    {col.title}
-                  </div>
+                  {col.title}
+                </div>
 
-                  {tasks[col.id].map((task, index) => (
-                    <Draggable
-                      key={task.id}
-                      draggableId={task.id}
-                      index={index}
-                    >
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          className="group rounded-md p-3 mb-3 shadow cursor-pointer relative"
-                        >
-                          <div className={ getPriorityClass(task.priority) + ' flex justify-between items- rounded-lg' }>
-                            <div className="ai-teammate-card" style={{ width: '100%' }}>
-                              <div className="ai-avatar"><img src={getAIAvatar(task.assignee)} alt="Alex" className="team-avatar" /></div>
-                              <div className="ai-info">
-                                <h4>{task.name}</h4>
-                                <span className="ai-role">{task.assignee}</span>
-                              </div>
+                {tasks[col.id].map((task, index) => (
+                  <Draggable
+                    key={task.id}
+                    draggableId={task.id}
+                    index={index}
+                  >
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        className="group rounded-md p-3 mb-3 shadow cursor-pointer relative"
+                      >
+                        <div className={ getPriorityClass(task.priority) + ' flex justify-between items- rounded-lg' }>
+                          <div className="ai-teammate-card" style={{ width: '100%' }}>
+                            <div className="ai-avatar"><img src={getAIAvatar(task.assignee)} alt="Alex" className="team-avatar" /></div>
+                            <div className="ai-info">
+                              <h4>{task.name}</h4>
+                              <span className="ai-role">{task.assignee}</span>
+                            </div>
+                            <button
+                              onClick={() =>
+                                setEditingTask({ ...task, column: col.id })
+                              }
+                              className="text-sm text-blue-500 hover:underline opacity-0 group-hover:opacity-100 transition"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                          {/* <div>
+                            <div className="font-medium">{task.name}</div>
+                            <div className="text-sm text-gray-500">
+                              {task.assignee}
+                            </div>
+                            <div className="text-sm text-gray-500">{priority.find(item => item.value == task.priority)?.name}</div>
+                          </div> */}
+                        </div>
+
+                        {editingTask && editingTask.id === task.id && (
+                          <div className="absolute top-full left-0 mt-2 p-2 w-64 bg-white border rounded shadow z-10" style={{ width: '100%' }}>
+                            <input
+                              type="text"
+                              className="w-full border p-1 rounded mb-2"
+                              value={editingTask.name}
+                              onChange={(e) =>
+                                setEditingTask({
+                                  ...editingTask,
+                                  name: e.target.value,
+                                })
+                              }
+                            />
+                            <select
+                              className="w-full border p-1 rounded mb-2"
+                              value={editingTask.assignee}
+                              onChange={(e) =>
+                                setEditingTask({
+                                  ...editingTask,
+                                  assignee: e.target.value,
+                                })
+                              }
+                            >
+                              {assignees.map((a) => (
+                                <option key={a} value={a}>
+                                  {a}
+                                </option>
+                              ))}
+                            </select>
+                            <select
+                              className="w-full border p-1 rounded mb-2"
+                              value={editingTask.priority}
+                              onChange={(e) =>
+                                setEditingTask({
+                                  ...editingTask,
+                                  priority: e.target.value,
+                                })
+                              }
+                            >
+                              {priority.map((p) => (
+                                <option key={p.value} value={p.value}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="flex justify-between">
                               <button
+                                className="bg-green-500 text-white px-2 py-1 rounded"
                                 onClick={() =>
-                                  setEditingTask({ ...task, column: col.id })
+                                  handleSaveTask(col.id, editingTask)
                                 }
-                                className="text-sm text-blue-500 hover:underline opacity-0 group-hover:opacity-100 transition"
                               >
-                                Edit
+                                Save
+                              </button>
+                              <button
+                                className="bg-red-500 text-white px-2 py-1 rounded"
+                                onClick={() =>
+                                  handleDeleteTask(col.id, task.id)
+                                }
+                              >
+                                Delete
                               </button>
                             </div>
-                            {/* <div>
-                              <div className="font-medium">{task.name}</div>
-                              <div className="text-sm text-gray-500">
-                                {task.assignee}
-                              </div>
-                              <div className="text-sm text-gray-500">{priority.find(item => item.value == task.priority)?.name}</div>
-                            </div> */}
                           </div>
+                        )}
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
 
-                          {editingTask && editingTask.id === task.id && (
-                            <div className="absolute top-full left-0 mt-2 p-2 w-64 bg-white border rounded shadow z-10" style={{ width: '100%' }}>
-                              <input
-                                type="text"
-                                className="w-full border p-1 rounded mb-2"
-                                value={editingTask.name}
-                                onChange={(e) =>
-                                  setEditingTask({
-                                    ...editingTask,
-                                    name: e.target.value,
-                                  })
-                                }
-                              />
-                              <select
-                                className="w-full border p-1 rounded mb-2"
-                                value={editingTask.assignee}
-                                onChange={(e) =>
-                                  setEditingTask({
-                                    ...editingTask,
-                                    assignee: e.target.value,
-                                  })
-                                }
-                              >
-                                {assignees.map((a) => (
-                                  <option key={a} value={a}>
-                                    {a}
-                                  </option>
-                                ))}
-                              </select>
-                              <select
-                                className="w-full border p-1 rounded mb-2"
-                                value={editingTask.priority}
-                                onChange={(e) =>
-                                  setEditingTask({
-                                    ...editingTask,
-                                    priority: e.target.value,
-                                  })
-                                }
-                              >
-                                {priority.map((p) => (
-                                  <option key={p.value} value={p.value}>
-                                    {p.name}
-                                  </option>
-                                ))}
-                              </select>
-                              <div className="flex justify-between">
-                                <button
-                                  className="bg-green-500 text-white px-2 py-1 rounded"
-                                  onClick={() =>
-                                    handleSaveTask(col.id, editingTask)
-                                  }
-                                >
-                                  Save
-                                </button>
-                                <button
-                                  className="bg-red-500 text-white px-2 py-1 rounded"
-                                  onClick={() =>
-                                    handleDeleteTask(col.id, task.id)
-                                  }
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-
-                  <button
-                    className="mt-2 w-full bg-gray-200 text-gray-800 rounded-md py-1 hover:bg-gray-300"
-                    onClick={() => handleAddTask(col.id)}
-                  >
-                    + Add Task
-                  </button>
-                </div>
-              )}
-            </Droppable>
-          ))}
-        </div>
-      </DragDropContext>
-    </div>
+                <button
+                  className="mt-2 w-full bg-gray-200 text-gray-800 rounded-md py-1 hover:bg-gray-300"
+                  onClick={() => handleAddTask(col.id)}
+                >
+                  + Add Task
+                </button>
+              </div>
+            )}
+          </Droppable>
+        ))}
+      </div>
+    </DragDropContext>
   );
 }
 
