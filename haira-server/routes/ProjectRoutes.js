@@ -1,7 +1,7 @@
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
 import { 
-  createProject, getUserProjects,
+  createProject, getUserProjects, getUserProjectsWithTemplates,
   updateUserActiveProject,
   updateDocument, getProjectWithTasks,
   canCreateNewProject, getActiveProject,
@@ -21,12 +21,12 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
     const userId = req.user.uid;
     const {includeArchived} = req.query;
     
-    const projects = await getUserProjects(userId);
+    const projects = await getUserProjectsWithTemplates(userId);
 
     //separate active, inactive, and archived projects
     const activeProjects = projects.filter(project => project.isActive === true);
-    const inactiveProjects = await getInactiveProjects(userId);
-    const archivedProjects = await getArchivedProjects(userId);
+    const inactiveProjects = projects.filter(project => project.status === 'inactive' && project.isActive === false);
+    const archivedProjects = projects.filter(project => project.status === 'archived');
 
     //create project limits
     const canCreate = await canCreateNewProject(userId);

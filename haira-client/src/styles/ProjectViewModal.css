@@ -1,0 +1,251 @@
+.project-view-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.project-view-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  max-width: 800px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: modalSlideIn 0.2s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.project-view-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.project-view-modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.project-view-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.project-view-modal-close:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.project-view-modal-body {
+  padding: 20px 24px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.project-view-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.project-view-card {
+  background: white;
+  border: 2px solid #20b2aa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(32, 178, 170, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.project-view-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(32, 178, 170, 0.2);
+}
+
+.project-view-card-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.project-view-card-description {
+  color: #555;
+  margin-bottom: 0.8rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.project-view-card-status {
+  color: #666;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.project-view-card-deadline {
+  color: #666;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.project-view-card-manager {
+  color: #20b2aa;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.project-view-card-team {
+  color: #8b5cf6;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.project-view-card-archived {
+  color: #666;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.project-view-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.project-view-actions button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+  min-width: 100px;
+}
+
+.btn-kanban {
+  background-color: #20b2aa;
+  color: white;
+}
+
+.btn-kanban:hover {
+  background-color: #1a9b94;
+}
+
+.btn-chat {
+  background-color: #8b5cf6;
+  color: white;
+}
+
+.btn-chat:hover {
+  background-color: #7c3aed;
+}
+
+.btn-archive {
+  background-color: #ef4444;
+  color: white;
+}
+
+.btn-archive:hover {
+  background-color: #dc2626;
+}
+
+.status-active {
+  color: #20b2aa;
+}
+
+.status-inactive {
+  color: #6b7280;
+}
+
+.status-archived {
+  color: #20b2aa;
+}
+
+.no-projects-message {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 2rem;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .project-view-modal {
+    background: #1f2937;
+    color: #f9fafb;
+  }
+  
+  .project-view-modal-title {
+    color: #f9fafb;
+  }
+  
+  .project-view-modal-close {
+    color: #9ca3af;
+  }
+  
+  .project-view-modal-close:hover {
+    background-color: #374151;
+    color: #d1d5db;
+  }
+  
+  .project-view-card {
+    background: #374151;
+    color: #f9fafb;
+  }
+  
+  .project-view-card-title {
+    color: #f9fafb;
+  }
+  
+  .project-view-card-description {
+    color: #d1d5db;
+  }
+  
+  .project-view-card-status,
+  .project-view-card-deadline,
+  .project-view-card-archived {
+    color: #d1d5db;
+  }
+  
+  .project-view-card-manager {
+    color: #20b2aa;
+  }
+  
+  .project-view-card-team {
+    color: #8b5cf6;
+  }
+}

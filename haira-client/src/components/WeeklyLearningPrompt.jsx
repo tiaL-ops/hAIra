@@ -9,8 +9,7 @@ export default function WeeklyLearningPrompt({
   onTopicSelected, 
   onContinueProject, 
   currentProject,
-  canCreateNew = true,
-  onClose
+  canCreateNew = true
 }) {
   const [selectedTopic, setSelectedTopic] = useState('');
   const [showTopics, setShowTopics] = useState(false);
@@ -93,9 +92,6 @@ export default function WeeklyLearningPrompt({
       <div className="weekly-prompt-header">
         <h2>🎯 What do you want to learn this week?</h2>
         <p>Choose a topic to start a new AI-generated project, or continue your current work.</p>
-        {onClose && (
-          <button className="close-btn" onClick={onClose}>×</button>
-        )}
       </div>
 
       {error && (
@@ -149,7 +145,7 @@ export default function WeeklyLearningPrompt({
 
       {!canCreateNew && (
         <div className="limit-reached">
-          <p>⚠️ You've reached the maximum of 3 projects. Archive a project to create a new one.</p>
+          <p>⚠️ You've reached the maximum of 3 projects.</p>
         </div>
       )}
 

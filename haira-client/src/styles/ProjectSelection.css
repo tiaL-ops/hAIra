@@ -1,7 +1,7 @@
 .projects-wrapper {
   padding-top: 80px; /* Add space below the top navigation bar */
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: #ffffff;
 }
 
 .projects-container {
@@ -10,8 +10,227 @@
   padding: 2rem;
 }
 
+/* Header Styles */
+.projects-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.projects-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #20b2aa; /* Teal color */
+  margin-bottom: 0.5rem;
+  font-family: 'Arial', sans-serif;
+}
+
+.projects-subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+}
+
 .weekly-prompt-section {
   margin-bottom: 2rem;
+}
+
+/* Project View Buttons */
+.project-view-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 2rem 0;
+  flex-wrap: wrap;
+}
+
+.view-btn {
+  padding: 1rem 2rem;
+  border: 2px solid #20b2aa;
+  border-radius: 12px;
+  background: white;
+  color: #20b2aa;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 200px;
+  text-align: center;
+}
+
+.view-btn:hover:not(:disabled) {
+  background: #20b2aa;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(32, 178, 170, 0.3);
+}
+
+.view-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #9ca3af;
+}
+
+.active-btn {
+  border-color: #20b2aa;
+  color: #20b2aa;
+}
+
+.inactive-btn {
+  border-color: #6b7280;
+  color: #6b7280;
+}
+
+.inactive-btn:hover:not(:disabled) {
+  background: #6b7280;
+  color: white;
+}
+
+.archived-btn {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.archived-btn:hover:not(:disabled) {
+  background: #ef4444;
+  color: white;
+}
+
+/* Project Grid and Cards */
+.projects-section {
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.project-card {
+  background: white;
+  border: 2px solid #20b2aa; /* Teal border */
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(32, 178, 170, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.project-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(32, 178, 170, 0.2);
+}
+
+.project-card-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.project-card-status {
+  color: #666;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.project-deadline {
+  color: #666;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.project-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-action {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+  min-width: 120px;
+}
+
+.btn-kanban {
+  background-color: #20b2aa; /* Teal */
+  color: white;
+}
+
+.btn-kanban:hover {
+  background-color: #1a9b94;
+}
+
+.btn-chat {
+  background-color: #8b5cf6; /* Purple */
+  color: white;
+}
+
+.btn-chat:hover {
+  background-color: #7c3aed;
+}
+
+.btn-archive {
+  background-color: #ef4444; /* Red */
+  color: white;
+}
+
+.btn-archive:hover {
+  background-color: #dc2626;
+}
+
+.btn-continue {
+  background-color: #10b981; /* Green */
+  color: white;
+}
+
+.btn-continue:hover {
+  background-color: #059669;
+}
+
+.btn-view {
+  background-color: #6b7280; /* Gray */
+  color: white;
+}
+
+.btn-view:hover {
+  background-color: #4b5563;
+}
+
+/* Status colors */
+.archived-status {
+  color: #20b2aa; /* Teal for archived */
+}
+
+.inactive-status {
+  color: #6b7280; /* Gray for inactive */
+}
+
+/* Archived projects styling */
+.archived-card {
+  opacity: 0.8;
+  border-color: #d1d5db;
+}
+
+.archived-date {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
 }
 
 .project-limits {

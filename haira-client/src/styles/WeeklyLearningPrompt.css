@@ -1,12 +1,13 @@
 .weekly-prompt-container {
-    max-width: 900px;
+    max-width: 800px;
     margin: 0 auto;
     padding: 2rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 16px;
-    color: white;
+    background: white;
+    border: 2px solid #20b2aa;
+    border-radius: 12px;
+    color: #333;
     position: relative;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 12px rgba(32, 178, 170, 0.1);
   }
   
   .weekly-prompt-header {
@@ -16,36 +17,18 @@
   }
   
   .weekly-prompt-header h2 {
-    font-size: 2.2rem;
+    font-size: 1.8rem;
     margin-bottom: 0.5rem;
     font-weight: 700;
+    color: #20b2aa;
   }
   
   .weekly-prompt-header p {
-    font-size: 1.1rem;
-    opacity: 0.9;
+    font-size: 1rem;
+    color: #666;
     margin-bottom: 0;
   }
   
-  .close-btn {
-    position: absolute;
-    top: -10px;
-    right: -10px;
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: white;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    font-size: 1.5rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-  
-  .close-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: scale(1.1);
-  }
   
   .error-message {
     background: rgba(255, 193, 7, 0.2);
@@ -115,32 +98,32 @@
   
   .topics-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
     margin-top: 1.5rem;
   }
   
   .topic-card {
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 16px;
-    padding: 2rem;
+    background: white;
+    border: 2px solid #20b2aa;
+    border-radius: 12px;
+    padding: 1.5rem;
     cursor: pointer;
     transition: all 0.3s ease;
     text-align: center;
-    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(32, 178, 170, 0.1);
   }
   
   .topic-card:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-4px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    background: #f0fdfa;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(32, 178, 170, 0.2);
   }
   
   .topic-card.selected {
-    background: rgba(255, 255, 255, 0.3);
-    border-color: #4CAF50;
-    transform: translateY(-4px);
+    background: #f0fdfa;
+    border-color: #10b981;
+    transform: translateY(-2px);
   }
   
   .topic-icon {
@@ -152,25 +135,28 @@
     font-size: 1.3rem;
     margin-bottom: 0.8rem;
     font-weight: 600;
+    color: #333;
   }
   
   .topic-description {
     font-size: 1rem;
-    opacity: 0.9;
+    color: #666;
     margin-bottom: 1rem;
     line-height: 1.4;
   }
   
   .topic-deliverable {
-    background: rgba(255, 255, 255, 0.1);
+    background: #f0fdfa;
     border-radius: 8px;
     padding: 0.8rem;
     font-size: 0.9rem;
-    border-left: 4px solid #4CAF50;
+    border-left: 4px solid #20b2aa;
+    color: #20b2aa;
+    font-weight: 500;
   }
   
   .topic-deliverable strong {
-    color: #4CAF50;
+    color: #20b2aa;
   }
   
   .limit-reached {

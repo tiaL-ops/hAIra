@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
 import WeeklyLearningPrompt from '../components/WeeklyLearningPrompt';
 import ConfirmationModal from '../components/ConfirmationModal';
+import ProjectViewModal from '../components/ProjectViewModal';
 import '../styles/ProjectSelection.css';
 import axios from 'axios';
 
@@ -19,6 +20,9 @@ export default function ProjectSelection() {
   const [projectLimits, setProjectLimits] = useState(null);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [projectToArchive, setProjectToArchive] = useState(null);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [modalProjects, setModalProjects] = useState([]);
+  const [modalTitle, setModalTitle] = useState('');
   const navigate = useNavigate();
   const auth = getAuth();
 
@@ -138,6 +142,20 @@ export default function ProjectSelection() {
     setProjectToArchive(null);
   };
 
+  // Show project modal
+  const showProjectView = (projects, title) => {
+    setModalProjects(projects);
+    setModalTitle(title);
+    setShowProjectModal(true);
+  };
+
+  // Close project modal
+  const closeProjectModal = () => {
+    setShowProjectModal(false);
+    setModalProjects([]);
+    setModalTitle('');
+  };
+
   // Handle AI project creation
   const handleTopicSelected = (projectId, project) => {
     // Navigate to the new project
@@ -184,6 +202,13 @@ export default function ProjectSelection() {
   return (
     <div className="projects-wrapper">
       <div className="projects-container">
+        {/* Header Section */}
+        <div className="projects-header">
+          <h1 className="projects-title">Your Projects</h1>
+          <p className="projects-subtitle">
+            Select an existing project or create a new one
+          </p>
+        </div>
         
         {error && (
           <div className="projects-error">
@@ -200,132 +225,45 @@ export default function ProjectSelection() {
             onContinueProject={handleContinueProject}
             currentProject={activeProjects[0]}
             canCreateNew={projectLimits?.canCreateNew}
-            onClose={() => {}}
           />
         </div>
 
-        {/* Active Projects */}
-        {activeProjects.length > 0 && (
-          <div className="projects-section">
-            <h2 className="section-title">Active Projects</h2>
-            <div className="projects-grid">
-              {activeProjects.map((project) => (
-                <div key={project.id} className="project-card">
-                  <h3 className="project-card-title">
-                    {project.title}
-                  </h3>
-                  <p className="project-card-status">
-                    Status: <span>{project.status}</span>
-                  </p>
-                  {project.deadline && (
-                    <p className="project-deadline">
-                      Deadline: {new Date(project.deadline).toLocaleDateString()}
-                    </p>
-                  )}
-                  <div className="project-actions">
-                    <button 
-                      onClick={() => handleOpenProject(project.id, 'kanban')}
-                      className="btn-action btn-kanban"
-                    >
-                      Kanban Board
-                    </button>
-                    <button 
-                      onClick={() => handleOpenProject(project.id, 'chat')}
-                      className="btn-action btn-chat"
-                    >
-                      Chat
-                    </button>
-                    <button 
-                      onClick={() => handleArchiveProject(project.id)}
-                      className="btn-action btn-archive"
-                    >
-                      📦 Archive
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Project View Buttons */}
+        <div className="project-view-buttons">
+          <button 
+            className="view-btn active-btn"
+            onClick={() => showProjectView(activeProjects, 'Active Projects')}
+            disabled={activeProjects.length === 0}
+          >
+            📋 Active Projects ({activeProjects.length})
+          </button>
+          
+          <button 
+            className="view-btn inactive-btn"
+            onClick={() => showProjectView(inactiveProjects, 'Inactive Projects')}
+            disabled={inactiveProjects.length === 0}
+          >
+            ⏸️ Inactive Projects ({inactiveProjects.length})
+          </button>
+          
+          <button 
+            className="view-btn archived-btn"
+            onClick={() => showProjectView(archivedProjects, 'Archived Projects')}
+            disabled={archivedProjects.length === 0}
+          >
+            📦 Archived Projects ({archivedProjects.length})
+          </button>
+        </div>
 
-        {/* Inactive Projects (Can Continue) */}
-        {inactiveProjects.length > 0 && (
-          <div className="projects-section">
-            <h2 className="section-title">Continue Previous Projects</h2>
-            <div className="projects-grid">
-              {inactiveProjects.map((project) => (
-                <div key={project.id} className="project-card inactive-card">
-                  <h3 className="project-card-title">
-                    {project.title}
-                  </h3>
-                  <p className="project-card-status">
-                    Status: <span className="inactive-status">Inactive</span>
-                  </p>
-                  {project.deadline && (
-                    <p className="project-deadline">
-                      Deadline: {new Date(project.deadline).toLocaleDateString()}
-                    </p>
-                  )}
-                  <div className="project-actions">
-                    <button 
-                      onClick={() => handleContinueInactiveProject(project.id)}
-                      className="btn-action btn-continue"
-                    >
-                      🔄 Continue
-                    </button>
-                    <button 
-                      onClick={() => handleArchiveProject(project.id)}
-                      className="btn-action btn-archive"
-                    >
-                      📦 Archive
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Archived Projects */}
-        {archivedProjects.length > 0 && (
-          <div className="projects-section">
-            <div className="section-header">
-              <h2 className="section-title">Archived Projects</h2>
-              <button 
-                className="btn-toggle-archived"
-                onClick={() => setShowArchived(!showArchived)}
-              >
-                {showArchived ? 'Hide' : 'Show'} Archived ({archivedProjects.length})
-              </button>
-            </div>
-            
-            {showArchived && (
-              <div className="projects-grid archived-projects">
-                {archivedProjects.map((project) => (
-                  <div key={project.id} className="project-card archived-card">
-                    <h3 className="project-card-title">
-                      {project.title}
-                    </h3>
-                    <p className="project-card-status">
-                      Status: <span className="archived-status">Archived</span>
-                    </p>
-                    <p className="archived-date">
-                      <strong>{project.title}</strong> - Archived: {project.archivedAt ? new Date(project.archivedAt).toLocaleDateString() : 'Unknown date'}
-                    </p>
-                    <div className="project-actions">
-                      <button 
-                        onClick={() => handleOpenProject(project.id, 'kanban')}
-                        className="btn-action btn-view"
-                      >
-                        View
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Project View Modal */}
+        <ProjectViewModal
+          isOpen={showProjectModal}
+          projects={modalProjects}
+          title={modalTitle}
+          onClose={closeProjectModal}
+          onOpenProject={handleOpenProject}
+          onArchiveProject={handleArchiveProject}
+        />
 
         {/* Confirmation Modal */}
         <ConfirmationModal

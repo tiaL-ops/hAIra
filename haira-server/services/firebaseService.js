@@ -710,3 +710,45 @@ export async function getProjectWithTemplate(projectId, userId) {
     return null;
   }
 }
+
+// Get all user projects with template data merged
+export async function getUserProjectsWithTemplates(userId) {
+  try {
+    const projects = await getUserProjects(userId);
+    const projectsWithTemplates = [];
+    
+    for (const project of projects) {
+      try {
+        // Get template data
+        const template = await getDocumentById(COLLECTIONS.PROJECT_TEMPLATES, project.templateId);
+        
+        // Merge project data with template data
+        const mergedProject = {
+          ...project,
+          // Template fields
+          description: template?.description || '',
+          managerName: template?.managerName || '',
+          // Keep user project team data (not template team)
+          team: project.team || [],
+          // Template fields that might be useful
+          durationDays: template?.durationDays,
+          deliverables: template?.deliverables || [],
+          availableTeammates: template?.availableTeammates || [],
+          topic: template?.topic,
+          aiGenerated: template?.aiGenerated || false
+        };
+        
+        projectsWithTemplates.push(mergedProject);
+      } catch (error) {
+        console.error(`Error getting template for project ${project.id}:`, error);
+        // Add project without template data
+        projectsWithTemplates.push(project);
+      }
+    }
+    
+    return projectsWithTemplates;
+  } catch (error) {
+    console.error('Error getting user projects with templates:', error);
+    return [];
+  }
+}
