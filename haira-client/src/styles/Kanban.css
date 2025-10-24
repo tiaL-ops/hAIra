@@ -1,0 +1,26 @@
+:root {
+    --highlight-priority-low: green;
+    --highlight-priority-medium: pink;
+    --highlight-priority-high: purple;
+    --highlight-priority-high-fatal: red;
+}
+
+.priority-low {
+    border-width: 4px;
+    border-color: var(--highlight-priority-low);
+}
+
+.priority-medium {
+    border-width: 4px;
+    border-color: var(--highlight-priority-medium);
+}
+
+.priority-high {
+    border-width: 4px;
+    border-color: var(--highlight-priority-high);
+}
+
+.priority-high-fatal {
+    border-width: 4px;
+    border-color: var(--highlight-priority-high-fatal);
+}

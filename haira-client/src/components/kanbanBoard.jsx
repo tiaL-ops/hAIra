@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { v4 as uuidv4 } from "uuid";
-import { getAuth } from 'firebase/auth';
+import { getAuth, signInWithCredential } from 'firebase/auth';
 import { useAuth } from '../App';
 import axios from 'axios';
+import '../styles/Kanban.css';
 
 const auth = getAuth();
 
@@ -22,6 +23,29 @@ const initialData = {
 };
 
 const assignees = ["You", "Alex", "Sam", "Rakoto", "Rasoa"];
+
+const getAIAvatar = (name) => {
+  // default avatar image
+  if (!assignees.includes(name))
+    return '/src/images/Alex.png';
+
+  return '/src/images/' + name + '.png';
+};
+
+const getPriorityClass = (priority) => {
+  try {
+    priority = parseInt(priority);
+  } catch (e) {
+    priority = 1;
+  }
+  switch (priority) {
+  case 1: return 'priority-low';
+  case 2: return 'priority-medium';
+  case 3: return 'priority-high';
+  case 4: return 'priority-high-fatal';
+  default: return '';
+  }
+};
 
 export default function KanbanBoard() {
   const { id } = useParams();
@@ -157,14 +181,6 @@ useEffect(() => {
     { id: "done", title: "Done", color: COLOR.third },
   ];
 
-  const getAIAvatar = (name) => {
-    // default avatar image
-    if (!assignees.includes(name))
-      return '/src/images/Alex.png';
-
-    return '/src/images/' + name + '.png';
-  };
-
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <DragDropContext onDragEnd={onDragEnd}>
@@ -195,9 +211,9 @@ useEffect(() => {
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
-                          className="group bg-gray-50 rounded-md p-3 mb-3 shadow cursor-pointer relative"
+                          className="group rounded-md p-3 mb-3 shadow cursor-pointer relative"
                         >
-                          <div className="flex justify-between items-center">
+                          <div className={ getPriorityClass(task.priority) + ' flex justify-between items- rounded-lg' }>
                             <div className="ai-teammate-card" style={{ width: '100%' }}>
                               <div className="ai-avatar"><img src={getAIAvatar(task.assignee)} alt="Alex" className="team-avatar" />;</div>
                               <div className="ai-info">
