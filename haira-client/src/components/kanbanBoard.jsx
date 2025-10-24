@@ -77,6 +77,7 @@ useEffect(() => {
       { headers: { Authorization: `Bearer ${token}` } });
     if (kanbanData.data.success) {
       newTask.id = kanbanData.data[0].id;
+      newTask.priority = kanbanData.data[0].priority;
       setTasks({
         ...tasks,
         [column]: [...tasks[column], newTask],
