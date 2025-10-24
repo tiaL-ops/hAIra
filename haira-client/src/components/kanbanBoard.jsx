@@ -22,24 +22,6 @@ const initialData = {
   done: [],
 };
 
-// index 0 is the connected user
-let assignees = ['You', 'Alex', 'Sam', 'Rakoto', 'Rasoa' ];
-onAuthStateChanged(auth, (user) => {
-  if (user)
-    assignees[0] = user.displayName;
-});
-
-const getAIAvatar = (name) => {
-  // Avatar of the connected user
-  if (name === assignees[0])
-    return '/src/images/You.png';
-
-  if (assignees.includes(name))
-    return '/src/images/' + name + '.png';
-
-  return '';
-};
-
 const getPriorityClass = (priority) => {
   try {
     priority = parseInt(priority);
@@ -62,6 +44,7 @@ export default function KanbanBoard({ id }) {
   const [tasks, setTasks] = useState(initialData);
   const [editingTask, setEditingTask] = useState(null);
   const [priority, setPriority] = useState([]);
+  const [assignees, setAssignees] = useState([currentUser.name]);
   
   useEffect(() => {
     let isMounted = true;
@@ -81,6 +64,12 @@ export default function KanbanBoard({ id }) {
           data[item.status].push(tmp);
         });
         setTasks(data);
+        
+        let team = kanbanData.data.team;
+        // default value for team
+        if (!team)
+          team = ['You', 'Alex', 'Sam', 'Rakoto', 'Rasoa' ];
+        setAssignees(team);
 
         const priorityData = await axios.get(`http://localhost:3002/api/project/tasks/priority`, { headers: { Authorization: `Bearer ${token}` } });
         setPriority(priorityData.data.priority);
@@ -181,6 +170,17 @@ export default function KanbanBoard({ id }) {
       [source.droppableId]: sourceCol,
       [destination.droppableId]: destCol,
     });
+  };
+
+  const getAIAvatar = (name) => {
+    // Avatar of the connected user
+    if (name === assignees[0])
+      return '/src/images/You.png';
+
+    if (assignees.includes(name))
+      return '/src/images/' + name + '.png';
+
+    return '';
   };
 
   const columns = [
