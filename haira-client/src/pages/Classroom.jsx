@@ -133,7 +133,7 @@ function Classroom() {
                     {/* This wrapper holds all content *except* the activate button */}
                     <div className="classroom-content-wrapper">
                         <div className="classroom-header-pixel">
-                            <h1>🏫 Pick Your Team!</h1>
+                            <h1>Pick Your Team!</h1>
                             <p>{message}</p>
                             <p style={{fontSize: "0.7rem"}}>Selected: {selectedAgents.length} / 2</p>
                         </div>
@@ -161,7 +161,7 @@ function Classroom() {
                                 onClick={() => toggleAgentSelection(activeAgentId)}
                                 className={`select-button-pixel ${isSelected ? 'selected' : ''}`}
                             >
-                                {isSelected ? '✓ Deselected' : 'Select Teammate'}
+                                {isSelected ? 'Deselected' : 'Select Teammate'}
                             </button>
                         </div>
 
@@ -198,7 +198,7 @@ function Classroom() {
                         disabled={isInitializing || !id || selectedAgents.length === 0}
                         className="activate-button-pixel"
                     >
-                        {isInitializing ? '⏳ Activating...' : `🚀 Activate Team!`}
+                        {isInitializing ? 'Activating...' : 'Activate Team!'}
                     </button>
                 </>
             )}
@@ -206,7 +206,7 @@ function Classroom() {
             {/* This is the "Activated" view */}
             {isActivated && teammates.length > 0 && (
                 <div className="activated-section-pixel">
-                    <h2>👥 Your AI Teammates</h2>
+                    <h2>Your AI Teammates</h2>
                     <div className="activated-grid-pixel">
                         {teammates.map(teammate => (
                             <div 
@@ -235,30 +235,38 @@ function Classroom() {
                             className="nav-link-button"
                             style={{ backgroundColor: '#2196F3' }}
                         >
-                            💬 Go to Chat
+                            Go to Chat
                         </button>
                         <button
                             onClick={() => navigate(`/project/${id}/kanban`)}
                             className="nav-link-button"
                             style={{ backgroundColor: '#FF69B4', color: '#111' }}
                         >
-                            📋 Go to Kanban
+                            Go to Kanban
                         </button>
                         <button
                             onClick={() => navigate(`/project/${id}/submission`)}
                             className="nav-link-button"
                             style={{ backgroundColor: '#7C4DFF' }}
                         >
-                            🚀 Go to Submission
+                            Go to Submission
                         </button>
                     </div>
                 </div>
             )}
 
             {!id && (
-                <p style={{ marginTop: '30px', color: '#ff5722', fontWeight: 'bold' }}>
-                    ⚠️ Please select a project first.
-                </p>
+                <div className="no-project-container">
+                    <p style={{ marginBottom: '20px', color: '#666', fontSize: '0.8rem' }}>
+                        No project selected
+                    </p>
+                    <button 
+                        className="create-project-button"
+                        onClick={() => navigate('/projects')}
+                    >
+                        Go to Projects
+                    </button>
+                </div>
             )}
         </div>
     );
