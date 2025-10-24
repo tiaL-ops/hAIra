@@ -1,13 +1,14 @@
 import { TASK_SCHEMA } from '../schema/database.js';
 
 class Task {
-  constructor(title, assignedTo, status, description, createdAt, completedAt) {
+  constructor(title, assignedTo, status, description, createdAt, completedAt, priority) {
     this.title = title;
     this.assignedTo = assignedTo;
     this.status = status;
     this.description = description;
     this.createdAt = createdAt;
     this.completedAt = completedAt;
+    this.priority = priority;
   }
 
   toFirestore() {
@@ -29,8 +30,16 @@ class Task {
       data.status,
       data.description,
       data.createdAt,
-      data.completedAt
+      data.completedAt,
+      data.priority
     );
+  }
+
+  static PRIORITY = {
+    LOW : {value : 1, name : 'Low'},
+    MEDIUM : {value : 2, name : 'Medium'},
+    HIGH : {value : 3, name : 'High'},
+    VERY_HIGH : {value : 4, name : 'Very High'}
   }
 }
 
