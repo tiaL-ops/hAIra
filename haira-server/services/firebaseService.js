@@ -301,18 +301,23 @@ export async function updateUserProject(projectId, content, grade, status = "sub
   
 }
 
-export async function addTasks(projectId, userId, projectTitle, deliverables) {
+export async function addTasks(projectId, userId, projectTitle, status, deliverables = []) {
   projectTitle = projectTitle.trim();
   await ensureProjectExists(projectId);
+
+  let completedAt = 0;
+  if (status === 'done')
+    completedAt = Date.now();
 
   const promises = deliverables.map((item) => {
     let newDeliverable = new Task(
       projectTitle,
       userId,
-      "todo",
+      status,
       item.deliverable,
       Date.now(),
-      0
+      completedAt,
+      Task.PRIORITY.MEDIUM.value
     );
     newDeliverable = newDeliverable.toFirestore();
     return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'tasks', newDeliverable);
@@ -320,6 +325,28 @@ export async function addTasks(projectId, userId, projectTitle, deliverables) {
 
   return await Promise.all(promises);
 }
+
+export async function updateTask(projectId, id, title, status, userId, description, priority) {
+  const collectionName = COLLECTIONS.USER_PROJECTS + '/' + projectId + '/tasks';
+  let completedAt = 0;
+  if (status === 'done')
+    completedAt = Date.now();
+  const data = {
+    title : title,
+    assignedTo : userId,
+    status : status,
+    description : description,
+    completedAt : completedAt,
+    priority : priority
+  }
+  return await setDocument(collectionName, id, data);
+}
+
+export async function deleteTask(projectId, taskId) {
+  const collectionName = COLLECTIONS.USER_PROJECTS + '/' + projectId + '/tasks';
+  return await deleteDocument(collectionName, taskId);
+}
+
 
 // Create a UserProject document if it doesn't exist
 export async function ensureProjectExists(projectId, userId = 'default_user', templateId = 'default_template', title = null) {

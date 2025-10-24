@@ -1,3 +1,8 @@
+@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Global App Layout - Ensures all screens are full screen with fixed top bar */
 
 * {

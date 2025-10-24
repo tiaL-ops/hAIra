@@ -12,6 +12,7 @@ import Submission from './pages/Submission';
 import SubmissionSuccess from './pages/SubmissionSuccess';
 import Kanban from './pages/Kanban';
 import ProjectSelection from './pages/ProjectSelection';
+import './App.css';
 
 // Create authentication context
 const AuthContext = createContext();

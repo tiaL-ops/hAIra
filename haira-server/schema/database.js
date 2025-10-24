@@ -89,7 +89,8 @@ export const TASK_SCHEMA = {
   status: String,     // Task status (e.g., "todo", "in-progress", "done")
   description: String, // Detailed description of the task
   createdAt: Number,  // Timestamp when task was created
-  completedAt: Number // Timestamp when task was completed
+  completedAt: Number, // Timestamp when task was completed
+  priority: Number    // 1: Low, 2: Medium, 3: High, 4: Very very high-Fatal
 };
 
 // Legacy schema for Chat documents (to be migrated, do not mind this part)
