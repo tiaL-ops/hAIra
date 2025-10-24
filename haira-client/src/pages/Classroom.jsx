@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { auth } from '../../firebase';
 import axios from 'axios';
 import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
+import '../styles/Classroom.css';
 
 // Import all agent avatars
 import BrownAvatar from '../images/Brown.png';
@@ -14,17 +15,15 @@ import RasoaAvatar from '../images/Rasoa.png';
 import RakotoAvatar from '../images/Rakoto.png';
 
 function Classroom() {
-    const { id } = useParams(); // Get project ID from URL
+    const { id } = useParams();
     const navigate = useNavigate();
     
-    // State to retrieve the message from backend
     const [message, setMessage] = useState("...");
     const [isInitializing, setIsInitializing] = useState(false);
     const [teammates, setTeammates] = useState([]);
     const [isActivated, setIsActivated] = useState(false);
-    const [selectedAgents, setSelectedAgents] = useState([]); // Track selected agents
+    const [selectedAgents, setSelectedAgents] = useState([]);
     
-    // Avatar mapping
     const avatarMap = {
         brown: BrownAvatar,
         elza: ElzaAvatar,
@@ -35,10 +34,11 @@ function Classroom() {
         rakoto: RakotoAvatar
     };
     
-    // All available AI agents - now includes all 7!
     const availableAgents = ['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'];
 
-    // Check if classroom is already activated (teammates exist)
+    // Tracks which agent is in the "preview" box. Default to the first one.
+    const [activeAgentId, setActiveAgentId] = useState(availableAgents[0]);
+
     useEffect(() => {
         checkClassroomStatus();
     }, [id]);
@@ -53,31 +53,27 @@ function Classroom() {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             
-            // Check if teammates exist
             if (response.data.teammates && Object.keys(response.data.teammates).length > 1) {
                 setIsActivated(true);
                 setTeammates(Object.values(response.data.teammates).filter(t => t.type === 'ai'));
                 setMessage("Classroom is active! Your AI teammates are ready.");
             } else {
-                setMessage("Select up to 2 AI teammates to join your project!");
+                setMessage("Pick your team! Select up to 2 AI teammates.");
             }
         } catch (error) {
             console.error('Error checking classroom status:', error);
-            setMessage("Select up to 2 AI teammates to join your project!");
+            setMessage("Pick your team! Select up to 2 AI teammates.");
         }
     };
     
     const toggleAgentSelection = (agentId) => {
         setSelectedAgents(prev => {
             if (prev.includes(agentId)) {
-                // Deselect the agent
                 return prev.filter(id => id !== agentId);
             } else if (prev.length < 2) {
-                // Select the agent (max 2)
                 return [...prev, agentId];
             } else {
-                // Already have 2 selected, show message
-                alert('You can only select up to 2 teammates!');
+                alert('You can only select up to 2 teammates! Deselect one first.');
                 return prev;
             }
         });
@@ -102,7 +98,7 @@ function Classroom() {
             
             const response = await axios.post(
                 `http://localhost:3002/api/project/${id}/init-teammates`,
-                { selectedAgents }, // Send selected agents to backend
+                { selectedAgents },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
@@ -110,10 +106,8 @@ function Classroom() {
                 setMessage(`✅ Classroom activated! ${response.data.count} teammates ready.`);
                 setIsActivated(true);
                 
-                // Fetch teammates list
                 await checkClassroomStatus();
                 
-                // Redirect to chat after 2 seconds
                 setTimeout(() => {
                     navigate(`/project/${id}/chat`);
                 }, 2000);
@@ -126,83 +120,71 @@ function Classroom() {
         }
     };
 
+    // Helper variables for the render logic
+    const activeAgent = AI_TEAMMATES[activeAgentId];
+    const isSelected = selectedAgents.includes(activeAgentId);
+
     //Render
     return (
-        <div style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
-            <h1>🏫 Classroom</h1>
-            <p style={{ fontSize: '18px', marginTop: '20px' }}>{message}</p>
-
+        <div className="classroom-container-pixel">
+            
             {!isActivated && (
                 <>
-                    <div style={{ marginTop: '40px', marginBottom: '30px' }}>
-                        <h2>👥 Available AI Teammates (Select up to 2)</h2>
-                        <p style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>
-                            Click on teammates to select them. Selected: {selectedAgents.length}/2
-                        </p>
-                        <div style={{ 
-                            display: 'grid', 
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
-                            gap: '20px', 
-                            marginTop: '20px' 
-                        }}>
+                    {/* This wrapper holds all content *except* the activate button */}
+                    <div className="classroom-content-wrapper">
+                        <div className="classroom-header-pixel">
+                            <h1>🏫 Pick Your Team!</h1>
+                            <p>{message}</p>
+                            <p style={{fontSize: "0.7rem"}}>Selected: {selectedAgents.length} / 2</p>
+                        </div>
+
+                        {/* This is the "Preview" area at the TOP */}
+                        <div className="character-preview-area">
+                            <div className="teammate-info-container">
+                                <div className="teammate-avatar-pixel" style={{ borderColor: activeAgent.color }}>
+                                    <img 
+                                        src={avatarMap[activeAgentId]} 
+                                        alt={activeAgent.name}
+                                    />
+                                </div>
+
+                                <div className="teammate-info-pixel">
+                                    <h3 style={{ color: activeAgent.color }}>
+                                        {activeAgent.name}
+                                    </h3>
+                                    <p className="role">{activeAgent.role}</p>
+                                    <p className="personality">{activeAgent.personality}</p>
+                                </div>
+                            </div>
+
+                            <button 
+                                onClick={() => toggleAgentSelection(activeAgentId)}
+                                className={`select-button-pixel ${isSelected ? 'selected' : ''}`}
+                            >
+                                {isSelected ? '✓ Deselected' : 'Select Teammate'}
+                            </button>
+                        </div>
+
+                        {/* This is the "Roster" at the BOTTOM */}
+                        <div className="character-roster-area">
                             {availableAgents.map(agentId => {
                                 const agent = AI_TEAMMATES[agentId];
-                                const isSelected = selectedAgents.includes(agentId);
+                                const isAgentSelected = selectedAgents.includes(agentId);
+                                const isAgentActive = activeAgentId === agentId;
+
                                 return (
                                     <div 
                                         key={agentId}
-                                        onClick={() => toggleAgentSelection(agentId)}
-                                        style={{
-                                            padding: '20px',
-                                            border: isSelected ? `3px solid ${agent.color}` : '2px solid #e0e0e0',
-                                            borderRadius: '12px',
-                                            backgroundColor: isSelected ? `${agent.color}15` : '#f9f9f9',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.3s ease',
-                                            transform: isSelected ? 'scale(1.05)' : 'scale(1)',
-                                            boxShadow: isSelected ? `0 4px 12px ${agent.color}40` : 'none'
-                                        }}
+                                        className={`roster-avatar ${isAgentActive ? 'active' : ''} ${isAgentSelected ? 'selected' : ''}`}
+                                        onClick={() => setActiveAgentId(agentId)}
+                                        style={{ borderColor: isAgentActive ? agent.color : '#aaa' }}
                                     >
-                                        <div style={{ 
-                                            width: '80px', 
-                                            height: '80px', 
-                                            marginBottom: '10px',
-                                            borderRadius: '50%',
-                                            overflow: 'hidden',
-                                            border: `3px solid ${agent.color}`,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            margin: '0 auto 10px auto'
-                                        }}>
-                                            <img 
-                                                src={avatarMap[agentId]} 
-                                                alt={agent.name}
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                            />
-                                        </div>
-                                        <h3 style={{ margin: '10px 0', color: agent.color }}>
-                                            {agent.name}
-                                        </h3>
-                                        <p style={{ fontSize: '13px', color: '#666', fontStyle: 'italic', marginBottom: '8px' }}>
-                                            {agent.role}
-                                        </p>
-                                        <p style={{ fontSize: '12px', color: '#888', lineHeight: '1.4' }}>
-                                            {agent.personality.substring(0, 80)}...
-                                        </p>
-                                        {isSelected && (
-                                            <div style={{ 
-                                                marginTop: '10px', 
-                                                padding: '4px 8px', 
-                                                backgroundColor: agent.color,
-                                                color: 'white',
-                                                borderRadius: '4px',
-                                                fontSize: '12px',
-                                                fontWeight: 'bold',
-                                                textAlign: 'center'
-                                            }}>
-                                                ✓ Selected
-                                            </div>
+                                        <img 
+                                            src={avatarMap[agentId]} 
+                                            alt={agent.name}
+                                        />
+                                        {isAgentSelected && (
+                                            <div className="selected-check">✓</div>
                                         )}
                                     </div>
                                 );
@@ -210,113 +192,64 @@ function Classroom() {
                         </div>
                     </div>
                     
+                    {/* The activate button is now a direct child of the flex container */}
                     <button
                         onClick={activateClassroom}
                         disabled={isInitializing || !id || selectedAgents.length === 0}
-                        style={{
-                            marginTop: '30px',
-                            padding: '15px 30px',
-                            fontSize: '16px',
-                            backgroundColor: (isInitializing || selectedAgents.length === 0) ? '#ccc' : '#4CAF50',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            cursor: (isInitializing || selectedAgents.length === 0) ? 'not-allowed' : 'pointer',
-                            fontWeight: 'bold'
-                        }}
+                        className="activate-button-pixel"
                     >
-                        {isInitializing ? '⏳ Activating...' : `🚀 Activate Classroom (${selectedAgents.length} teammate${selectedAgents.length !== 1 ? 's' : ''})`}
+                        {isInitializing ? '⏳ Activating...' : `🚀 Activate Team!`}
                     </button>
                 </>
             )}
 
+            {/* This is the "Activated" view */}
             {isActivated && teammates.length > 0 && (
-                <div style={{ marginTop: '40px' }}>
+                <div className="activated-section-pixel">
                     <h2>👥 Your AI Teammates</h2>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginTop: '20px' }}>
+                    <div className="activated-grid-pixel">
                         {teammates.map(teammate => (
                             <div 
                                 key={teammate.id}
-                                style={{
-                                    padding: '20px',
-                                    border: '2px solid #e0e0e0',
-                                    borderRadius: '12px',
-                                    backgroundColor: '#f9f9f9'
-                                }}
+                                className="activated-card-pixel"
                             >
-                                <div style={{ 
-                                    width: '80px', 
-                                    height: '80px', 
-                                    marginBottom: '10px',
-                                    borderRadius: '50%',
-                                    overflow: 'hidden',
-                                    border: `3px solid ${teammate.color}`,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    margin: '0 auto 10px auto'
-                                }}>
+                                <div className="teammate-avatar-pixel" style={{ borderColor: teammate.color }}>
                                     <img 
                                         src={avatarMap[teammate.id]} 
                                         alt={teammate.name}
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     />
                                 </div>
-                                <h3 style={{ margin: '10px 0', color: teammate.color || '#333' }}>
+                                <h3 style={{ color: teammate.color || '#333' }}>
                                     {teammate.name}
                                 </h3>
-                                <p style={{ fontSize: '14px', color: '#666', fontStyle: 'italic' }}>
+                                <p className="role">
                                     {teammate.role}
                                 </p>
                             </div>
                         ))}
                     </div>
                     
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '30px', flexWrap: 'wrap' }}>
+                    <div className="activated-nav-buttons">
                         <button
                             onClick={() => navigate(`/project/${id}/chat`)}
-                            style={{
-                                padding: '12px 20px',
-                                fontSize: '16px',
-                                backgroundColor: '#2196F3',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 'bold'
-                            }}
+                            className="nav-link-button"
+                            style={{ backgroundColor: '#2196F3' }}
                         >
                             💬 Go to Chat
                         </button>
                         <button
                             onClick={() => navigate(`/project/${id}/kanban`)}
-                            style={{
-                                padding: '12px 20px',
-                                fontSize: '16px',
-                                backgroundColor: '#FF69B4',
-                                color: '#111',
-                                border: 'none',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 'bold'
-                            }}
+                            className="nav-link-button"
+                            style={{ backgroundColor: '#FF69B4', color: '#111' }}
                         >
                             📋 Go to Kanban
                         </button>
                         <button
                             onClick={() => navigate(`/project/${id}/submission`)}
-                            style={{
-                                padding: '12px 20px',
-                                fontSize: '16px',
-                                backgroundColor: '#7C4DFF',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 'bold'
-                            }}
+                            className="nav-link-button"
+                            style={{ backgroundColor: '#7C4DFF' }}
                         >
-                            � Go to Submission
+                            🚀 Go to Submission
                         </button>
                     </div>
                 </div>
@@ -324,7 +257,7 @@ function Classroom() {
 
             {!id && (
                 <p style={{ marginTop: '30px', color: '#ff5722', fontWeight: 'bold' }}>
-                    ⚠️ Please select a project first from the project selection page.
+                    ⚠️ Please select a project first.
                 </p>
             )}
         </div>
