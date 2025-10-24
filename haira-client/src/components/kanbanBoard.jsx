@@ -21,7 +21,7 @@ const initialData = {
   done: [],
 };
 
-const assignees = ["Alex", "Sam", "Rakoto", "Rasoa"];
+const assignees = ["You", "Alex", "Sam", "Rakoto", "Rasoa"];
 
 export default function KanbanBoard() {
   const { id } = useParams();
