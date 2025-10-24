@@ -78,8 +78,8 @@ export default function ProjectSelection() {
 
       const data = await response.json();
       
-      // Navigate to kanban board for this project
-      navigate(`/project/${data.projectId}/kanban`);
+  // After creating a project, take the user to Classroom to choose teammates
+  navigate(`/project/${data.projectId}/classroom`);
       
     } catch (err) {
       console.error('Error creating project:', err);
@@ -189,16 +189,29 @@ export default function ProjectSelection() {
                 </p>
                 <div className="project-actions">
                   <button 
+                    onClick={() => handleOpenProject(project.id, 'classroom')}
+                    className="btn-action btn-primary"
+                    title="Choose or activate AI teammates"
+                  >
+                    Choose Teammates
+                  </button>
+                  <button 
                     onClick={() => handleOpenProject(project.id, 'kanban')}
                     className="btn-action btn-kanban"
                   >
-                    Kanban Board
+                    Kanban
                   </button>
                   <button 
                     onClick={() => handleOpenProject(project.id, 'chat')}
                     className="btn-action btn-chat"
                   >
                     Chat
+                  </button>
+                  <button 
+                    onClick={() => handleOpenProject(project.id, 'submission')}
+                    className="btn-action btn-secondary"
+                  >
+                    Submission
                   </button>
                 </div>
               </div>

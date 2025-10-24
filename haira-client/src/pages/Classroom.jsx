@@ -133,22 +133,53 @@ function Classroom() {
                         ))}
                     </div>
                     
-                    <button
-                        onClick={() => navigate(`/project/${id}/chat`)}
-                        style={{
-                            marginTop: '30px',
-                            padding: '15px 30px',
-                            fontSize: '16px',
-                            backgroundColor: '#2196F3',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontWeight: 'bold'
-                        }}
-                    >
-                        💬 Go to Chat
-                    </button>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '30px', flexWrap: 'wrap' }}>
+                        <button
+                            onClick={() => navigate(`/project/${id}/chat`)}
+                            style={{
+                                padding: '12px 20px',
+                                fontSize: '16px',
+                                backgroundColor: '#2196F3',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            💬 Go to Chat
+                        </button>
+                        <button
+                            onClick={() => navigate(`/project/${id}/kanban`)}
+                            style={{
+                                padding: '12px 20px',
+                                fontSize: '16px',
+                                backgroundColor: '#FF69B4',
+                                color: '#111',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            📋 Go to Kanban
+                        </button>
+                        <button
+                            onClick={() => navigate(`/project/${id}/submission`)}
+                            style={{
+                                padding: '12px 20px',
+                                fontSize: '16px',
+                                backgroundColor: '#7C4DFF',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            � Go to Submission
+                        </button>
+                    </div>
                 </div>
             )}
 
