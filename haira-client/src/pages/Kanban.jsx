@@ -86,16 +86,15 @@ function Kanban() {
 
     return (
       <div className="chat-container min-h-screen p-6 flex gap-6">
-
+        <h1 className="toolbar text-2xl font-bold mb-4" style={{ color: '#302e2eff' }}>Kanban Board</h1>
         {/* Left side: Kanban Board */}
-        <div className="flex-1 bg-white rounded-2xl shadow-xl p-6 border border-pink-200">
-          <h1 className="text-2xl font-bold mb-4" style={{ color: '#302e2eff' }}>Kanban Board</h1>
+        <div className="flex-1 bg-white rounded-2xl shadow-xl p-6">
           <KanbanBoard />
         </div>
 
         {/* Right side: Project Info */}
-        <div className="w-96 bg-white rounded-2xl shadow-xl p-6 border border-purple-200 flex flex-col gap-4">
-          <div className="text-center">
+        <div className="w-96 bg-white rounded-2xl shadow-xl mt-12 p-6 border border-purple-200 flex flex-col gap-4">
+          <div className="text-center" style={{ marginTop: '90px' }}>
             <h2 className="text-xl font-bold text-purple-600 mb-2">Project ID: <span className="text-[#B4565A]">{id}</span></h2>
             <p className="text-gray-500 text-sm">{message}</p>
           </div>

@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import { getAuth } from 'firebase/auth';
 import { useAuth } from '../App';
 import axios from 'axios';
+import AlexAvatar from '../images/Alex.png';
 
 const auth = getAuth();
 
@@ -159,17 +160,17 @@ useEffect(() => {
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex gap-4">
+        <div className="editor-container flex gap-4">
           {columns.map((col) => (
             <Droppable key={col.id} droppableId={col.id}>
               {(provided) => (
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className="flex-1 bg-white rounded-xl p-4 shadow-lg"
+                  className="main-editor flex-1 bg-white rounded-xl p-4 shadow-lg"
                 >
                   <div
-                    className="text-white font-bold text-lg p-2 rounded-md mb-4"
+                    className="add-comment-btn text-center"
                     style={{ backgroundColor: col.color }}
                   >
                     {col.title}
@@ -189,25 +190,32 @@ useEffect(() => {
                           className="group bg-gray-50 rounded-md p-3 mb-3 shadow cursor-pointer relative"
                         >
                           <div className="flex justify-between items-center">
-                            <div>
+                            <div className="ai-teammate-card" style={{ width: '100%' }}>
+                              <div className="ai-avatar"><img src={AlexAvatar} alt="Alex" className="team-avatar" />;</div>
+                              <div className="ai-info">
+                                <h4>{task.name}</h4>
+                                <span className="ai-role">{task.assignee}</span>
+                              </div>
+                              <button
+                                onClick={() =>
+                                  setEditingTask({ ...task, column: col.id })
+                                }
+                                className="text-sm text-blue-500 hover:underline opacity-0 group-hover:opacity-100 transition"
+                              >
+                                Edit
+                              </button>
+                            </div>
+                            {/* <div>
                               <div className="font-medium">{task.name}</div>
                               <div className="text-sm text-gray-500">
                                 {task.assignee}
                               </div>
                               <div className="text-sm text-gray-500">{priority.find(item => item.value == task.priority)?.name}</div>
-                            </div>
-                            <button
-                              onClick={() =>
-                                setEditingTask({ ...task, column: col.id })
-                              }
-                              className="text-sm text-blue-500 hover:underline opacity-0 group-hover:opacity-100 transition"
-                            >
-                              Edit
-                            </button>
+                            </div> */}
                           </div>
 
                           {editingTask && editingTask.id === task.id && (
-                            <div className="absolute top-full left-0 mt-2 p-2 w-64 bg-white border rounded shadow z-10">
+                            <div className="absolute top-full left-0 mt-2 p-2 w-64 bg-white border rounded shadow z-10" style={{ width: '100%' }}>
                               <input
                                 type="text"
                                 className="w-full border p-1 rounded mb-2"
