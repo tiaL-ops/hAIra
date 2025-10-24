@@ -4,6 +4,15 @@ import { getAuth } from "firebase/auth";
 import { useAuth } from '../App';
 import axios from 'axios';
 
+// Import agent avatars
+import BrownAvatar from '../images/Brown.png';
+import ElzaAvatar from '../images/Elza.png';
+import KatiAvatar from '../images/Kati.png';
+import SteveAvatar from '../images/Steve.png';
+import SamAvatar from '../images/Sam.png';
+import RasoaAvatar from '../images/Rasoa.png';
+import RakotoAvatar from '../images/Rakoto.png';
+
 // -- NEW --
 import AIToolbar from "../components/TextEditor/AIToolbar";
 import EditorArea from "../components/TextEditor/EditorArea";
@@ -122,83 +131,18 @@ function Submission() {
         setMessage(data.message || `Submission Page Loaded!`);
         setProjectData(data.project);
         
-        // Setup team context
+        // Setup team context from teammates subcollection
+        const teammates = data.teammates || {};
         const team = data.project?.team || [];
-        const hasAITeammates = team.some(member => member.type === 'ai');
-        const legacyAIIds = ['manager-ai', 'lazy-ai', 'ai_manager', 'ai_helper'];
-        const hasOldAITeammates = team.some(member => legacyAIIds.includes(member.id));
-        const hasCorrectAITeammates = team.some(member => 
-          ['brown', 'elza', 'kati', 'steve', 'sam'].includes(member.id)
-        );
         
-        console.log('Team setup:', { team, hasAITeammates, hasOldAITeammates, hasCorrectAITeammates });
+        // Filter AI teammates
+        const aiTeammates = team.filter(member => member.type === 'ai');
         
-        if (!hasCorrectAITeammates) {
-          // Add or update AI teammates using centralized configuration - all 5 teammates
-          const defaultAITeammates = ['brown', 'elza', 'kati', 'steve', 'sam'].map(agentId => ({
-            ...AI_TEAMMATES[agentId],
-            id: agentId,
-            name: AI_TEAMMATES[agentId].name,
-            isActive: true,
-            type: 'ai'
-          }));
-          
-          // Filter out ALL AI teammates (old and new) and keep only human teammates
-          const filteredTeam = team.filter(member => member.type !== 'ai');
-          const updatedTeam = [...filteredTeam, ...defaultAITeammates];
-          
-          console.log('Setting updated team:', updatedTeam);
-          setTeamContext(updatedTeam);
-          
-          // Update team in backend
-          try {
-            await axios.post(`${backend_host}/api/project/${id}/team`, 
-              { team: updatedTeam },
-              {
-                headers: {
-                  'Authorization': `Bearer ${token}`
-                }
-              }
-            );
-          } catch (err) {
-            console.log('Team update failed, continuing with local state:', err);
-          }
-        } else {
-          // We have existing AI teammates with correct IDs, but update their persona/config
-          const updatedTeam = team.map(member => {
-            if (member.type === 'ai') {
-              // Update AI teammates with latest persona configurations from centralized config
-              const agentId = member.id;
-              if (AI_TEAMMATES[agentId]) {
-                return {
-                  ...member,
-                  ...AI_TEAMMATES[agentId],
-                  id: agentId,
-                  name: AI_TEAMMATES[agentId].name,
-                  isActive: true
-                };
-              }
-            }
-            return member;
-          });
-          
-          console.log('Updating existing AI teammates:', updatedTeam);
-          setTeamContext(updatedTeam);
-          
-          // Update team in backend with updated persona
-          try {
-            await axios.post(`${backend_host}/api/project/${id}/team`, 
-              { team: updatedTeam },
-              {
-                headers: {
-                  'Authorization': `Bearer ${token}`
-                }
-              }
-            );
-          } catch (err) {
-            console.log('Team update failed, continuing with local state:', err);
-          }
-        }
+        console.log('📥 Teammates loaded from backend:', teammates);
+        console.log('🤖 AI teammates:', aiTeammates);
+        
+        // Set team context with the actual teammates
+        setTeamContext(team);
         
         // Load draft content if available
         if (data.project?.draftReport?.content) {

@@ -33,18 +33,18 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     // Get AI teammate info - supports new 5-agent team and legacy IDs
     let aiTeammate;
     
-    // Check if it's one of the new agents
+    // Check if it's one of the agents
     if (AI_TEAMMATES[aiType]) {
       aiTeammate = AI_TEAMMATES[aiType];
     } 
-    // Legacy mapping
-    else if (aiType === 'rasoa' || aiType === 'ai_manager') {
-      aiTeammate = AI_TEAMMATES.brown;
-    } else if (aiType === 'rakoto' || aiType === 'ai_helper') {
-      aiTeammate = AI_TEAMMATES.sam;
+    // Legacy mapping for old IDs
+    else if (aiType === 'ai_manager') {
+      aiTeammate = AI_TEAMMATES.rasoa;
+    } else if (aiType === 'ai_helper') {
+      aiTeammate = AI_TEAMMATES.rakoto;
     } else {
-      // Default to brown if unknown
-      aiTeammate = AI_TEAMMATES.brown;
+      // Default to rasoa if unknown
+      aiTeammate = AI_TEAMMATES.rasoa;
     }
     
     const aiName = aiTeammate.name;
@@ -138,12 +138,12 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     let aiTeammate;
     if (AI_TEAMMATES[aiType]) {
       aiTeammate = AI_TEAMMATES[aiType];
-    } else if (aiType === 'rasoa' || aiType === 'ai_manager') {
-      aiTeammate = AI_TEAMMATES.brown;
-    } else if (aiType === 'rakoto' || aiType === 'ai_helper') {
-      aiTeammate = AI_TEAMMATES.sam;
+    } else if (aiType === 'ai_manager') {
+      aiTeammate = AI_TEAMMATES.rasoa;
+    } else if (aiType === 'ai_helper') {
+      aiTeammate = AI_TEAMMATES.rakoto;
     } else {
-      aiTeammate = AI_TEAMMATES.brown;
+      aiTeammate = AI_TEAMMATES.rasoa;
     }
     
     const aiColor = aiTeammate.color;
@@ -247,12 +247,12 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
           let aiTeammate;
           if (AI_TEAMMATES[aiType]) {
             aiTeammate = AI_TEAMMATES[aiType];
-          } else if (aiType === 'rasoa' || aiType === 'ai_manager') {
-            aiTeammate = AI_TEAMMATES.brown;
-          } else if (aiType === 'rakoto' || aiType === 'ai_helper') {
-            aiTeammate = AI_TEAMMATES.sam;
+          } else if (aiType === 'ai_manager') {
+            aiTeammate = AI_TEAMMATES.rasoa;
+          } else if (aiType === 'ai_helper') {
+            aiTeammate = AI_TEAMMATES.rakoto;
           } else {
-            aiTeammate = AI_TEAMMATES.brown; // default
+            aiTeammate = AI_TEAMMATES.rasoa; // default
           }
           const aiName = `${aiTeammate.name} (${aiTeammate.role})`;
           const commentText = `Review by ${aiName}:\n${aiResponse}`;
@@ -265,12 +265,12 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
           let aiTeammate;
           if (AI_TEAMMATES[aiType]) {
             aiTeammate = AI_TEAMMATES[aiType];
-          } else if (aiType === 'rasoa' || aiType === 'ai_manager') {
-            aiTeammate = AI_TEAMMATES.brown;
-          } else if (aiType === 'rakoto' || aiType === 'ai_helper') {
-            aiTeammate = AI_TEAMMATES.sam;
+          } else if (aiType === 'ai_manager') {
+            aiTeammate = AI_TEAMMATES.rasoa;
+          } else if (aiType === 'ai_helper') {
+            aiTeammate = AI_TEAMMATES.rakoto;
           } else {
-            aiTeammate = AI_TEAMMATES.brown; // default
+            aiTeammate = AI_TEAMMATES.rasoa; // default
           }
           const aiName = `${aiTeammate.name} (${aiTeammate.role})`;
           const commentText = `Suggestion by ${aiName}:\n${aiResponse}`;

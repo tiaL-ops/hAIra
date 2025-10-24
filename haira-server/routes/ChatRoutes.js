@@ -302,75 +302,86 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
     if (mentions.length === 0) {
       console.log(`🎲 No mentions detected, checking probability-based responses...`);
       
-      // Get agents that should respond based on probability
-      const probabilityAgents = getDefaultResponseAgents();
-      console.log(`🎲 Probability selected agents:`, probabilityAgents);
+      // Get all AI teammates for this project
+      const allTeammates = await getTeammates(projectId);
+      const aiTeammates = allTeammates.filter(t => t.type === 'ai');
       
-      for (const agentId of probabilityAgents) {
-        try {
-          // Fetch agent teammate
-          const agentTeammate = await getTeammate(projectId, agentId);
-          
-          if (!agentTeammate) {
-            console.log(`⚠️ Probability agent ${agentId} not found`);
-            continue;
-          }
-          
-          if (agentTeammate.type !== 'ai') {
-            console.log(`⚠️ ${agentId} is not an AI agent, skipping`);
-            continue;
-          }
-          
-          // Check availability
-          const availabilityCheck = await isTeammateAvailable(projectId, agentId);
-          
-          if (availabilityCheck.available) {
-            // Agent is available - trigger AI response
-            console.log(`🎲 ${agentTeammate.name} responding (probability-based)...`);
+      console.log(`🎲 AI teammates in project:`, aiTeammates.map(t => t.id));
+      
+      // If no AI teammates, skip
+      if (aiTeammates.length === 0) {
+        console.log(`⚠️ No AI teammates found in project`);
+      } else {
+        // Randomly select which AI teammates should respond
+        const probabilityAgents = getDefaultResponseAgents(aiTeammates.map(t => t.id));
+        console.log(`🎲 Probability selected agents:`, probabilityAgents);
+        
+        for (const agentId of probabilityAgents) {
+          try {
+            // Fetch agent teammate
+            const agentTeammate = await getTeammate(projectId, agentId);
             
-            try {
-              await triggerAgentResponse(projectId, agentId, message, db);
+            if (!agentTeammate) {
+              console.log(`⚠️ Probability agent ${agentId} not found`);
+              continue;
+            }
+          
+            if (agentTeammate.type !== 'ai') {
+              console.log(`⚠️ ${agentId} is not an AI agent, skipping`);
+              continue;
+            }
+            
+            // Check availability
+            const availabilityCheck = await isTeammateAvailable(projectId, agentId);
+            
+            if (availabilityCheck.available) {
+              // Agent is available - trigger AI response
+              console.log(`🎲 ${agentTeammate.name} responding (probability-based)...`);
               
-              // Update stats (no quota decrement for AI agents)
-              await updateTeammateStats(projectId, agentId, {
-                'stats.messagesSent': FieldValue.increment(1),
-                'state.lastActive': Date.now(),
-                'state.status': 'online'
-              });
+              try {
+                await triggerAgentResponse(projectId, agentId, message, db);
+                
+                // Update stats (no quota decrement for AI agents)
+                await updateTeammateStats(projectId, agentId, {
+                  'stats.messagesSent': FieldValue.increment(1),
+                  'state.lastActive': Date.now(),
+                  'state.status': 'online'
+                });
+                
+                probabilityHandled.push({
+                  teammateId: agentId,
+                  name: agentTeammate.name,
+                  responded: true,
+                  trigger: 'probability'
+                });
+                
+                console.log(`✅ ${agentTeammate.name} responded (probability-based)`);
+                
+              } catch (aiError) {
+                console.error(`❌ Error in probability response for ${agentTeammate.name}:`, aiError);
+                probabilityHandled.push({
+                  teammateId: agentId,
+                  name: agentTeammate.name,
+                  responded: false,
+                  error: 'Failed to generate response'
+                });
+              }
               
-              probabilityHandled.push({
-                teammateId: agentId,
-                name: agentTeammate.name,
-                responded: true,
-                trigger: 'probability'
-              });
-              
-              console.log(`✅ ${agentTeammate.name} responded (probability-based)`);
-              
-            } catch (aiError) {
-              console.error(`❌ Error in probability response for ${agentTeammate.name}:`, aiError);
+            } else {
+              // Agent is unavailable - skip (no sleep message for probability responses)
+              console.log(`😴 ${agentTeammate.name} unavailable for probability response: ${availabilityCheck.reason}`);
               probabilityHandled.push({
                 teammateId: agentId,
                 name: agentTeammate.name,
                 responded: false,
-                error: 'Failed to generate response'
+                reason: availabilityCheck.reason,
+                trigger: 'probability'
               });
             }
             
-          } else {
-            // Agent is unavailable - skip (no sleep message for probability responses)
-            console.log(`😴 ${agentTeammate.name} unavailable for probability response: ${availabilityCheck.reason}`);
-            probabilityHandled.push({
-              teammateId: agentId,
-              name: agentTeammate.name,
-              responded: false,
-              reason: availabilityCheck.reason,
-              trigger: 'probability'
-            });
+          } catch (probError) {
+            console.error(`❌ Error handling probability response for ${agentId}:`, probError);
           }
-          
-        } catch (probError) {
-          console.error(`❌ Error handling probability response for ${agentId}:`, probError);
         }
       }
     } else {
@@ -500,10 +511,11 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
 /**
  * POST /api/project/:id/init-teammates
  * Initialize teammates subcollection for a project
- * Creates 5 AI teammates: Brown, Elza, Kati, Steve, Sam
+ * Accepts selectedAgents array to create only chosen teammates (up to 2)
  */
 router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
   const { id: projectId } = req.params;
+  const { selectedAgents } = req.body; // Get selected agents from request body
   const userId = req.user.uid;
 
   try {
@@ -533,7 +545,17 @@ router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
       });
     }
 
-    // 3. Initialize teammates - Human user + Rasoa + Rakoto
+    // 3. Validate selected agents
+    const validAgents = ['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'];
+    const agentsToCreate = selectedAgents && Array.isArray(selectedAgents) 
+      ? selectedAgents.filter(id => validAgents.includes(id)).slice(0, 2) // Max 2 agents
+      : ['brown', 'elza']; // Default to brown and elza if not specified
+    
+    if (agentsToCreate.length === 0) {
+      return res.status(400).json({ error: 'Please select at least one valid teammate' });
+    }
+
+    // 4. Initialize teammates - Human user + selected AI agents
     const { AI_AGENTS } = await import('../config/aiAgents.js');
     const batch = db.batch();
     const teammatesRef = db.collection('userProjects').doc(projectId).collection('teammates');
@@ -564,11 +586,10 @@ router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
     };
     batch.set(teammatesRef.doc(userId), humanTeammate);
 
-    // Create all 5 AI teammates: Brown, Elza, Kati, Steve, Sam
-    const selectedAgents = ['brown', 'elza', 'kati', 'steve', 'sam'];
+    // Create only the selected AI teammates (up to 2)
     let agentCount = 0;
 
-    for (const agentId of selectedAgents) {
+    for (const agentId of agentsToCreate) {
       const agent = AI_AGENTS[agentId];
       if (!agent) continue;
 

@@ -565,7 +565,8 @@ export async function isTeammateAvailable(projectId, teammateId) {
       return { available: true };
     }
     
-    // Check if agent is active
+    // AI agents are always available - no hour or day restrictions
+    // Only check if agent is active (not disabled)
     if (!teammate.config?.isActive) {
       return {
         available: false,
@@ -574,55 +575,10 @@ export async function isTeammateAvailable(projectId, teammateId) {
       };
     }
     
-    // Get project data for currentDay
-    const projectDoc = await db.collection('userProjects').doc(projectId).get();
-    if (!projectDoc.exists) {
-      return {
-        available: false,
-        reason: 'project_not_found',
-        message: 'Project not found'
-      };
-    }
-    
-    const projectData = projectDoc.data();
-    const currentDay = projectData.currentDay || 1;
-    
-    // Check if today is an active day
-    if (teammate.config.activeDays && !teammate.config.activeDays.includes(currentDay)) {
-      return {
-        available: false,
-        reason: 'wrong_day',
-        message: `${teammate.name} is available on days ${teammate.config.activeDays.join(', ')}.`,
-        activeDays: teammate.config.activeDays,
-        currentDay
-      };
-    }
-    
-    // Check if current hour is within active hours
-    if (teammate.config.activeHours) {
-      const currentHour = new Date().getUTCHours();
-      const { start, end } = teammate.config.activeHours;
-      
-      if (currentHour < start || currentHour >= end) {
-        return {
-          available: false,
-          reason: 'outside_hours',
-          message: `${teammate.name} is available from ${start}:00 - ${end}:00 UTC.`,
-          activeHours: teammate.config.activeHours,
-          currentHour
-        };
-      }
-    }
-    
-    // Note: No quota checking for AI agents - they can respond unlimited times
-    // Only human users have message quotas enforced at the route level
-    
-    // All checks passed
+    // All AI agents are available 24/7
     return {
       available: true,
-      messagesLeftToday: teammate.state.messagesLeftToday,
-      activeDays: teammate.config.activeDays,
-      activeHours: teammate.config.activeHours
+      messagesLeftToday: teammate.state.messagesLeftToday || 999
     };
     
   } catch (error) {

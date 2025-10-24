@@ -95,24 +95,39 @@ export function decideResponders(content, currentDay, agents) {
  * Get default responding agents based on probability
  * @returns {string[]} Array of agent IDs
  */
-export function getDefaultResponseAgents() {
+export function getDefaultResponseAgents(availableAgents = ['rasoa', 'rakoto']) {
+  // If no agents available, return empty array
+  if (!availableAgents || availableAgents.length === 0) {
+    return [];
+  }
+  
+  // If only one agent, return it with 85% probability (15% no response)
+  if (availableAgents.length === 1) {
+    return Math.random() < 0.85 ? availableAgents : [];
+  }
+  
   const random = Math.random();
   
- // 15% chance: Both respond (random < 0.15)
-  if (random < 0.15) {
-    return Math.random() < 0.5 ? ['rakoto', 'rasoa'] : ['rasoa', 'rakoto'];
+  // 15% chance: Both agents respond
+  if (random < 0.15 && availableAgents.length >= 2) {
+    // Randomly shuffle which agent goes first
+    return Math.random() < 0.5 
+      ? [availableAgents[0], availableAgents[1]] 
+      : [availableAgents[1], availableAgents[0]];
   }
   
-  // 40% chance: Only Rasoa (executes if 0.15 <= random < 0.55)
+  // 40% chance: First agent responds
   else if (random < 0.55) { // 0.15 (previous) + 0.40 (this) = 0.55
-    return ['rasoa'];
+    return [availableAgents[0]];
   } 
   
-  // 45% chance: Only Rakoto (executes if random >= 0.55)
+  // 45% chance: Second agent responds (or random agent if more than 2)
   else {
-    return ['rakoto'];
+    const agentIndex = availableAgents.length > 2 
+      ? Math.floor(Math.random() * availableAgents.length) 
+      : 1;
+    return [availableAgents[agentIndex]];
   }
-  // The 'return []' line is no longer reachable and has been removed.
 }
 
 /**

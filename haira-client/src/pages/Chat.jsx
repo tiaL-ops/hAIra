@@ -6,6 +6,11 @@ import { useAuth } from '../App';
 import '../styles/Chat.css'; // Your CSS (the updated one you shared)
 
 import AlexAvatar from '../images/Alex.png';
+import BrownAvatar from '../images/Brown.png';
+import ElzaAvatar from '../images/Elza.png';
+import KatiAvatar from '../images/Kati.png';
+import SteveAvatar from '../images/Steve.png';
+import SamAvatar from '../images/Sam.png';
 import RasoaAvatar from '../images/Rasoa.png';
 import RakotoAvatar from '../images/Rakoto.png';
 
@@ -52,13 +57,25 @@ function Chat() {
     }
   };
 
+  // Agent avatar mapping
+  const avatarMap = {
+    alex: AlexAvatar,
+    brown: BrownAvatar,
+    elza: ElzaAvatar,
+    kati: KatiAvatar,
+    steve: SteveAvatar,
+    sam: SamAvatar,
+    rasoa: RasoaAvatar,
+    rakoto: RakotoAvatar
+  };
+
   // Agent info - will be populated from Firestore teammates, with fallback to hardcoded
   const agentInfo = Object.keys(teammates).length > 0 
     ? Object.entries(teammates).reduce((acc, [id, teammate]) => {
         if (teammate.type === 'ai') {
           acc[id] = {
             name: teammate.name,
-            avatar: teammate.avatar === '📝' ? RasoaAvatar : teammate.avatar === '🧪' ? RakotoAvatar : teammate.avatar,
+            avatar: avatarMap[id] || teammate.avatar,
             role: teammate.role,
             color: teammate.color || '#3498db'
           };
@@ -66,9 +83,13 @@ function Chat() {
         return acc;
       }, {})
     : {
-        alex: { name: 'Alex', avatar: AlexAvatar, role: 'Project Manager', color: '#8e44ad' },
-        rasoa: { name: 'Rasoa', avatar: RasoaAvatar, role: 'Planner', color: '#e74c3c' },
-        rakoto: { name: 'Rakoto', avatar: RakotoAvatar, role: 'Developer', color: '#3498db' }
+        brown: { name: 'Brown', avatar: BrownAvatar, role: 'Strategic Researcher', color: '#8B4513' },
+        elza: { name: 'Elza', avatar: ElzaAvatar, role: 'Creative Writer', color: '#9B59B6' },
+        kati: { name: 'Kati', avatar: KatiAvatar, role: 'Data Analyst', color: '#E67E22' },
+        steve: { name: 'Steve', avatar: SteveAvatar, role: 'Technical Expert', color: '#16A085' },
+        sam: { name: 'Sam', avatar: SamAvatar, role: 'Critical Reviewer', color: '#2980B9' },
+        rasoa: { name: 'Rasoa', avatar: RasoaAvatar, role: 'Research Planner', color: '#27ae60' },
+        rakoto: { name: 'Rakoto', avatar: RakotoAvatar, role: 'Technical Developer', color: '#3498db' }
       };
   
   // Auto-scroll to bottom when messages change or when loading finishes

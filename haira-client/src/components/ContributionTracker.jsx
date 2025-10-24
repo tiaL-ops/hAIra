@@ -68,7 +68,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
           ];
           
           // Add all AI teammates dynamically
-          const aiAgentIds = ['brown', 'elza', 'kati', 'steve', 'sam'];
+          const aiAgentIds = ['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'];
           aiAgentIds.forEach(agentId => {
             if (wordContributions[agentId] && AI_TEAMMATES[agentId]) {
               contributions.push({

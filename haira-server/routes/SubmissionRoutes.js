@@ -1,4 +1,5 @@
 import express from 'express'
+import admin from 'firebase-admin';
 import { 
     updateUserProject,
     ensureProjectExists,
@@ -15,8 +16,10 @@ import {
 import { generateAIContribution as callOpenAIContribution } from '../api/openaiService.js';
 import { AI_TEAMMATES, TASK_TYPES } from '../config/aiAgents.js';
 import { AIGradingService } from '../services/aiGradingService.js';
+import { getTeammates } from '../services/teammateService.js';
 
 const router = express.Router()
+const db = admin.firestore();
 
 
 /**
@@ -248,16 +251,26 @@ router.get('/:id/submission', verifyFirebaseToken, async (req, res) => {
             return res.status(404).json({ error: 'Project not found' });
         }
 
+        // Fetch teammates from teammates subcollection
+        const teammates = await getTeammates(id);
+        
+        // Convert to map for easy lookup
+        const teammatesMap = teammates.reduce((acc, teammate) => {
+            acc[teammate.id] = teammate;
+            return acc;
+        }, {});
+
         res.json({
             message: `Submission page loaded for project ${id}`,
             project: {
                 id,
                 title: projectData.title,
                 status: projectData.status,
-                team: projectData.team || [],
+                team: teammates, // Send teammates array
                 draftReport: projectData.draftReport || null,
                 finalReport: projectData.finalReport || null
-            }
+            },
+            teammates: teammatesMap // Also send as map
         });
     } catch (err) {
         console.error('Error fetching submission data:', err);
@@ -683,12 +696,12 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
         
         // Map agent IDs to correct teammates (support legacy IDs)
         let aiTeammate;
-        if (['brown', 'elza', 'kati', 'steve', 'sam'].includes(aiType)) {
+        if (['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'].includes(aiType)) {
             aiTeammate = AI_TEAMMATES[aiType];
-        } else if (aiType === 'rasoa' || aiType === 'ai_manager') {
-            aiTeammate = AI_TEAMMATES.brown; // Map old rasoa to brown
-        } else if (aiType === 'rakoto' || aiType === 'ai_helper') {
-            aiTeammate = AI_TEAMMATES.sam; // Map old rakoto to sam
+        } else if (aiType === 'ai_manager') {
+            aiTeammate = AI_TEAMMATES.rasoa; // Legacy ai_manager maps to rasoa
+        } else if (aiType === 'ai_helper') {
+            aiTeammate = AI_TEAMMATES.rakoto; // Legacy ai_helper maps to rakoto
         }
         
         // Use agent's actual personality for writing context (not generic)
@@ -786,12 +799,12 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         
         // Map agent IDs to correct teammates (support legacy IDs)
         let aiTeammate;
-        if (['brown', 'elza', 'kati', 'steve', 'sam'].includes(aiType)) {
+        if (['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'].includes(aiType)) {
             aiTeammate = AI_TEAMMATES[aiType];
-        } else if (aiType === 'rasoa' || aiType === 'ai_manager') {
-            aiTeammate = AI_TEAMMATES.brown;
-        } else if (aiType === 'rakoto' || aiType === 'ai_helper') {
-            aiTeammate = AI_TEAMMATES.sam;
+        } else if (aiType === 'ai_manager') {
+            aiTeammate = AI_TEAMMATES.rasoa;
+        } else if (aiType === 'ai_helper') {
+            aiTeammate = AI_TEAMMATES.rakoto;
         }
         
         // Use agent's personality for review context
@@ -883,12 +896,12 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         
         // Map agent IDs to correct teammates (support legacy IDs)
         let aiTeammate;
-        if (['brown', 'elza', 'kati', 'steve', 'sam'].includes(aiType)) {
+        if (['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'].includes(aiType)) {
             aiTeammate = AI_TEAMMATES[aiType];
-        } else if (aiType === 'rasoa' || aiType === 'ai_manager') {
-            aiTeammate = AI_TEAMMATES.brown;
-        } else if (aiType === 'rakoto' || aiType === 'ai_helper') {
-            aiTeammate = AI_TEAMMATES.sam;
+        } else if (aiType === 'ai_manager') {
+            aiTeammate = AI_TEAMMATES.rasoa;
+        } else if (aiType === 'ai_helper') {
+            aiTeammate = AI_TEAMMATES.rakoto;
         }
         
         // Use agent's personality for suggestions context
@@ -980,7 +993,7 @@ router.post('/:id/word-contributions/track', verifyFirebaseToken, async (req, re
         };
         
         // Ensure all current AI teammates are initialized
-        const currentAgents = ['brown', 'elza', 'kati', 'steve', 'sam'];
+        const currentAgents = ['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'];
         currentAgents.forEach(agentId => {
             if (!wordContributions[agentId]) {
                 wordContributions[agentId] = { words: 0, percentage: 0 };
@@ -989,10 +1002,8 @@ router.post('/:id/word-contributions/track', verifyFirebaseToken, async (req, re
 
         // Map legacy agent IDs to new ones
         const agentMapping = {
-            'ai_manager': 'brown',
-            'rasoa': 'brown',
-            'ai_helper': 'sam',
-            'rakoto': 'sam'
+            'ai_manager': 'rasoa',  // Legacy ai_manager maps to rasoa
+            'ai_helper': 'rakoto'    // Legacy ai_helper maps to rakoto
         };
 
         // Update the contributor's word count
@@ -1067,7 +1078,7 @@ router.get('/:id/word-contributions', verifyFirebaseToken, async (req, res) => {
         };
         
         // Ensure all current AI teammates are initialized
-        const currentAgents = ['brown', 'elza', 'kati', 'steve', 'sam'];
+        const currentAgents = ['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'];
         currentAgents.forEach(agentId => {
             if (!wordContributions[agentId]) {
                 wordContributions[agentId] = { words: 0, percentage: 0 };

@@ -2,14 +2,48 @@ import React, { useState } from 'react';
 import { AI_TEAMMATES, TASK_TYPES } from '../../../haira-server/config/aiAgents.js';
 import TaskAssignmentModal from './TaskAssignmentModal';
 
-// No need for avatars since we're using emoji from config
+// Import agent avatars
+import BrownAvatar from '../images/Brown.png';
+import ElzaAvatar from '../images/Elza.png';
+import KatiAvatar from '../images/Kati.png';
+import SteveAvatar from '../images/Steve.png';
+import SamAvatar from '../images/Sam.png';
+import RasoaAvatar from '../images/Rasoa.png';
+import RakotoAvatar from '../images/Rakoto.png';
 
 export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMembers = [] }) {
   const [selectedTeammate, setSelectedTeammate] = useState(null);
 
+  // Avatar mapping
+  const avatarMap = {
+    brown: BrownAvatar,
+    elza: ElzaAvatar,
+    kati: KatiAvatar,
+    steve: SteveAvatar,
+    sam: SamAvatar,
+    rasoa: RasoaAvatar,
+    rakoto: RakotoAvatar
+  };
+
   // Get appropriate avatar for AI teammates
   const getAIAvatar = (teammate) => {
-    // Use emoji from teammate config
+    const avatarSrc = avatarMap[teammate.id];
+    if (avatarSrc) {
+      return (
+        <img 
+          src={avatarSrc} 
+          alt={teammate.name}
+          style={{ 
+            width: '40px', 
+            height: '40px', 
+            borderRadius: '50%',
+            objectFit: 'cover',
+            border: `2px solid ${teammate.color || '#666'}`
+          }}
+        />
+      );
+    }
+    // Fallback to emoji if no image found
     return <span className="team-emoji">{teammate.emoji || teammate.avatar || '🤖'}</span>;
   };
 
