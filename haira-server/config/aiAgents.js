@@ -6,10 +6,14 @@ export const AI_AGENTS = {
     alex: {
         name: "Alex",
         role: "Project Manager",
+        avatar: "📋",
+        emoji: "📋",
         personality: "Analytical, organized, calm, and professional. You focus on planning, tracking, and summarizing.",
         color: "#9b59b6",
         activeDays: [1, 3, 6],
         maxMessagesPerDay: 2,
+        maxTokens: 500,
+        temperature: 0.7,
         activeHours: { start: 9, end: 18 },
         sleepResponses: [
             "💤 Alex is offline right now. I'll catch up tomorrow!",
@@ -61,8 +65,13 @@ End Condition:
     rasoa: {
         name: "Rasoa",
         role: "Research Planner",
+        avatar: "📝",
+        emoji: "📝",
         personality: "Thoughtful, detail-oriented, slightly formal, but supportive. You often cite or reference credible sources when possible.",
         color: "#27ae60",
+        maxMessagesPerDay: 10,
+        maxTokens: 500,
+        temperature: 0.7,
         activeHours: { start: 9, end: 18 },
         sleepResponses: [
             "💤 Rasoa is resting. I'll respond during work hours!",
@@ -117,8 +126,13 @@ Example prompt reaction:
     rakoto: {
         name: "Rakoto",
         role: "Technical Developer",
+        avatar: "🧪",
+        emoji: "🧪",
         personality: "Practical, slightly casual, with clear, results-oriented speech. You prefer facts and measurable outcomes over speculation.",
         color: "#3498db",
+        maxMessagesPerDay: 10,
+        maxTokens: 500,
+        temperature: 0.7,
         activeHours: { start: 9, end: 18 },
         sleepResponses: [
             "💤 Rakoto is offline. Back during work hours!",
