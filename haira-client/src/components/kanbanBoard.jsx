@@ -128,12 +128,18 @@ useEffect(() => {
  
   const onDragEnd = async (result) => {
     const { source, destination } = result;
-    if (!destination) return;
+    if (!destination || source == destination)
+      return;
 
     const sourceCol = [...tasks[source.droppableId]];
     const [moved] = sourceCol.splice(source.index, 1);
 
-    const destCol = [...tasks[destination.droppableId]];
+    // if 
+    let destCol = [];
+    if (source.droppableId === destination.droppableId)
+      destCol = [...sourceCol];
+    else
+      destCol = [...tasks[destination.droppableId]];
     destCol.splice(destination.index, 0, moved);
 
     handleSaveTask(destination.droppableId, moved, false);
