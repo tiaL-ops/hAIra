@@ -5,7 +5,6 @@ import { v4 as uuidv4 } from "uuid";
 import { getAuth } from 'firebase/auth';
 import { useAuth } from '../App';
 import axios from 'axios';
-import AlexAvatar from '../images/Alex.png';
 
 const auth = getAuth();
 
@@ -22,7 +21,7 @@ const initialData = {
   done: [],
 };
 
-const assignees = ["Alice", "Bob", "Charlie", "David"];
+const assignees = ["Alex", "Sam", "Rakoto", "Rasoa"];
 
 export default function KanbanBoard() {
   const { id } = useParams();
@@ -157,6 +156,14 @@ useEffect(() => {
     { id: "done", title: "Done", color: COLOR.third },
   ];
 
+  const getAIAvatar = (name) => {
+    // default avatar image
+    if (!assignees.includes(name))
+      return '/src/images/Alex.png';
+
+    return '/src/images/' + name + '.png';
+  };
+
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <DragDropContext onDragEnd={onDragEnd}>
@@ -191,7 +198,7 @@ useEffect(() => {
                         >
                           <div className="flex justify-between items-center">
                             <div className="ai-teammate-card" style={{ width: '100%' }}>
-                              <div className="ai-avatar"><img src={AlexAvatar} alt="Alex" className="team-avatar" />;</div>
+                              <div className="ai-avatar"><img src={getAIAvatar(task.assignee)} alt="Alex" className="team-avatar" />;</div>
                               <div className="ai-info">
                                 <h4>{task.name}</h4>
                                 <span className="ai-role">{task.assignee}</span>
