@@ -297,6 +297,7 @@ router.get('/:id/with-template', verifyFirebaseToken, async (req, res) => {
 // Get learning topics
 router.get('/topics', verifyFirebaseToken, async (req, res) => {
   try {
+    console.log('[ProjectRoutes] Topics endpoint called by user:', req.user?.uid);
     res.json({
       success: true,
       topics: LEARNING_TOPICS

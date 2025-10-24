@@ -23,16 +23,20 @@ export default function WeeklyLearningPrompt({
   useEffect(() => {
     const fetchTopics = async () => {
       try {
+        console.log('[WeeklyLearningPrompt] Fetching topics...');
         const token = await auth.currentUser.getIdToken();
+        console.log('[WeeklyLearningPrompt] Token obtained:', token ? 'Yes' : 'No');
+        
         const response = await axios.get(`${backend_host}/api/project/topics`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          setTopics(data.topics || []);
+        console.log('[WeeklyLearningPrompt] Response received:', response.status);
+        if (response.data.success) {
+          console.log('[WeeklyLearningPrompt] Topics loaded:', response.data.topics?.length || 0);
+          setTopics(response.data.topics || []);
         }
       } catch (err) {
         console.error('Error fetching topics:', err);
@@ -136,10 +140,10 @@ export default function WeeklyLearningPrompt({
               onClick={handleGenerateProject}
               disabled={!selectedTopic || loading}
             >
-              {loading ? 'Generating...' : '🚀 Generate Project'}
+              {loading ? 'Creating...' : '🚀 Create Project'}
             </button>
             {!selectedTopic && (
-              <p className="select-topic-hint">Please select a topic above to generate your project</p>
+              <p className="select-topic-hint">Please select a topic to create a new project</p>
             )}
           </div>
         </div>

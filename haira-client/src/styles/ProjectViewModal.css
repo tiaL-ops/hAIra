@@ -4,18 +4,19 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(4px);
 }
 
 .project-view-modal {
-  background: white;
+  background: #1a1a1a; /* Dark background */
   border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  /* 2D gaming style box shadow */
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 0 4px rgba(255, 255, 255, 0.1);
   max-width: 800px;
   width: 90%;
   max-height: 90vh;
@@ -78,28 +79,29 @@
 }
 
 .project-view-card {
-  background: white;
-  border: 2px solid #20b2aa;
+  color: white; /* Text color to white */
+  border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(32, 178, 170, 0.1);
+  /* 2D gaming style box shadow */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), 0 0 0 4px rgba(255, 255, 255, 0.1);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .project-view-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(32, 178, 170, 0.2);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.6), 0 0 0 6px rgba(255, 255, 255, 0.2);
 }
 
 .project-view-card-title {
   font-size: 1.2rem;
   font-weight: bold;
-  color: #333;
+  color: white;
   margin-bottom: 0.5rem;
 }
 
 .project-view-card-description {
-  color: #555;
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 0.8rem;
   font-size: 0.95rem;
   line-height: 1.4;
@@ -107,33 +109,46 @@
 }
 
 .project-view-card-status {
-  color: #666;
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
 }
 
+/* Project card status backgrounds in modal */
+.project-view-card.active {
+  background-color: #408F8C; /* Teal from palette */
+}
+
+.project-view-card.inactive {
+  background-color: #9169C0; /* Purple from palette */
+}
+
+.project-view-card.archived {
+  background-color: #B4565A; /* Red/Brown from palette */
+}
+
 .project-view-card-deadline {
-  color: #666;
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
 }
 
 .project-view-card-manager {
-  color: #20b2aa;
+  color: #93C263; /* Green from palette */
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
   font-weight: 500;
 }
 
 .project-view-card-team {
-  color: #8b5cf6;
+  color: #9169C0; /* Purple from palette */
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
   font-weight: 500;
 }
 
 .project-view-card-archived {
-  color: #666;
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 1rem;
   font-size: 0.9rem;
 }
@@ -175,12 +190,12 @@
 }
 
 .btn-archive {
-  background-color: #ef4444;
+  background-color: #b4565a; /* Red */
   color: white;
 }
 
 .btn-archive:hover {
-  background-color: #dc2626;
+  background-color: #91434a;
 }
 
 .status-active {
@@ -204,7 +219,7 @@
 
 /* Continue Button */
 .btn-continue {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background-color: #93C263;
   color: white;
   border: none;
   border-radius: 8px;
@@ -213,13 +228,13 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 2px 4px rgba(147, 194, 99, 0.3);
 }
 
 .btn-continue:hover:not(:disabled) {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  background-color: #7ba84f;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 4px 8px rgba(147, 194, 99, 0.4);
 }
 
 .btn-continue:disabled {
