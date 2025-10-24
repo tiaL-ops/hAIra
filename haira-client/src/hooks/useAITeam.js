@@ -4,8 +4,56 @@ import axios from 'axios';
 import { AI_TEAMMATES } from '../../../haira-server/config/aiReportAgents.js';
 import AlexAvatar from '../images/Alex.png';
 import SamAvatar from '../images/Sam.png';
+import { getChromeWriter } from '../utils/chromeAPI.js';
 
 const backend_host = "http://localhost:3002";
+
+const convertMarkdownToHTML = (markdown) => {
+  if (!markdown) return '';
+  
+  return markdown
+      // Convert headers first
+      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+      // Convert bold text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      // Convert italic text
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      // Convert numbered lists
+      .replace(/^\d+\.\s+(.*)$/gm, '<li>$1</li>')
+      // Convert bullet points
+      .replace(/^[-*]\s+(.*)$/gm, '<li>$1</li>')
+      // Convert double line breaks to paragraph breaks
+      .replace(/\n\n/g, '</p><p>')
+      // Wrap text blocks in paragraphs
+      .replace(/^(?!<[h1-6]|<[uo]l|<li)(.*)$/gm, (match, content) => {
+          if (content.trim() === '') return '';
+          return `<p>${content}</p>`;
+      })
+      // Clean up empty paragraphs
+      .replace(/<p><\/p>/g, '')
+      .replace(/<p>\s*<\/p>/g, '');
+};
+
+const convertMarkdownToPlainText = (markdown) => {
+  if (!markdown) return '';
+  
+  return markdown
+      // Remove headers (keep the text, remove the # symbols)
+      .replace(/^#{1,6}\s+(.*)$/gm, '$1')
+      // Remove bold formatting
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      // Remove italic formatting
+      .replace(/\*(.*?)\*/g, '$1')
+      // Convert numbered lists to plain text with proper indentation
+      .replace(/^\d+\.\s+(.*)$/gm, '• $1')
+      // Convert bullet points to plain text with proper indentation
+      .replace(/^[-*]\s+(.*)$/gm, '• $1')
+      // Clean up extra whitespace
+      .replace(/\n\s*\n/g, '\n\n')
+      .trim();
+};
 
 export const useAITeam = (projectId, editorRef, onAddComment = null) => {
   const [loadingAIs, setLoadingAIs] = useState(new Set());
@@ -170,6 +218,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     }
   }, [editorRef]);
 
+  
   // Perform AI task
   const performAITask = useCallback(async (aiType, taskType, sectionName = '', currentContent = '') => {
     if (!projectId) {
@@ -205,41 +254,90 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       
       console.log('Sending AI task request:', { endpoint, requestData });
       
-      const response = await axios.post(
-        endpoint,
-        requestData,
-        {
+      const serverSideFallback = async () => {
+        const token = await getIdTokenSafely();
+        const aiResponse = await axios.post(endpoint, requestData, {
           headers: {
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           }
-        }
-      );
+        });
+        return aiResponse.data;
+      };
 
-      const { response: aiResponse, responseType, completionMessage } = response.data;
+      // Get AI teammate info for Chrome Writer
+      const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
+      
+      // Determine task-specific context
+      let taskContext = '';
+      if (taskType === 'write_section') {
+        taskContext = aiTeammate.contexts?.write || aiTeammate.context;
+      } else if (taskType === 'suggest_improvements') {
+        taskContext = aiTeammate.contexts?.suggest || aiTeammate.context;
+      } else if (taskType === 'review') {
+        taskContext = aiTeammate.contexts?.review || aiTeammate.context;
+      } else {
+        taskContext = aiTeammate.context;
+      }
+      
+      // Prepare options for Chrome Writer
+      const writerOptions = {
+        tone: aiTeammate.tone || 'formal',
+        length: aiTeammate.length || 'medium',
+        context: taskContext
+      };
 
-      // Handle the response based on type
-      if (responseType === 'text') {
-        insertAIText(aiResponse, aiType, taskType);
-      } else if (responseType === 'comment') {
-        addAIComment(aiResponse, aiType, taskType);
-      } else if (responseType === 'review') {
-        // Only add as a comment in the sidebar, not in the editor
+      // Use Chrome Writer with fallback
+      const writerResult = await getChromeWriter(currentContent, writerOptions, serverSideFallback);
+      
+      console.log('Chrome Writer result:', writerResult);
+      
+      // Extract the actual content from the result
+      let aiResponse;
+      if (writerResult.content) {
+        aiResponse = writerResult.content;
+      } else if (typeof writerResult === 'string') {
+        aiResponse = writerResult;
+      } else if (writerResult.response || writerResult.text || writerResult.content) {
+        aiResponse = writerResult.response || writerResult.text || writerResult.content;
+      } else {
+        console.error('Unexpected response structure:', writerResult);
+        aiResponse = JSON.stringify(writerResult);
+      }
+      
+      // Ensure we have a valid string response
+      if (!aiResponse || typeof aiResponse !== 'string') {
+        console.error('Invalid AI response:', aiResponse);
+        throw new Error('AI response is not a valid string');
+      }
+      const cleanAIResponse = convertMarkdownToHTML(aiResponse);
+      // Handle the response based on task type
+      if (taskType === 'write_section') {
+        // For write tasks, insert text directly into the editor
+        insertAIText(cleanAIResponse, aiType, taskType);
+      } else if (taskType === 'review') {
+        // For review tasks, convert markdown to plain text and add as a comment in the sidebar
         if (onAddComment) {
-          const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
           const aiName = `${aiTeammate.name} (${aiTeammate.role})`;
-          const commentText = `Review by ${aiName}:\n${aiResponse}`;
+          const plainTextResponse = convertMarkdownToPlainText(aiResponse);
+          const commentText = `Review by ${aiName}:\n${plainTextResponse}`;
           onAddComment(commentText, 'review', aiName);
         }
-      } else if (responseType === 'suggest') {
-        // Only add as a comment in the sidebar, not in the editor
+      } else if (taskType === 'suggest_improvements') {
+        // For suggestion tasks, convert markdown to plain text and add as a comment in the sidebar
         if (onAddComment) {
-          const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
           const aiName = `${aiTeammate.name} (${aiTeammate.role})`;
-          const commentText = `Suggestion by ${aiName}:\n${aiResponse}`;
+          const plainTextResponse = convertMarkdownToPlainText(aiResponse);
+          const commentText = `Suggestion by ${aiName}:\n${plainTextResponse}`;
           onAddComment(commentText, 'suggestion', aiName);
         }
+      } else {
+        // Default fallback - insert as text
+        insertAIText(aiResponse, aiType, taskType);
       }
+
+      // Create completion message
+      const completionMessage = `${aiTeammate.name} completed ${taskType.replace('_', ' ')} task`;
 
       // Add completion message to the feedback system
       const messageId = Date.now() + Math.random(); // Ensure unique ID
@@ -260,7 +358,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
         );
       }, 5000);
 
-      return response.data;
+      return aiResponse;
     } catch (error) {
       console.error('AI Task error:', error);
       if (error.response) {

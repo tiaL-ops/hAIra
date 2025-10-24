@@ -14,7 +14,7 @@ import TeamPanel from "../components/TeamPanel";
 import TaskCompletionFeedback from "../components/TaskCompletionFeedback";
 import SummarizePopup from "../components/SummarizePopup";
 import ProofreadPopup from "../components/ProofreadPopup";
-import { getChromeProofreadSuggestions, getChromeSummary } from "../utils/chromeAPI";
+import { getChromeProofreadSuggestions, getChromeSummary, getChromeWriter } from "../utils/chromeAPI";
 import { useAITeam } from "../hooks/useAITeam";
 import { AI_TEAMMATES } from "../../../haira-server/config/aiReportAgents.js";
 import "../styles/editor.css";
