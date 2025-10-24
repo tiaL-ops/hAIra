@@ -1,7 +1,19 @@
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
-import { createProject, getUserProjects, updateUserActiveProject, updateDocument, getDocumentById, getProjectWithTasks } from '../services/firebaseService.js';
+import { 
+  createProject, getUserProjects, getUserProjectsWithTemplates,
+  updateUserActiveProject,
+  updateDocument, getProjectWithTasks,
+  canCreateNewProject, getActiveProject,
+  createAIGeneratedProject, getProjectWithTemplate,
+  archiveProject, getArchivedProjects, getInactiveProjects,
+  activateProject, getUnusedTemplatesForTopic, getLeastUsedTemplatesForTopic,
+  getDocumentById, updateTemplateUsage
+} from '../services/firebaseService.js';
+import { generateProjectForTopic, getOrCreateProjectTemplate } from '../services/aiProjectService.js';
 import { COLLECTIONS } from '../schema/database.js';
+import { PROJECT_RULES, LEARNING_TOPICS } from '../config/projectRules.js';
+import { AI_AGENTS } from '../config/aiAgents.js';
 
 const router = express.Router();
 
@@ -9,12 +21,37 @@ const router = express.Router();
 router.get('/', verifyFirebaseToken, async (req, res) => {
   try {
     const userId = req.user.uid;
+    const {includeArchived} = req.query;
     
-    const projects = await getUserProjects(userId);
+    const projects = await getUserProjectsWithTemplates(userId);
+    
+    console.log(`[ProjectRoutes] Raw projects for user ${userId}:`);
+    projects.forEach(p => {
+      console.log(`  - ${p.id}: isActive=${p.isActive}, status=${p.status}, archivedAt=${p.archivedAt}`);
+    });
+
+    //separate active and archived projects only
+    let activeProjects = projects.filter(project => !project.archivedAt);
+    const archivedProjects = projects.filter(project => project.archivedAt);
+
+    //create project limits
+    const canCreate = await canCreateNewProject(userId);
+    const activeProject = await getActiveProject(userId);
     
     res.json({
       success: true,
-      projects: projects
+      projects: includeArchived ? projects : activeProjects,
+      activeProjects: activeProjects,
+      archivedProjects: archivedProjects,
+      canCreateNew: canCreate,
+      activeProject: activeProject,
+      hasActiveProject: activeProject ? true : false,
+      projectLimits: {
+        maxTotalProjects: PROJECT_RULES.MAX_TOTAL_PROJECTS,
+        maxActiveProjects: PROJECT_RULES.MAX_ACTIVE_PROJECTS,
+        currentTotalProjects: projects.length,
+        currentActiveProjects: activeProjects.length,
+      }
     });
   } catch (error) {
     console.error('Error fetching user projects:', error);
@@ -84,7 +121,7 @@ router.post('/:projectId/activate', verifyFirebaseToken, async (req, res) => {
     const { projectId } = req.params;
     const userId = req.user.uid;
 
-    await updateUserActiveProject(userId, projectId);
+    await activateProject(userId, projectId);
 
     res.json({
       success: true,
@@ -130,5 +167,277 @@ router.post('/:id/team', verifyFirebaseToken, async (req, res) => {
   }
 });
 
+// get archive project
+router.get('/archived', verifyFirebaseToken, async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const archivedProjects = await getArchivedProjects(userId);
+    res.json({
+      success: true,
+      archivedProjects: archivedProjects
+    });
+  } catch (error) {
+    console.error('Error fetching archived projects:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch archived projects' });
+  }
+});
+
+//archive a project
+router.post('/:id/archive', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.uid;
+
+    await archiveProject(id, userId);
+
+    res.json({
+      success: true,
+      message: 'Project archived successfully'
+    });
+  } catch (error) {
+    console.error('Error archiving project:', error);
+    res.status(500).json({ error: error.message || 'Failed to archive project' });
+  }
+});
+
+//create a new project
+router.post('/create', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { title } = req.body;
+    const userId = req.user.uid;
+    const userName = req.user.name;
+    await createProject(userId, userName, title);
+    res.json({
+      success: true,
+      message: 'Project created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating project:', error);
+    res.status(500).json({ error: error.message || 'Failed to create project' });
+  }
+});
+
+// generate a new project
+router.post('/generate-project', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { topic, action = 'generate_new', templateId } = req.body;
+    const userId = req.user.uid;
+    const userName = req.user.name;
+
+    console.log(`[ProjectRoutes] Project generation request: topic=${topic}, action=${action}, templateId=${templateId}`);
+
+    let templateResult;
+    let projectId;
+
+    if (action === 'use_template' && templateId) {
+      // User selected an existing template
+      console.log(`[ProjectRoutes] Using existing template: ${templateId}`);
+      
+      // Get the template from database
+      const template = await getDocumentById(COLLECTIONS.PROJECT_TEMPLATES, templateId);
+      if (!template) {
+        throw new Error('Template not found');
+      }
+      
+      // Update template usage
+      await updateTemplateUsage(templateId, userId);
+      
+      templateResult = {
+        template: template,
+        isReused: true,
+        source: 'user_selected_template'
+      };
+      
+      // Create project with existing template
+      projectId = await createAIGeneratedProject(
+        userId, userName, topic, template, templateId
+      );
+      
+    } else {
+      // Generate new project (AI-generated)
+      console.log(`[ProjectRoutes] Generating new AI project for topic: ${topic}`);
+      
+      const aiProject = await generateProjectForTopic(topic);
+      projectId = await createAIGeneratedProject(
+        userId, userName, topic, aiProject
+      );
+      
+      templateResult = {
+        template: aiProject,
+        isReused: false,
+        source: 'ai_generated'
+      };
+    }
+
+    res.status(201).json({
+      success: true,
+      projectId: projectId,
+      project: templateResult.template,
+      isReused: templateResult.isReused,
+      source: templateResult.source,
+      message: templateResult.isReused 
+        ? 'Project created using selected template' 
+        : 'AI-generated project created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating AI project:', error);
+    res.status(500).json({ error: error.message || 'Failed to create AI project' });
+  }
+});
+
+
+// Get project limits
+router.get('/limits', verifyFirebaseToken, async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const canCreate = await canCreateNewProject(userId);
+    const activeProject = await getActiveProject(userId);
+    const projects = await getUserProjects(userId);
+    
+    res.json({
+      success: true,
+      canCreateNew: canCreate,
+      hasActiveProject: !!activeProject,
+      activeProject: activeProject,
+      projectLimits: {
+        maxTotal: PROJECT_RULES.MAX_TOTAL_PROJECTS,
+        maxActive: PROJECT_RULES.MAX_ACTIVE_PROJECTS,
+        currentTotal: projects.length,
+        currentActive: projects.filter(p => p.isActive !== false).length
+      }
+    });
+  } catch (error) {
+    console.error('Error checking project limits:', error);
+    res.status(500).json({ error: 'Failed to check project limits' });
+  }
+});
+
+// Get project with template data
+router.get('/:id/with-template', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.uid;
+
+    const projectData = await getProjectWithTemplate(id, userId);
+    
+    if (!projectData) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    res.json({
+      success: true,
+      project: projectData.project,
+      template: projectData.template
+    });
+  } catch (error) {
+    console.error('Error fetching project with template:', error);
+    res.status(500).json({ error: 'Failed to fetch project with template' });
+  }
+});
+
+// Get learning topics
+router.get('/topics', verifyFirebaseToken, async (req, res) => {
+  try {
+    console.log('[ProjectRoutes] Topics endpoint called by user:', req.user?.uid);
+    res.json({
+      success: true,
+      topics: LEARNING_TOPICS
+    });
+  } catch (error) {
+    console.error('Error fetching learning topics:', error);
+    res.status(500).json({ error: 'Failed to fetch learning topics' });
+  }
+});
+
+// Get available templates for a specific topic
+router.get('/templates/:topic', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { topic } = req.params;
+    const userId = req.user.uid;
+    
+    console.log(`[ProjectRoutes] Getting templates for topic: ${topic}, user: ${userId}`);
+    
+    // Get unused templates first
+    const unusedTemplates = await getUnusedTemplatesForTopic(topic, userId);
+    
+    // Get least-used templates as fallback
+    const leastUsedTemplates = await getLeastUsedTemplatesForTopic(topic, 5);
+    
+    // Combine and deduplicate templates
+    const allTemplates = [...unusedTemplates];
+    const existingIds = new Set(unusedTemplates.map(t => t.id));
+    
+    leastUsedTemplates.forEach(template => {
+      if (!existingIds.has(template.id)) {
+        allTemplates.push(template);
+      }
+    });
+    
+    console.log(`[ProjectRoutes] Found ${allTemplates.length} templates for topic ${topic}`);
+    
+    res.json({
+      success: true,
+      templates: allTemplates,
+      unusedCount: unusedTemplates.length,
+      totalCount: allTemplates.length
+    });
+  } catch (error) {
+    console.error('Error fetching templates:', error);
+    res.status(500).json({ error: 'Failed to fetch templates' });
+  }
+});
 // Export the router so we can use it in index.js
+// Manual migration route to fix existing projects without isActive field
+router.post('/fix-projects', verifyFirebaseToken, async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const projects = await getUserProjects(userId);
+    
+    console.log(`[ProjectRoutes] Found ${projects.length} projects for user ${userId}`);
+    
+    const projectsWithoutIsActive = projects.filter(p => p.isActive === undefined && !p.archivedAt);
+    console.log(`[ProjectRoutes] Found ${projectsWithoutIsActive.length} projects without isActive field`);
+    
+    if (projectsWithoutIsActive.length === 0) {
+      return res.json({ 
+        success: true, 
+        message: 'All projects already have isActive field',
+        fixed: 0
+      });
+    }
+    
+    // Make the most recent project active, others inactive
+    const sortedProjects = projectsWithoutIsActive.sort((a, b) => (b.startDate || 0) - (a.startDate || 0));
+    
+    let fixed = 0;
+    for (let i = 0; i < sortedProjects.length; i++) {
+      const project = sortedProjects[i];
+      const isActive = i === 0; // First (most recent) is active
+      
+      await updateDocument(COLLECTIONS.USER_PROJECTS, project.id, {
+        isActive: isActive,
+        status: isActive ? 'active' : 'inactive'
+      });
+      
+      if (isActive) {
+        await updateUserActiveProject(userId, project.id);
+      }
+      
+      fixed++;
+      console.log(`[ProjectRoutes] Fixed project ${project.id} - isActive: ${isActive}`);
+    }
+    
+    res.json({
+      success: true,
+      message: `Fixed ${fixed} projects`,
+      fixed: fixed,
+      activeProject: sortedProjects[0].id
+    });
+    
+  } catch (error) {
+    console.error('Error fixing projects:', error);
+    res.status(500).json({ error: 'Failed to fix projects' });
+  }
+});
+
 export default router;

@@ -363,164 +363,60 @@ export function buildEnhancedPrompt(agentId, context, userMessage) {
   
   const teammateList = context.teammates.map(t => `${t.name} (${t.role})`).join(', ');
   
-  // Build detailed task awareness
-  let taskContext = `\n=== CURRENT PROJECT STATUS ===\n`;
-  taskContext += `Project: "${context.projectName}"\n`;
-  taskContext += `Day ${context.currentDay} of 7-day sprint\n`;
-  taskContext += `${context.taskSummary}\n\n`;
-  
-  // Show ALL tasks to every agent so they know what's happening
-  taskContext += `=== ALL PROJECT TASKS FROM FIRESTORE ===\n`;
-  taskContext += `IMPORTANT: These are the actual tasks from the Kanban board. You MUST be aware of these!\n\n`;
-  
-  console.log(`[buildEnhancedPrompt] Building task section for ${agentId}. Total tasks: ${context.allTasks.length}`);
-  
+  // Build natural task awareness (only if there are tasks)
+  let taskContext = '';
   if (context.allTasks.length > 0) {
-    context.allTasks.forEach((task, idx) => {
-      // The DESCRIPTION field is the actual task to do!
-      const taskToDo = task.description || task.text || task.title || 'Untitled';
-      const projectTitle = task.title || '';
-      const status = task.status || 'todo';
-      const assignedTo = task.assignedTo || 'unassigned';
-      
-      console.log(`[buildEnhancedPrompt] Task ${idx + 1}: "${taskToDo}" (assigned to: ${assignedTo})`);
-      
-      // Determine who this task belongs to
-      let assigneeName = 'Unknown';
-      if (assignedTo.includes('alex') || assignedTo === 'alex') {
-        assigneeName = 'Alex (Project Manager)';
-      } else if (assignedTo.includes('rasoa') || assignedTo === 'rasoa') {
-        assigneeName = 'Rasoa (Research Planner)';
-      } else if (assignedTo.includes('rakoto') || assignedTo === 'rakoto') {
-        assigneeName = 'Rakoto (Technical Developer)';
-      } else if (assignedTo.includes('user') || assignedTo.length > 20) {
-        assigneeName = 'User (Human team member)';
-      } else {
-        assigneeName = `Unassigned (${assignedTo})`;
-      }
-      
-      // Format: Show the actual TASK (from description field)
-      taskContext += `TASK ${idx + 1}: ${taskToDo}\n`;
-      taskContext += `   Status: [${status}]\n`;
-      taskContext += `   Project: ${projectTitle}\n`;
-      taskContext += `   Assigned to: ${assigneeName}\n\n`;
-    });
+    const todoTasks = context.allTasks.filter(t => t.status === 'todo');
+    const inProgressTasks = context.allTasks.filter(t => t.status === 'inprogress');
+    const completedTasks = context.allTasks.filter(t => t.status === 'done');
     
-    console.log(`[buildEnhancedPrompt] ✅ Added ${context.allTasks.length} tasks to prompt for ${agentId}`);
-    console.log(`[buildEnhancedPrompt] TASK SECTION PREVIEW:\n${taskContext.substring(0, 800)}`);
-  } else {
-    taskContext += `No tasks defined yet.\n\n`;
-    console.log(`[buildEnhancedPrompt] ⚠️ NO TASKS FOUND for ${agentId}`);
+    taskContext = `\n📊 Project Status (Day ${context.currentDay}/7):\n`;
+    if (completedTasks.length > 0) taskContext += `✅ ${completedTasks.length} completed | `;
+    if (inProgressTasks.length > 0) taskContext += `🔄 ${inProgressTasks.length} in progress | `;
+    if (todoTasks.length > 0) taskContext += `📝 ${todoTasks.length} to do`;
+    taskContext += `\n\n`;
   }
   
-  // Add specific assignments for this agent
-  if (context.myTasks.length > 0) {
-    taskContext += `=== YOUR SPECIFIC ASSIGNMENTS ===\n`;
-    context.myTasks.forEach((task, idx) => {
-      const title = task.title || task.text || 'Untitled';
-      const description = task.description || '';
-      const status = task.status || 'todo';
-      
-      taskContext += `${idx + 1}. [${status}] ${title}\n`;
-      if (description) {
-        taskContext += `   Description: ${description}\n`;
-      }
-      taskContext += `   (This is YOUR task)\n\n`;
-    });
-  } else {
-    taskContext += `=== YOUR ASSIGNMENTS ===\n`;
-    taskContext += `You have no specific tasks assigned to you.\n\n`;
-  }
-  
-  // Add previous days' context if available
+  // Add previous days' context naturally
   let previousDaysSection = '';
   if (context.previousDaysContext && context.previousDaysContext.length > 0) {
-    previousDaysSection += `\n=== CONTEXT FROM PREVIOUS DAYS ===\n`;
-    previousDaysSection += `(Key points from earlier discussions - remember these when responding)\n\n`;
+    previousDaysSection += `\n💭 Earlier discussions:\n`;
     
     let lastDay = null;
-    context.previousDaysContext.forEach(msg => {
+    context.previousDaysContext.slice(-5).forEach(msg => { // Only last 5 messages
       if (msg.day !== lastDay) {
-        previousDaysSection += `Day ${msg.day}:\n`;
+        previousDaysSection += `Day ${msg.day}: `;
         lastDay = msg.day;
       }
-      previousDaysSection += `  ${msg.senderName}: ${msg.content || msg.text}\n`;
+      previousDaysSection += `${msg.senderName}: ${msg.content || msg.text}\n`;
     });
     previousDaysSection += '\n';
+  }
+  
+  // Conversation insights
+  let insightsSection = '';
+  if (context.enhancedConversationSummary) {
+    if (context.potentialTasks.length > 0) {
+      insightsSection += `💡 Potential tasks mentioned: ${context.potentialTasks.map(t => t.text).join(', ')}\n`;
+    }
+    if (context.actionItems.length > 0) {
+      insightsSection += `✅ Action items: ${context.actionItems.map(t => t.text).join(', ')}\n`;
+    }
   }
   
   return `
 ${agent.systemPrompt}
 
-⚠️⚠️⚠️ CRITICAL: READ THE TASKS BELOW ⚠️⚠️⚠️
-You have ${context.allTasks.length} tasks from Firestore. 
-They are listed in the "ALL PROJECT TASKS FROM FIRESTORE" section below.
-YOU MUST be aware of these tasks and reference them when the user asks about tasks or project status!
-
-=== ENHANCED CONTEXT AWARENESS ===
-You now have access to enhanced context including:
-- Real-time task information from Firestore (${context.allTasks.length} tasks)
-- Conversation insights and potential tasks mentioned
-- Action items identified in discussions
-- Key topics discussed today
-- Full project status and team coordination
-
-=== CURRENT CONTEXT ===
-You are: ${context.agentName} (${context.agentRole})
-Project: ${context.projectName}
-Day: ${context.currentDay}/7
-Teammates: ${teammateList}
-Alex (PM) status: ${context.alexAvailable ? 'AVAILABLE today' : 'NOT available today (only active Days 1, 3, 6)'}
-
-${taskContext}
-${previousDaysSection}
-
-=== TODAY'S CONVERSATION (Day ${context.currentDay}) ===
+You are ${context.agentName}, ${context.agentRole} for project "${context.projectName}".
+Team: ${teammateList}
+${context.alexAvailable ? '' : '(Alex is only available on Days 1, 3, 6)'}
+${taskContext}${previousDaysSection}${insightsSection}
+Recent conversation:
 ${context.conversationSummary}
 
-${context.enhancedConversationSummary ? `
-=== CONVERSATION INSIGHTS ===
-${context.enhancedConversationSummary.summary}
+User just said: "${userMessage}"
 
-${context.potentialTasks.length > 0 ? `
-POTENTIAL TASKS MENTIONED IN CONVERSATION:
-${context.potentialTasks.map((task, idx) => `${idx + 1}. ${task.text}`).join('\n')}
-` : ''}
-
-${context.actionItems.length > 0 ? `
-ACTION ITEMS IDENTIFIED:
-${context.actionItems.map((item, idx) => `${idx + 1}. ${item.text}`).join('\n')}
-` : ''}
-
-${context.keyTopics.length > 0 ? `
-KEY TOPICS DISCUSSED: ${context.keyTopics.join(', ')}
-` : ''}
-` : ''}
-
-=== CURRENT MESSAGE ===
-User: ${userMessage}
-
-=== RESPONSE GUIDELINES ===
-- You are ${context.agentName}. NEVER speak as other agents.
-- You can see ALL project tasks listed above in "ALL PROJECT TASKS FROM FIRESTORE".
-- When user asks about tasks or project status, YOU MUST reference the tasks listed above.
-- The tasks are REAL and from the Kanban board - acknowledge them!
-- If user asks "what tasks do we have?", list the tasks from above.
-- If user asks about project status, reference the task statuses shown above.
-- Reference any task when relevant, even if not assigned to you.
-- Be aware of what everyone is working on (User, Alex, Rasoa, Rakoto).
-- REMEMBER and reference previous days' discussions when relevant.
-- Build on the conversation history naturally across all days.
-- Keep responses brief (2-4 sentences) and conversational.
-- When the day changes, acknowledge continuity: "Following up from yesterday..." or "As we discussed earlier..."
-- You can help coordinate tasks even if they're not assigned to you.
-
-=== TASK REMINDER SYSTEM ===
-- If you notice potential tasks mentioned in conversation that aren't in the Kanban board, gently remind the user.
-- Example: "I noticed we discussed [task] - should we add this to the Kanban board so we don't forget?"
-- If there are action items from conversation, suggest adding them as tasks.
-- Be helpful but not pushy about task management.
-- Focus on preventing important work from being forgotten.
+Respond naturally (2-3 sentences). Reference tasks or previous discussions ONLY when relevant to the current message. Don't always mention tasks unless the user asks about them.
 `;
 }
 

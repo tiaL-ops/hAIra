@@ -1,16 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
+import WeeklyLearningPrompt from '../components/WeeklyLearningPrompt';
+import ConfirmationModal from '../components/ConfirmationModal';
+import ProjectViewModal from '../components/ProjectViewModal';
 import '../styles/ProjectSelection.css';
+import axios from 'axios';
+
+const backend_host = "http://localhost:3002";
 
 export default function ProjectSelection() {
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState([]);
-  const [newProjectTitle, setNewProjectTitle] = useState('');
-  const [creating, setCreating] = useState(false);
+  const [activeProjects, setActiveProjects] = useState([]);
+  const [archivedProjects, setArchivedProjects] = useState([]);
   const [error, setError] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+  const [projectLimits, setProjectLimits] = useState(null);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [projectToArchive, setProjectToArchive] = useState(null);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [modalProjects, setModalProjects] = useState([]);
+  const [modalTitle, setModalTitle] = useState('');
   const navigate = useNavigate();
   const auth = getAuth();
+
 
   // Get user projects from server
   useEffect(() => {
@@ -22,19 +36,28 @@ export default function ProjectSelection() {
 
       try {
         const token = await auth.currentUser.getIdToken();
-        
-        const response = await fetch('http://localhost:3002/api/project', {
+        const response = await axios.get(`${backend_host}/api/project`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
 
-        if (!response.ok) {
+        if (!response.data.success) {
           throw new Error('Failed to fetch projects');
         }
 
-        const data = await response.json();
+        const data = response.data;
         setProjects(data.projects || []);
+        setActiveProjects(response.data.activeProjects || []);
+        setArchivedProjects(response.data.archivedProjects || []);
+        
+
+        setProjectLimits({
+          ...response.data.projectLimits,
+          canCreateNew: response.data.canCreateNew
+        });
+        
+        // Don't auto-show weekly prompt - let user choose when to create projects
       } catch (err) {
         console.error('Error fetching projects:', err);
         setError('Failed to load your projects. Please try again.');
@@ -46,48 +69,6 @@ export default function ProjectSelection() {
     fetchUserProjects();
   }, [navigate, auth]);
 
-  // Create a new project via server
-  const handleCreateProject = async (e) => {
-    e.preventDefault();
-    
-    if (!newProjectTitle.trim()) {
-      setError('Please enter a project title');
-      return;
-    }
-
-    setCreating(true);
-    setError('');
-
-    try {
-      const token = await auth.currentUser.getIdToken();
-      
-      const response = await fetch('http://localhost:3002/api/project', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          title: newProjectTitle
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create project');
-      }
-
-      const data = await response.json();
-      
-      // Navigate to kanban board for this project
-      navigate(`/project/${data.projectId}/kanban`);
-      
-    } catch (err) {
-      console.error('Error creating project:', err);
-      setError('Failed to create project. Please try again.');
-    } finally {
-      setCreating(false);
-    }
-  };
 
   // Open an existing project
   const handleOpenProject = async (projectId, destination) => {
@@ -95,12 +76,13 @@ export default function ProjectSelection() {
       const token = await auth.currentUser.getIdToken();
       
       // Update user's activeProjectId via server
-      await fetch(`http://localhost:3002/api/project/${projectId}/activate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
+      await axios.post(`${backend_host}/api/project/${projectId}/activate`, {
+      }, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         }
-      });
+      );
       
       // Navigate to the destination for this project
       navigate(`/project/${projectId}/${destination}`);
@@ -108,6 +90,102 @@ export default function ProjectSelection() {
       console.error('Error updating active project:', err);
       // Navigate anyway
       navigate(`/project/${projectId}/${destination}`);
+    }
+  };
+
+  // Show archive confirmation modal
+  const handleArchiveProject = (projectId) => {
+    setProjectToArchive(projectId);
+    setShowArchiveModal(true);
+  };
+
+  // Confirm archive action
+  const confirmArchiveProject = async () => {
+    if (!projectToArchive) return;
+
+    try {
+      const token = await auth.currentUser.getIdToken();
+      
+      const response = await axios.post(`${backend_host}/api/project/${projectToArchive}/archive`, {
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        // Refresh projects
+        window.location.reload();
+      } else {
+        throw new Error('Failed to archive project');
+      }
+
+      const data = await response.json();
+      
+  // After creating a project, take the user to Classroom to choose teammates
+  navigate(`/project/${data.projectId}/classroom`);
+      
+    } catch (err) {
+      console.error('Error archiving project:', err);
+      setError('Failed to archive project. Please try again.');
+    } finally {
+      setShowArchiveModal(false);
+      setProjectToArchive(null);
+    }
+  };
+
+  // Cancel archive action
+  const cancelArchiveProject = () => {
+    setShowArchiveModal(false);
+    setProjectToArchive(null);
+  };
+
+  // Show project modal
+  const showProjectView = (projects, title) => {
+    setModalProjects(projects);
+    setModalTitle(title);
+    setShowProjectModal(true);
+  };
+
+  // Close project modal
+  const closeProjectModal = () => {
+    setShowProjectModal(false);
+    setModalProjects([]);
+    setModalTitle('');
+  };
+
+  // Handle AI project creation
+  const handleTopicSelected = (projectId, project) => {
+    // Navigate to the new project
+    navigate(`/project/${projectId}/kanban`);
+  };
+
+  // Handle continue current project
+  const handleContinueProject = (currentProject) => {
+    navigate(`/project/${currentProject.id}/kanban`);
+  };
+
+
+
+  // Fix projects without isActive field
+  const handleFixProjects = async () => {
+    try {
+      const token = await auth.currentUser.getIdToken();
+      
+      const response = await axios.post(`${backend_host}/api/project/fix-projects`, {}, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('Fix projects response:', response.data);
+      alert(`Fixed ${response.data.fixed} projects! Most recent project is now active.`);
+      
+      // Refresh the page to show fixed projects
+      window.location.reload();
+    } catch (err) {
+      console.error('Error fixing projects:', err);
+      alert('Failed to fix projects. Please try again.');
     }
   };
 
@@ -125,12 +203,9 @@ export default function ProjectSelection() {
   return (
     <div className="projects-wrapper">
       <div className="projects-container">
-        <div className="projects-header">
-          <h1 className="projects-title">Your Projects</h1>
-          <p className="projects-subtitle">
-            Select an existing project or create a new one
-          </p>
-        </div>
+        {/* Header Section */}
+        {/* <div className="projects-header">
+        </div> */}
         
         {error && (
           <div className="projects-error">
@@ -138,79 +213,116 @@ export default function ProjectSelection() {
           </div>
         )}
 
-        {/* Create New Project Form */}
-        <div className="create-project-section">
-          <h2 className="create-project-title">Create New Project</h2>
-          
-          <form onSubmit={handleCreateProject} className="create-form">
-            <div className="form-group">
-              <label htmlFor="project-title" className="form-label">
-                Project Title
-              </label>
-              <input
-                id="project-title"
-                type="text"
-                value={newProjectTitle}
-                onChange={(e) => setNewProjectTitle(e.target.value)}
-                placeholder="My Amazing Project"
-                className="form-input"
-                required
-                disabled={creating}
-              />
+        {/* Main Projects Display - Show prominently first */}
+        {projects.length > 0 ? (
+          <div className="main-projects-section">
+            <div className="projects-header">
+              <h1 className="projects-title">Your Projects</h1>
+              <p className="projects-subtitle">Continue working on your existing projects or create a new one</p>
             </div>
             
-            <button
-              type="submit"
-              disabled={creating}
-              className="btn-create"
-            >
-              {creating ? (
-                <span className="loading-spinner">
-                  <span className="spinner"></span>
-                  Creating...
-                </span>
-              ) : (
-                'Create Project'
-              )}
-            </button>
-          </form>
-        </div>
-
-        {/* Existing Projects */}
-        {projects.length > 0 ? (
-          <div className="projects-grid">
-            {projects.map((project) => (
-              <div key={project.id} className="project-card">
-                <h3 className="project-card-title">
-                  {project.title}
-                </h3>
-                <p className="project-card-status">
-                  Status: <span>{project.status}</span>
-                </p>
-                <div className="project-actions">
-                  <button 
-                    onClick={() => handleOpenProject(project.id, 'kanban')}
-                    className="btn-action btn-kanban"
-                  >
-                    Kanban Board
-                  </button>
-                  <button 
-                    onClick={() => handleOpenProject(project.id, 'chat')}
-                    className="btn-action btn-chat"
-                  >
-                    Chat
-                  </button>
+            <div className="projects-grid-large">
+              {projects.map((project) => (
+                <div key={project.id} className="project-card-large">
+                  <h2 className="project-card-title-large">
+                    {project.title}
+                  </h2>
+                  <p className="project-card-status-large">
+                    Status: <span className="status-badge">{project.status}</span>
+                  </p>
+                  <div className="project-actions-large">
+                    <button 
+                      onClick={() => handleOpenProject(project.id, 'classroom')}
+                      className="btn-action-large btn-primary-large"
+                      title="Choose or activate AI teammates"
+                    >
+                      Choose Teammates
+                    </button>
+                    <button 
+                      onClick={() => handleOpenProject(project.id, 'kanban')}
+                      className="btn-action-large btn-kanban-large"
+                    >
+                      Kanban Board
+                    </button>
+                    <button 
+                      onClick={() => handleOpenProject(project.id, 'chat')}
+                      className="btn-action-large btn-chat-large"
+                    >
+                      Team Chat
+                    </button>
+                    <button 
+                      onClick={() => handleOpenProject(project.id, 'submission')}
+                      className="btn-action-large btn-secondary-large"
+                    >
+                      Submission
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         ) : (
-          <div className="empty-state">
-            <p className="empty-state-text">
-              You don't have any projects yet. Create one to get started!
+          <div className="empty-state-large">
+            <h2 className="empty-state-title">Welcome to hAIra!</h2>
+            <p className="empty-state-text-large">
+              You don't have any projects yet. Create your first project below to get started with AI-powered learning!
             </p>
           </div>
         )}
+
+        {/* Weekly Learning Prompt - Secondary Interface for new projects */}
+        <div className="weekly-prompt-section">
+          <div className="new-project-header">
+            <h2>Create New Project</h2>
+            <p>Start a new learning journey with AI teammates</p>
+          </div>
+          <WeeklyLearningPrompt
+            onTopicSelected={handleTopicSelected}
+            onContinueProject={handleContinueProject}
+            currentProject={activeProjects[0]}
+            canCreateNew={projectLimits?.canCreateNew}
+          />
+        </div>
+
+        {/* Project View Buttons - For managing different project states */}
+        <div className="project-view-buttons">
+          <button 
+            className="view-btn active-btn"
+            onClick={() => showProjectView(activeProjects, 'Active Projects')}
+            disabled={activeProjects.length === 0}
+          >
+            Active Projects ({activeProjects.length})
+          </button>
+          
+          <button 
+            className="view-btn archived-btn"
+            onClick={() => showProjectView(archivedProjects, 'Archived Projects')}
+            disabled={archivedProjects.length === 0}
+          >
+            Archived Projects ({archivedProjects.length})
+          </button>
+        </div>
+        {/* Project View Modal */}
+        <ProjectViewModal
+          isOpen={showProjectModal}
+          projects={modalProjects}
+          title={modalTitle}
+          onClose={closeProjectModal}
+          onOpenProject={handleOpenProject}
+          onArchiveProject={handleArchiveProject}
+        />
+
+        {/* Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={showArchiveModal}
+          title="Archive Project"
+          message="Are you sure you want to archive this project? You can restore it later."
+          confirmText="Archive"
+          cancelText="Cancel"
+          type="warning"
+          onConfirm={confirmArchiveProject}
+          onCancel={cancelArchiveProject}
+        />
       </div>
     </div>
   );
