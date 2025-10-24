@@ -218,10 +218,69 @@ export default function ProjectSelection() {
           </div>
         )}
 
+        {/* Main Projects Display - Show prominently first */}
+        {projects.length > 0 ? (
+          <div className="main-projects-section">
+            <div className="projects-header">
+              <h1 className="projects-title">Your Projects</h1>
+              <p className="projects-subtitle">Continue working on your existing projects or create a new one</p>
+            </div>
+            
+            <div className="projects-grid-large">
+              {projects.map((project) => (
+                <div key={project.id} className="project-card-large">
+                  <h2 className="project-card-title-large">
+                    {project.title}
+                  </h2>
+                  <p className="project-card-status-large">
+                    Status: <span className="status-badge">{project.status}</span>
+                  </p>
+                  <div className="project-actions-large">
+                    <button 
+                      onClick={() => handleOpenProject(project.id, 'classroom')}
+                      className="btn-action-large btn-primary-large"
+                      title="Choose or activate AI teammates"
+                    >
+                      Choose Teammates
+                    </button>
+                    <button 
+                      onClick={() => handleOpenProject(project.id, 'kanban')}
+                      className="btn-action-large btn-kanban-large"
+                    >
+                      Kanban Board
+                    </button>
+                    <button 
+                      onClick={() => handleOpenProject(project.id, 'chat')}
+                      className="btn-action-large btn-chat-large"
+                    >
+                      Team Chat
+                    </button>
+                    <button 
+                      onClick={() => handleOpenProject(project.id, 'submission')}
+                      className="btn-action-large btn-secondary-large"
+                    >
+                      Submission
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="empty-state-large">
+            <h2 className="empty-state-title">Welcome to hAIra!</h2>
+            <p className="empty-state-text-large">
+              You don't have any projects yet. Create your first project below to get started with AI-powered learning!
+            </p>
+          </div>
+        )}
 
-
-        {/* Weekly Learning Prompt - Main Interface */}
+        {/* Weekly Learning Prompt - Secondary Interface for new projects */}
         <div className="weekly-prompt-section">
+          <div className="new-project-header">
+            <h2>Create New Project</h2>
+            <p>Start a new learning journey with AI teammates</p>
+          </div>
           <WeeklyLearningPrompt
             onTopicSelected={handleTopicSelected}
             onContinueProject={handleContinueProject}
@@ -230,14 +289,14 @@ export default function ProjectSelection() {
           />
         </div>
 
-        {/* Project View Buttons */}
+        {/* Project View Buttons - For managing different project states */}
         <div className="project-view-buttons">
           <button 
             className="view-btn active-btn"
             onClick={() => showProjectView(activeProjects, 'Active Projects')}
             disabled={activeProjects.length === 0}
           >
-            📋 Active Projects ({activeProjects.length})
+            Active Projects ({activeProjects.length})
           </button>
           
           <button 
@@ -245,7 +304,7 @@ export default function ProjectSelection() {
             onClick={() => showProjectView(inactiveProjects, 'Inactive Projects')}
             disabled={inactiveProjects.length === 0}
           >
-            ⏸️ Inactive Projects ({inactiveProjects.length})
+            Inactive Projects ({inactiveProjects.length})
           </button>
           
           <button 
@@ -253,58 +312,9 @@ export default function ProjectSelection() {
             onClick={() => showProjectView(archivedProjects, 'Archived Projects')}
             disabled={archivedProjects.length === 0}
           >
-            📦 Archived Projects ({archivedProjects.length})
+            Archived Projects ({archivedProjects.length})
           </button>
         </div>
-
-        {/* Existing Projects */}
-        {projects.length > 0 ? (
-          <div className="projects-grid">
-            {projects.map((project) => (
-              <div key={project.id} className="project-card">
-                <h3 className="project-card-title">
-                  {project.title}
-                </h3>
-                <p className="project-card-status">
-                  Status: <span>{project.status}</span>
-                </p>
-                <div className="project-actions">
-                  <button 
-                    onClick={() => handleOpenProject(project.id, 'classroom')}
-                    className="btn-action btn-primary"
-                    title="Choose or activate AI teammates"
-                  >
-                    Choose Teammates
-                  </button>
-                  <button 
-                    onClick={() => handleOpenProject(project.id, 'kanban')}
-                    className="btn-action btn-kanban"
-                  >
-                    Kanban
-                  </button>
-                  <button 
-                    onClick={() => handleOpenProject(project.id, 'chat')}
-                    className="btn-action btn-chat"
-                  >
-                    Chat
-                  </button>
-                  <button 
-                    onClick={() => handleOpenProject(project.id, 'submission')}
-                    className="btn-action btn-secondary"
-                  >
-                    Submission
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="empty-state">
-            <p className="empty-state-text">
-              You don't have any projects yet. Create one to get started!
-            </p>
-          </div>
-        )}
         {/* Project View Modal */}
         <ProjectViewModal
           isOpen={showProjectModal}
