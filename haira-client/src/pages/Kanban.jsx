@@ -4,6 +4,7 @@ import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 import { useAuth } from '../App';
 import KanbanBoard from "../components/kanbanBoard";
+import '../styles/Chat.css';
 
 const backend_host = "http://localhost:3002";
 
@@ -84,11 +85,11 @@ function Kanban() {
     }
 
     return (
-      <div className="min-h-screen bg-[#d3f2c9] p-6 flex gap-6">
+      <div className="chat-container min-h-screen p-6 flex gap-6">
 
         {/* Left side: Kanban Board */}
         <div className="flex-1 bg-white rounded-2xl shadow-xl p-6 border border-pink-200">
-          <h1 className="text-2xl font-bold mb-4" style={{ color: '#B4565A' }}>Kanban Board</h1>
+          <h1 className="text-2xl font-bold mb-4" style={{ color: '#302e2eff' }}>Kanban Board</h1>
           <KanbanBoard />
         </div>
 
