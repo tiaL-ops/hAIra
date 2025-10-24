@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { v4 as uuidv4 } from "uuid";
-import { getAuth, signInWithCredential } from 'firebase/auth';
+import { getAuth, onAuthStateChanged  } from 'firebase/auth';
 import { useAuth } from '../App';
 import axios from 'axios';
 import '../styles/Kanban.css';
@@ -22,14 +22,22 @@ const initialData = {
   done: [],
 };
 
-const assignees = ["You", "Alex", "Sam", "Rakoto", "Rasoa"];
+// index 0 is the connected user
+let assignees = ['You', 'Alex', 'Sam', 'Rakoto', 'Rasoa' ];
+onAuthStateChanged(auth, (user) => {
+  if (user)
+    assignees[0] = user.displayName;
+});
 
 const getAIAvatar = (name) => {
-  // default avatar image
-  if (!assignees.includes(name))
-    return '/src/images/Alex.png';
+  // Avatar of the connected user
+  if (name === assignees[0])
+    return '/src/images/You.png';
 
-  return '/src/images/' + name + '.png';
+  if (assignees.includes(name))
+    return '/src/images/' + name + '.png';
+
+  return '';
 };
 
 const getPriorityClass = (priority) => {
