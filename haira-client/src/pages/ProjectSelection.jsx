@@ -13,7 +13,6 @@ export default function ProjectSelection() {
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState([]);
   const [activeProjects, setActiveProjects] = useState([]);
-  const [inactiveProjects, setInactiveProjects] = useState([]);
   const [archivedProjects, setArchivedProjects] = useState([]);
   const [error, setError] = useState('');
   const [showArchived, setShowArchived] = useState(false);
@@ -50,16 +49,9 @@ export default function ProjectSelection() {
         const data = response.data;
         setProjects(data.projects || []);
         setActiveProjects(response.data.activeProjects || []);
-        setInactiveProjects(response.data.inactiveProjects || []);
         setArchivedProjects(response.data.archivedProjects || []);
         
-        // Debug logging for archived projects
-        console.log('Archived projects data:', response.data.archivedProjects);
-        if (response.data.archivedProjects && response.data.archivedProjects.length > 0) {
-          response.data.archivedProjects.forEach(project => {
-            console.log(`Archived project: ${project.title}, archivedAt: ${project.archivedAt}, type: ${typeof project.archivedAt}`);
-          });
-        }
+
         setProjectLimits({
           ...response.data.projectLimits,
           canCreateNew: response.data.canCreateNew
@@ -173,24 +165,27 @@ export default function ProjectSelection() {
     navigate(`/project/${currentProject.id}/kanban`);
   };
 
-  // Handle continue inactive project (make it active)
-  const handleContinueInactiveProject = async (projectId) => {
+
+
+  // Fix projects without isActive field
+  const handleFixProjects = async () => {
     try {
       const token = await auth.currentUser.getIdToken();
       
-      // Make the inactive project active
-      await axios.post(`${backend_host}/api/project/${projectId}/activate`, {
-      }, {
+      const response = await axios.post(`${backend_host}/api/project/fix-projects`, {}, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       
-      // Refresh projects to show updated state
+      console.log('Fix projects response:', response.data);
+      alert(`Fixed ${response.data.fixed} projects! Most recent project is now active.`);
+      
+      // Refresh the page to show fixed projects
       window.location.reload();
     } catch (err) {
-      console.error('Error activating project:', err);
-      setError('Failed to activate project. Please try again.');
+      console.error('Error fixing projects:', err);
+      alert('Failed to fix projects. Please try again.');
     }
   };
 
@@ -300,14 +295,6 @@ export default function ProjectSelection() {
           </button>
           
           <button 
-            className="view-btn inactive-btn"
-            onClick={() => showProjectView(inactiveProjects, 'Inactive Projects')}
-            disabled={inactiveProjects.length === 0}
-          >
-            Inactive Projects ({inactiveProjects.length})
-          </button>
-          
-          <button 
             className="view-btn archived-btn"
             onClick={() => showProjectView(archivedProjects, 'Archived Projects')}
             disabled={archivedProjects.length === 0}
@@ -323,7 +310,6 @@ export default function ProjectSelection() {
           onClose={closeProjectModal}
           onOpenProject={handleOpenProject}
           onArchiveProject={handleArchiveProject}
-          onContinueProject={handleContinueInactiveProject}
         />
 
         {/* Confirmation Modal */}

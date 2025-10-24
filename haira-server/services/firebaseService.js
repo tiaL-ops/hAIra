@@ -370,22 +370,43 @@ export async function ensureProjectExists(projectId, userId = 'default_user', te
 
 // Create a new project
 export async function createProject(userId, userName, title) {
-  const projectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc();
-  
-  const projectData = {
-    userId: userId,
-    title: title,
-    status: 'started',
-    startDate: Date.now(),
-    team: [{
-      id: userId,
-      name: userName,
-      role: 'owner'
-    }]
-  };
-  
-  await projectRef.set(projectData);
-  return projectRef.id;
+  try {
+    // Set any existing active project to inactive (not archived)
+    const activeProject = await getActiveProject(userId);
+    if (activeProject) {
+      await updateDocument(COLLECTIONS.USER_PROJECTS, activeProject.id, {
+        isActive: false,
+        status: 'inactive'
+      });
+      console.log(`[FirebaseService] Set previous active project ${activeProject.id} to inactive`);
+    }
+
+    const projectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc();
+    
+    const projectData = {
+      userId: userId,
+      title: title,
+      status: 'active',
+      isActive: true,
+      startDate: Date.now(),
+      team: [{
+        id: userId,
+        name: userName,
+        role: 'owner'
+      }]
+    };
+    
+    await projectRef.set(projectData);
+    
+    // Update user's active project
+    await updateUserActiveProject(userId, projectRef.id);
+    
+    console.log(`[FirebaseService] Created new active project ${projectRef.id} for user ${userId}`);
+    return projectRef.id;
+  } catch (error) {
+    console.error('[FirebaseService] Error creating project:', error);
+    throw error;
+  }
 }
 
 // Get all projects for a user
@@ -560,7 +581,7 @@ export async function canCreateNewProject(userId) {
     const projects = await getUserProjects(userId);
     console.log(`[FirebaseService] Projects: ${JSON.stringify(projects, null, 2)}`);
     console.log(`[FirebaseService] Max total projects: ${PROJECT_RULES.MAX_TOTAL_PROJECTS}`);
-    const activeProjects = projects.filter(p => p.isActive !== false);
+    const activeProjects = projects.filter(p => p.isActive === true);
     console.log(`[FirebaseService] Active projects: ${JSON.stringify(activeProjects, null, 2)}`);
     console.log(`[FirebaseService] Active projects length: ${activeProjects.length}`);
     console.log(`[FirebaseService] Total projects: ${projects.length}`);
@@ -577,7 +598,7 @@ export async function canCreateNewProject(userId) {
 export async function getActiveProject(userId) {
   try {
     const projects = await getUserProjects(userId);
-    return projects.find(p => p.isActive !== false && p.status === 'active');
+    return projects.find(p => p.isActive === true && !p.archivedAt);
   } catch (error) {
     console.error('Error getting active project:', error);
     return null;
@@ -588,7 +609,7 @@ export async function getActiveProject(userId) {
 export async function getInactiveProjects(userId) {
   try {
     const projects = await getUserProjects(userId);
-    const inactiveProjects = projects.filter(p => p.status === 'inactive' && p.isActive === false);
+    const inactiveProjects = projects.filter(p => p.isActive === false && !p.archivedAt);
     console.log(`[FirebaseService] Found ${inactiveProjects.length} inactive projects for user ${userId}`);
     return inactiveProjects;
   } catch (error) {

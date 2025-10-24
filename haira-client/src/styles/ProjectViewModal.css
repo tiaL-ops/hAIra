@@ -1,293 +1,257 @@
+/* Import Pixel Fonts (if not already imported in main CSS) */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+
 .project-view-modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: rgba(0, 0, 0, 0.75); /* Solid, darker overlay */
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
+  /* Removed backdrop-filter for 2D feel */
 }
 
 .project-view-modal {
-  background: #1a1a1a; /* Dark background */
-  border-radius: 12px;
+  background: #f0f0f0; /* Light background for the modal */
+  border-radius: 8px;
   /* 2D gaming style box shadow */
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 0 4px rgba(255, 255, 255, 0.1);
+  border: 4px solid #5D4A8C; /* Dark Purple */
+  box-shadow: 8px 8px 0px #5D4A8C;
   max-width: 800px;
   width: 90%;
   max-height: 90vh;
   overflow: hidden;
-  animation: modalSlideIn 0.2s ease-out;
+  /* animation: modalSlideIn 0.2s ease-out; */ /* Removed animation for retro feel */
 }
 
-@keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
+/* Removed @keyframes modalSlideIn */
 
 .project-view-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 4px solid #7a6a9e; /* Thicker, solid border */
 }
 
 .project-view-modal-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 1.3rem; /* Adjusted for Press Start 2P */
   font-weight: 600;
-  color: #1f2937;
+  color: #5D4A8C; /* Dark Purple */
+  font-family: 'Press Start 2P', cursive;
 }
 
 .project-view-modal-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  color: #6b7280;
+  background: #d39191; /* Red */
+  border: 2px solid #8a5f5f;
+  color: #333;
+  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
-  padding: 4px;
+  padding: 0.4rem 0.6rem;
   border-radius: 4px;
-  transition: all 0.2s;
+  transition: all 0.1s;
+  font-family: 'Press Start 2P', cursive;
+  line-height: 1; /* Aligns the 'X' */
+  box-shadow: 2px 2px 0px #8a5f5f;
 }
 
 .project-view-modal-close:hover {
-  background-color: #f3f4f6;
-  color: #374151;
+  background-color: #c28080;
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #8a5f5f;
 }
 
 .project-view-modal-body {
-  padding: 20px 24px;
+  padding: 1.5rem;
   max-height: 60vh;
   overflow-y: auto;
+  background: #ffffff; /* White interior for clarity */
 }
 
 .project-view-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 .project-view-card {
-  color: white; /* Text color to white */
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
+  color: #333; /* Dark text for light cards */
+  border: 3px solid #7a6a9e; /* Purple border */
+  border-radius: 8px;
   padding: 1.5rem;
-  /* 2D gaming style box shadow */
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), 0 0 0 4px rgba(255, 255, 255, 0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 4px 4px 0px #7a6a9e; /* 2D Shadow */
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .project-view-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.6), 0 0 0 6px rgba(255, 255, 255, 0.2);
+  /* "Press" effect */
+  transform: translate(1px, 1px);
+  box-shadow: 3px 3px 0px #7a6a9e;
 }
 
 .project-view-card-title {
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: bold;
-  color: white;
+  color: #333;
   margin-bottom: 0.5rem;
+  font-family: 'Press Start 2P', cursive;
 }
 
 .project-view-card-description {
-  color: rgba(255, 255, 255, 0.8);
+  color: #4a4a4a;
   margin-bottom: 0.8rem;
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   line-height: 1.4;
   font-style: italic;
+  font-family: 'VT323', monospace;
 }
 
-.project-view-card-status {
-  color: rgba(255, 255, 255, 0.8);
+.project-view-card-status,
+.project-view-card-deadline,
+.project-view-card-manager,
+.project-view-card-team,
+.project-view-card-archived {
+  color: #4a4a4a;
   margin-bottom: 0.5rem;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
+  font-family: 'VT323', monospace;
 }
 
 /* Project card status backgrounds in modal */
 .project-view-card.active {
-  background-color: #408F8C; /* Teal from palette */
+  background-color: #a4d391; /* Pixelverse Green */
+  border-color: #6a8a5f;
+  box-shadow: 4px 4px 0px #6a8a5f;
+}
+.project-view-card.active:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 3px 3px 0px #6a8a5f;
 }
 
 .project-view-card.inactive {
-  background-color: #9169C0; /* Purple from palette */
+  background-color: #91a4d3; /* Pixelverse Blue */
+  border-color: #5f6a8a;
+  box-shadow: 4px 4px 0px #5f6a8a;
+}
+.project-view-card.inactive:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 3px 3px 0px #5f6a8a;
 }
 
 .project-view-card.archived {
-  background-color: #B4565A; /* Red/Brown from palette */
+  background-color: #d39191; /* Pixelverse Red */
+  border-color: #8a5f5f;
+  box-shadow: 4px 4px 0px #8a5f5f;
+}
+.project-view-card.archived:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 3px 3px 0px #8a5f5f;
 }
 
-.project-view-card-deadline {
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-}
-
-.project-view-card-manager {
-  color: #93C263; /* Green from palette */
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.project-view-card-team {
-  color: #9169C0; /* Purple from palette */
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.project-view-card-archived {
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-}
 
 .project-view-actions {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+  margin-top: 1rem;
 }
 
 .project-view-actions button {
   padding: 0.5rem 1rem;
-  border: none;
   border-radius: 6px;
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.1s;
   flex: 1;
   min-width: 100px;
+  font-family: 'VT323', monospace;
+  color: #333;
+  box-shadow: 2px 2px 0px #555;
+  border: 2px solid #555;
+  text-transform: uppercase;
 }
+
+.project-view-actions button:hover:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #555;
+}
+
+.project-view-actions button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: #aaa;
+  border-color: #777;
+  color: #555;
+  box-shadow: none;
+}
+
+/* --- Button Colors --- */
 
 .btn-kanban {
-  background-color: #20b2aa;
-  color: white;
+  background-color: #91a4d3; /* Blue */
+  border-color: #5f6a8a;
+  box-shadow: 2px 2px 0px #5f6a8a;
 }
-
 .btn-kanban:hover {
-  background-color: #1a9b94;
+  background-color: #8093c2;
+  box-shadow: 1px 1px 0px #5f6a8a;
 }
 
 .btn-chat {
-  background-color: #8b5cf6;
-  color: white;
+  background-color: #d3c091; /* Yellow */
+  border-color: #8a805f;
+  box-shadow: 2px 2px 0px #8a805f;
 }
-
 .btn-chat:hover {
-  background-color: #7c3aed;
+  background-color: #c2b080;
+  box-shadow: 1px 1px 0px #8a805f;
 }
 
 .btn-archive {
-  background-color: #b4565a; /* Red */
-  color: white;
+  background-color: #d39191; /* Red */
+  border-color: #8a5f5f;
+  box-shadow: 2px 2px 0px #8a5f5f;
 }
-
 .btn-archive:hover {
-  background-color: #91434a;
+  background-color: #c28080;
+  box-shadow: 1px 1px 0px #8a5f5f;
 }
 
+.btn-continue {
+  background-color: #a4d391; /* Green */
+  border-color: #6a8a5f;
+  box-shadow: 2px 2px 0px #6a8a5f;
+}
+.btn-continue:hover:not(:disabled) {
+  background-color: #93c280;
+  box-shadow: 1px 1px 0px #6a8a5f;
+}
+
+/* --- Status Colors (if used elsewhere) --- */
 .status-active {
-  color: #20b2aa;
+  color: #6a8a5f;
 }
-
 .status-inactive {
-  color: #6b7280;
+  color: #5f6a8a;
 }
-
 .status-archived {
-  color: #20b2aa;
+  color: #8a5f5f;
 }
 
-  .no-projects-message {
+.no-projects-message {
   text-align: center;
-  color: #666;
+  color: #4a4a4a;
   font-style: italic;
   padding: 2rem;
+  font-family: 'VT323', monospace;
+  font-size: 1.2rem;
 }
 
-/* Continue Button */
-.btn-continue {
-  background-color: #93C263;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(147, 194, 99, 0.3);
-}
-
-.btn-continue:hover:not(:disabled) {
-  background-color: #7ba84f;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(147, 194, 99, 0.4);
-}
-
-.btn-continue:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .project-view-modal {
-    background: #1f2937;
-    color: #f9fafb;
-  }
-  
-  .project-view-modal-title {
-    color: #f9fafb;
-  }
-  
-  .project-view-modal-close {
-    color: #9ca3af;
-  }
-  
-  .project-view-modal-close:hover {
-    background-color: #374151;
-    color: #d1d5db;
-  }
-  
-  .project-view-card {
-    background: #374151;
-    color: #f9fafb;
-  }
-  
-  .project-view-card-title {
-    color: #f9fafb;
-  }
-  
-  .project-view-card-description {
-    color: #d1d5db;
-  }
-  
-  .project-view-card-status,
-  .project-view-card-deadline,
-  .project-view-card-archived {
-    color: #d1d5db;
-  }
-  
-  .project-view-card-manager {
-    color: #20b2aa;
-  }
-  
-  .project-view-card-team {
-    color: #8b5cf6;
-  }
-}
+/* Removed dark mode media query as the theme is now fixed */
