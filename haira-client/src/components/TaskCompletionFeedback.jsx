@@ -1,20 +1,29 @@
 import React from 'react';
-import { AI_TEAMMATES } from '../../../haira-server/config/aiReportAgents.js';
-import AlexAvatar from '../images/Alex.png';
-import SamAvatar from '../images/Sam.png';
+import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
+
+// Using emoji from agent config instead of images
 
 const AI_CONFIG = {
+  rasoa: {
+    emoji: AI_TEAMMATES.rasoa.emoji,
+    color: AI_TEAMMATES.rasoa.color,
+    name: AI_TEAMMATES.rasoa.name,
+  },
+  rakoto: {
+    emoji: AI_TEAMMATES.rakoto.emoji,
+    color: AI_TEAMMATES.rakoto.color,
+    name: AI_TEAMMATES.rakoto.name,
+  },
+  // Legacy support
   ai_manager: {
-    emoji: AI_TEAMMATES.MANAGER.emoji,
-    color: AI_TEAMMATES.MANAGER.color,
-    name: `${AI_TEAMMATES.MANAGER.name} (${AI_TEAMMATES.MANAGER.role})`,
-    avatar: AlexAvatar
+    emoji: AI_TEAMMATES.rasoa.emoji,
+    color: AI_TEAMMATES.rasoa.color,
+    name: AI_TEAMMATES.rasoa.name,
   },
   ai_helper: {
-    emoji: AI_TEAMMATES.LAZY.emoji,
-    color: AI_TEAMMATES.LAZY.color,
-    name: `${AI_TEAMMATES.LAZY.name} (${AI_TEAMMATES.LAZY.role})`,
-    avatar: SamAvatar
+    emoji: AI_TEAMMATES.rakoto.emoji,
+    color: AI_TEAMMATES.rakoto.color,
+    name: AI_TEAMMATES.rakoto.name,
   }
 };
 

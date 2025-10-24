@@ -1,23 +1,16 @@
 import React, { useState } from 'react';
-import { AI_TEAMMATES, TASK_TYPES } from '../../../haira-server/config/aiReportAgents.js';
+import { AI_TEAMMATES, TASK_TYPES } from '../../../haira-server/config/aiAgents.js';
 import TaskAssignmentModal from './TaskAssignmentModal';
 
-import AlexAvatar from '../images/Alex.png';
-import SamAvatar from '../images/Sam.png';
+// No need for avatars since we're using emoji from config
 
 export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMembers = [] }) {
   const [selectedTeammate, setSelectedTeammate] = useState(null);
 
   // Get appropriate avatar for AI teammates
   const getAIAvatar = (teammate) => {
-    switch(teammate.name) {
-      case AI_TEAMMATES.MANAGER.name:
-        return  <img src={AlexAvatar} alt="Alex" className="team-avatar" />;;
-      case AI_TEAMMATES.LAZY.name:
-        return <img src={SamAvatar} alt="Sam" className="team-avatar" />;
-      default:
-        return teammate.emoji;
-    }
+    // Use emoji from teammate config
+    return <span className="team-emoji">{teammate.emoji || teammate.avatar || '🤖'}</span>;
   };
 
   const handleAIClick = (teammate) => {
@@ -53,11 +46,11 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
 
 
   const getAITeammate = (memberId) => {
-    // Map memberId to the correct AI_TEAMMATES key
-    if (memberId === 'ai_manager') {
-      return AI_TEAMMATES.MANAGER;
-    } else if (memberId === 'ai_helper') {
-      return AI_TEAMMATES.LAZY;
+    // Map memberId to the correct AI_TEAMMATES key - now using chat agents (Rasoa & Rakoto)
+    if (memberId === 'rasoa' || memberId === 'ai_manager') {
+      return AI_TEAMMATES.rasoa;
+    } else if (memberId === 'rakoto' || memberId === 'ai_helper') {
+      return AI_TEAMMATES.rakoto;
     }
     return null;
   };

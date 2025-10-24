@@ -1,10 +1,8 @@
 // src/components/ContributionTracker.jsx
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
-import { AI_TEAMMATES } from '../../../haira-server/config/aiReportAgents.js';
-// Use public folder for images to avoid import issues
-import AlexAvatar from '../images/Alex.png';
-import SamAvatar from '../images/Sam.png';
+import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
+// Using emoji from agent config instead of images
 import '../styles/ContributionTracker.css';
 
 const backend_host = "http://localhost:3002";
@@ -119,20 +117,20 @@ export default function ContributionTracker({ projectId, showContributions = tru
     switch(member.name) {
       case 'You':
         return '👤';
-      case AI_TEAMMATES.MANAGER.name:
-        return AlexAvatar;
-      case AI_TEAMMATES.LAZY.name:
-        return SamAvatar;
+      case AI_TEAMMATES.rasoa.name:
+        return AI_TEAMMATES.rasoa.emoji;
+      case AI_TEAMMATES.rakoto.name:
+        return AI_TEAMMATES.rakoto.emoji;
       default:
         return '🤖';
     }
   };
 
   const getMemberColor = (member) => {
-    if (member.name === AI_TEAMMATES.MANAGER.name) {
-      return AI_TEAMMATES.MANAGER.color;
-    } else if (member.name === AI_TEAMMATES.LAZY.name) {
-      return AI_TEAMMATES.LAZY.color;
+    if (member.name === AI_TEAMMATES.rasoa.name) {
+      return AI_TEAMMATES.rasoa.color;
+    } else if (member.name === AI_TEAMMATES.rakoto.name) {
+      return AI_TEAMMATES.rakoto.color;
     }
     return getContributionColor(contributions.indexOf(member));
   };

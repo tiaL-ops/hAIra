@@ -13,7 +13,7 @@ import {
     generateAIContribution as callGeminiContribution,
 } from '../api/geminiService.js';
 import { generateAIContribution as callOpenAIContribution } from '../api/openaiService.js';
-import { AI_TEAMMATES, TASK_TYPES } from '../config/aiReportAgents.js';
+import { AI_TEAMMATES, TASK_TYPES } from '../config/aiAgents.js';
 import { AIGradingService } from '../services/aiGradingService.js';
 
 const router = express.Router()
@@ -120,7 +120,7 @@ function cleanContentForReview(htmlContent) {
 
 // Generate AI-specific completion messages
 async function generateCompletionMessage(aiType, taskType) {
-    const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
+    const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.alex_report : AI_TEAMMATES.sam;
     
     const completionPrompts = {
         write: `Generate a short, casual completion message (1-2 sentences max) for when you finish writing a section. Be true to your personality: ${aiTeammate.personality}. Make it sound natural and in character.`,
@@ -672,26 +672,55 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
         return res.status(400).json({ error: 'AI type is required' });
     }
 
-    if (!['ai_manager', 'ai_helper'].includes(aiType)) {
-        return res.status(400).json({ error: 'AI type must be either "ai_manager" or "ai_helper"' });
+    // Support both chat agent IDs (rasoa, rakoto) and legacy IDs (ai_manager, ai_helper)
+    const validAITypes = ['ai_manager', 'ai_helper', 'rasoa', 'rakoto'];
+    if (!validAITypes.includes(aiType)) {
+        return res.status(400).json({ error: `AI type must be one of: ${validAITypes.join(', ')}` });
     }
 
     try {
         await ensureProjectExists(id, userId);
-        const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
+        // Map agent IDs to correct teammates
+        let aiTeammate;
+        if (aiType === 'rasoa' || aiType === 'ai_manager') {
+            aiTeammate = AI_TEAMMATES.rasoa;
+        } else if (aiType === 'rakoto' || aiType === 'ai_helper') {
+            aiTeammate = AI_TEAMMATES.rakoto;
+        }
         
-        // Use Chrome Write API for writing tasks
-        const taskPrompt = `Based on you persona, write a section for "${sectionName || 'the project'}" based on the current content. 
-        Current content: ${currentContent || 'No content yet.'}
+        // Create writing-specific prompt (not their chat persona)
+        const writingContext = aiType === 'rasoa' || aiType === 'ai_manager' 
+            ? 'You are an academic writing specialist. Focus on clear, well-structured academic prose with proper citations and formal tone.'
+            : 'You are a technical content writer. Focus on clarity, data-driven insights, and practical explanations.';
         
-        Provide a well-structured section that fits with the existing content.`;
+        const taskPrompt = `${writingContext}
+
+Task: Write a section titled "${sectionName || 'the project'}" for an academic research paper.
+
+Current document content:
+${currentContent || 'No content yet - this is the first section.'}
+
+Instructions:
+- Write clear, academic prose (NOT code or technical implementation)
+- Include relevant examples and explanations
+- Maintain consistency with existing content
+- Use proper academic tone and structure
+- Length: 2-3 well-developed paragraphs
+
+Write the section now:`;
+        
+        // Create a config for the AI call
+        const aiConfig = {
+            max_tokens: 800,
+            temperature: 0.7
+        };
         
         // Try Chrome Write API first, fallback to Gemini
         let aiResponse;
        
         console.log('Calling AI for writing task...');
-        // aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
-        aiResponse = await callOpenAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
+        // aiResponse = await generateAIContribution(taskPrompt, aiConfig, writingContext);
+        aiResponse = await callOpenAIContribution(taskPrompt, aiConfig, writingContext);
 
         const cleanedResponse = cleanAIResponse(aiResponse);
         const htmlResponse = convertMarkdownToHTML(cleanedResponse);
@@ -745,30 +774,52 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         return res.status(400).json({ error: 'AI type is required' });
     }
 
-    if (!['ai_manager', 'ai_helper'].includes(aiType)) {
-        return res.status(400).json({ error: 'AI type must be either "ai_manager" or "ai_helper"' });
+    // Support both chat agent IDs (rasoa, rakoto) and legacy IDs (ai_manager, ai_helper)
+    const validAITypes = ['ai_manager', 'ai_helper', 'rasoa', 'rakoto'];
+    if (!validAITypes.includes(aiType)) {
+        return res.status(400).json({ error: `AI type must be one of: ${validAITypes.join(', ')}` });
     }
 
     try {
         await ensureProjectExists(id, userId);
-        const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
+        // Map agent IDs to correct teammates
+        let aiTeammate;
+        if (aiType === 'rasoa' || aiType === 'ai_manager') {
+            aiTeammate = AI_TEAMMATES.rasoa;
+        } else if (aiType === 'rakoto' || aiType === 'ai_helper') {
+            aiTeammate = AI_TEAMMATES.rakoto;
+        }
+        
+        // Create review-specific context
+        const reviewContext = aiType === 'rasoa' || aiType === 'ai_manager'
+            ? 'You are an academic writing reviewer focusing on structure, clarity, and academic rigor.'
+            : 'You are a technical content reviewer focusing on accuracy, clarity, and practical value.';
         
         // Clean the content to remove HTML markup for better AI review
         const cleanedContent = cleanContentForReview(currentContent);
         
-        const taskPrompt = `Based on your persona, review the following content and provide exactly 4 bullet points of helpful feedback. Each bullet point should start with a dash (-) and focus on:
-        - Content quality and clarity
-        - Logical flow and organization  
-        - Completeness of ideas
-        - Writing style and tone
+        const taskPrompt = `${reviewContext}
+
+Task: Review the following academic content and provide constructive feedback.
+
+Content to review:
+${cleanedContent}
+
+Provide exactly 4 bullet points of helpful feedback focusing on:
+- Content quality and clarity
+- Logical flow and organization  
+- Completeness of ideas
+- Writing style and tone
+
+Format: Each bullet point should start with a dash (-). Be specific and constructive.`;
         
-        Content to review:
-        ${cleanedContent || 'No content to review.'}
+        const aiConfig = {
+            max_tokens: 600,
+            temperature: 0.7
+        };
         
-        IMPORTANT: Format your response as exactly 4 bullet points, each starting with a dash (-). Do not use any HTML tags, markdown formatting, or special characters. Just write clear, helpful feedback in simple bullet point format.`;
-        
-        // const aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
-        const aiResponse = await callOpenAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
+        // const aiResponse = await generateAIContribution(taskPrompt, aiConfig, reviewContext);
+        const aiResponse = await callOpenAIContribution(taskPrompt, aiConfig, reviewContext);
         const cleanedResponse = cleanAIResponse(aiResponse);
         const aiName = aiTeammate.name;
         const prefixedResponse = `[${aiName}] ${cleanedResponse}`;
@@ -819,24 +870,51 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         return res.status(400).json({ error: 'AI type is required' });
     }
 
-    if (!['ai_manager', 'ai_helper'].includes(aiType)) {
-        return res.status(400).json({ error: 'AI type must be either "ai_manager" or "ai_helper"' });
+    // Support both chat agent IDs (rasoa, rakoto) and legacy IDs (ai_manager, ai_helper)
+    const validAITypes = ['ai_manager', 'ai_helper', 'rasoa', 'rakoto'];
+    if (!validAITypes.includes(aiType)) {
+        return res.status(400).json({ error: `AI type must be one of: ${validAITypes.join(', ')}` });
     }
 
     try {
         await ensureProjectExists(id, userId);
-        const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
+        // Map agent IDs to correct teammates
+        let aiTeammate;
+        if (aiType === 'rasoa' || aiType === 'ai_manager') {
+            aiTeammate = AI_TEAMMATES.rasoa;
+        } else if (aiType === 'rakoto' || aiType === 'ai_helper') {
+            aiTeammate = AI_TEAMMATES.rakoto;
+        }
+        
+        // Create suggestion-specific context
+        const suggestionContext = aiType === 'rasoa' || aiType === 'ai_manager'
+            ? 'You are an academic writing consultant providing improvement suggestions for academic papers.'
+            : 'You are a technical content consultant providing practical improvement suggestions.';
         
         // Clean the content to remove HTML markup for better AI suggestions
         const cleanedContent = cleanContentForReview(currentContent);
         
-        const taskPrompt = `Based on your persona, suggest exactly 3 key bullet points for improvements for this content. Each bullet point should start with a dash (-) and be specific and actionable:
-        ${cleanedContent || 'No content to improve.'}
+        const taskPrompt = `${suggestionContext}
+
+Task: Provide exactly 3 specific, actionable improvement suggestions for the following content.
+
+Content:
+${cleanedContent || 'No content to improve.'}
+
+Format your response as exactly 3 bullet points, each starting with a dash (-). Be specific and actionable. Focus on:
+1. Strengthening arguments or evidence
+2. Improving clarity or structure
+3. Enhancing academic rigor or depth
+
+Do not use HTML tags or markdown formatting.`;
         
-        IMPORTANT: Format your response as exactly 3 bullet points, each starting with a dash (-). Do not use any HTML tags, markdown formatting, or special characters. Just write clear, actionable suggestions in simple bullet point format.`;
+        const aiConfig = {
+            max_tokens: 500,
+            temperature: 0.7
+        };
         
-        // const aiResponse = await generateAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
-        const aiResponse = await callOpenAIContribution(taskPrompt, aiTeammate.config, aiTeammate.prompt);
+        // const aiResponse = await generateAIContribution(taskPrompt, aiConfig, suggestionContext);
+        const aiResponse = await callOpenAIContribution(taskPrompt, aiConfig, suggestionContext);
         const cleanedResponse = cleanAIResponse(aiResponse);
         const aiName = aiTeammate.name;
         const prefixedResponse = `[${aiName}] ${cleanedResponse}`;

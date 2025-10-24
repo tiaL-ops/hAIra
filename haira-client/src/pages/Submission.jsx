@@ -16,7 +16,7 @@ import SummarizePopup from "../components/SummarizePopup";
 import ProofreadPopup from "../components/ProofreadPopup";
 import { getChromeProofreadSuggestions, getChromeSummary } from "../utils/chromeAPI";
 import { useAITeam } from "../hooks/useAITeam";
-import { AI_TEAMMATES } from "../../../haira-server/config/aiReportAgents.js";
+import { AI_TEAMMATES } from "../../../haira-server/config/aiAgents.js";
 import "../styles/editor.css";
 import "../styles/global.css";
 import "../styles/TeamPanel.css";
@@ -125,29 +125,33 @@ function Submission() {
         // Setup team context
         const team = data.project?.team || [];
         const hasAITeammates = team.some(member => member.type === 'ai');
-        const hasOldAITeammates = team.some(member => member.id === 'manager-ai' || member.id === 'lazy-ai');
+        const legacyAIIds = ['manager-ai', 'lazy-ai', 'ai_manager', 'ai_helper'];
+        const hasOldAITeammates = team.some(member => legacyAIIds.includes(member.id));
+        const hasCorrectAITeammates = team.some(member => member.id === 'rasoa' || member.id === 'rakoto');
         
-        console.log('Team setup:', { team, hasAITeammates, hasOldAITeammates });
+        console.log('Team setup:', { team, hasAITeammates, hasOldAITeammates, hasCorrectAITeammates });
         
-        if (!hasAITeammates || hasOldAITeammates) {
-          // Add or update AI teammates using centralized configuration
+        if (!hasCorrectAITeammates) {
+          // Add or update AI teammates using centralized configuration - use same agents as chat (Rasoa & Rakoto)
           const defaultAITeammates = [
             {
-              ...AI_TEAMMATES.MANAGER,
-              name: `${AI_TEAMMATES.MANAGER.name} (Project Manager)`,
+              ...AI_TEAMMATES.rasoa,
+              id: 'rasoa',
+              name: AI_TEAMMATES.rasoa.name,
               isActive: true,
               type: 'ai'
             },
             {
-              ...AI_TEAMMATES.LAZY,
-              name: `${AI_TEAMMATES.LAZY.name} (Helper)`,
+              ...AI_TEAMMATES.rakoto,
+              id: 'rakoto',
+              name: AI_TEAMMATES.rakoto.name,
               isActive: true,
               type: 'ai'
             }
           ];
           
-          // Filter out old AI teammates and keep human teammates
-          const filteredTeam = team.filter(member => member.type !== 'ai' && !['manager-ai', 'lazy-ai'].includes(member.id));
+          // Filter out ALL AI teammates (old and new) and keep only human teammates
+          const filteredTeam = team.filter(member => member.type !== 'ai');
           const updatedTeam = [...filteredTeam, ...defaultAITeammates];
           
           console.log('Setting updated team:', updatedTeam);
@@ -171,20 +175,20 @@ function Submission() {
           const updatedTeam = team.map(member => {
             if (member.type === 'ai') {
               // Update AI teammates with latest persona configurations from centralized config
-              if (member.id === 'ai_manager') {
+              if (member.id === 'rasoa' || member.id === 'ai_manager') {
                 return {
                   ...member,
-                  ...AI_TEAMMATES.MANAGER,
-                  name: `${AI_TEAMMATES.MANAGER.name} (Project Manager)`,
-                  personality: 'organized, deadline-focused, detail-oriented',
+                  ...AI_TEAMMATES.rasoa,
+                  id: 'rasoa',
+                  name: AI_TEAMMATES.rasoa.name,
                   isActive: true
                 };
-              } else if (member.id === 'ai_helper') {
+              } else if (member.id === 'rakoto' || member.id === 'ai_helper') {
                 return {
                   ...member,
-                  ...AI_TEAMMATES.LAZY,
-                  name: `${AI_TEAMMATES.LAZY.name} (Helper)`,
-                  personality: 'lazy, creative, finds shortcuts',
+                  ...AI_TEAMMATES.rakoto,
+                  id: 'rakoto',
+                  name: AI_TEAMMATES.rakoto.name,
                   isActive: true
                 };
               }

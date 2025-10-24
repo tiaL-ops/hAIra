@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { getAuth } from 'firebase/auth';
 import axios from 'axios';
-import { AI_TEAMMATES } from '../../../haira-server/config/aiReportAgents.js';
+import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
 import AlexAvatar from '../images/Alex.png';
 import SamAvatar from '../images/Sam.png';
 
@@ -30,12 +30,22 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
 
     const editor = editorRef.current;
     const colors = {
-      ai_manager: AI_TEAMMATES.MANAGER.color,
-      ai_helper: AI_TEAMMATES.LAZY.color
+      rasoa: AI_TEAMMATES.rasoa.color,
+      rakoto: AI_TEAMMATES.rakoto.color,
+      // Legacy support
+      ai_manager: AI_TEAMMATES.rasoa.color,
+      ai_helper: AI_TEAMMATES.rakoto.color
     };
 
-    // Get AI teammate info
-    const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
+    // Get AI teammate info - map to chat agents
+    let aiTeammate;
+    if (aiType === 'rasoa' || aiType === 'ai_manager') {
+      aiTeammate = AI_TEAMMATES.rasoa;
+    } else if (aiType === 'rakoto' || aiType === 'ai_helper') {
+      aiTeammate = AI_TEAMMATES.rakoto;
+    } else {
+      aiTeammate = AI_TEAMMATES.rasoa; // default
+    }
     const aiName = aiTeammate.name;
     const aiRole = aiTeammate.role;
     const aiColor = aiTeammate.color;
@@ -124,8 +134,11 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     const { from, to } = editor.state.selection;
     
     const colors = {
-      ai_manager: AI_TEAMMATES.MANAGER.color,
-      ai_helper: AI_TEAMMATES.LAZY.color
+      rasoa: AI_TEAMMATES.rasoa.color,
+      rakoto: AI_TEAMMATES.rakoto.color,
+      // Legacy support
+      ai_manager: AI_TEAMMATES.rasoa.color,
+      ai_helper: AI_TEAMMATES.rakoto.color
     };
     
     const backgrounds = {
@@ -192,6 +205,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
           requestData = { aiType, sectionName, currentContent };
           break;
         case 'review':
+        case 'review_content':
           endpoint = `${backend_host}/api/project/${projectId}/ai/review`;
           requestData = { aiType, currentContent };
           break;
@@ -226,7 +240,15 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       } else if (responseType === 'review') {
         // Only add as a comment in the sidebar, not in the editor
         if (onAddComment) {
-          const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
+          // Map to chat agents
+          let aiTeammate;
+          if (aiType === 'rasoa' || aiType === 'ai_manager') {
+            aiTeammate = AI_TEAMMATES.rasoa;
+          } else if (aiType === 'rakoto' || aiType === 'ai_helper') {
+            aiTeammate = AI_TEAMMATES.rakoto;
+          } else {
+            aiTeammate = AI_TEAMMATES.rasoa; // default
+          }
           const aiName = `${aiTeammate.name} (${aiTeammate.role})`;
           const commentText = `Review by ${aiName}:\n${aiResponse}`;
           onAddComment(commentText, 'review', aiName);
@@ -234,7 +256,15 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       } else if (responseType === 'suggest') {
         // Only add as a comment in the sidebar, not in the editor
         if (onAddComment) {
-          const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
+          // Map to chat agents
+          let aiTeammate;
+          if (aiType === 'rasoa' || aiType === 'ai_manager') {
+            aiTeammate = AI_TEAMMATES.rasoa;
+          } else if (aiType === 'rakoto' || aiType === 'ai_helper') {
+            aiTeammate = AI_TEAMMATES.rakoto;
+          } else {
+            aiTeammate = AI_TEAMMATES.rasoa; // default
+          }
           const aiName = `${aiTeammate.name} (${aiTeammate.role})`;
           const commentText = `Suggestion by ${aiName}:\n${aiResponse}`;
           onAddComment(commentText, 'suggestion', aiName);
