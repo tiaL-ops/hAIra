@@ -976,25 +976,51 @@ router.post('/:id/word-contributions/track', verifyFirebaseToken, async (req, re
 
         // Initialize wordContributions if it doesn't exist
         let wordContributions = projectData.wordContributions || {
-            user: { words: 0, percentage: 0 },
-            alex: { words: 0, percentage: 0 },
-            sam: { words: 0, percentage: 0 }
+            user: { words: 0, percentage: 0 }
+        };
+        
+        // Ensure all current AI teammates are initialized
+        const currentAgents = ['brown', 'elza', 'kati', 'steve', 'sam'];
+        currentAgents.forEach(agentId => {
+            if (!wordContributions[agentId]) {
+                wordContributions[agentId] = { words: 0, percentage: 0 };
+            }
+        });
+
+        // Map legacy agent IDs to new ones
+        const agentMapping = {
+            'ai_manager': 'brown',
+            'rasoa': 'brown',
+            'ai_helper': 'sam',
+            'rakoto': 'sam'
         };
 
         // Update the contributor's word count
-        if (contributorId === 'ai_manager' || contributorName === 'Alex') {
-            wordContributions.alex.words += wordCount;
-        } else if (contributorId === 'ai_helper' || contributorName === 'Sam') {
-            wordContributions.sam.words += wordCount;
+        let targetAgent = contributorId;
+        
+        // Check if this is a legacy ID that needs mapping
+        if (agentMapping[contributorId]) {
+            targetAgent = agentMapping[contributorId];
+        }
+        
+        // If it's one of our AI agents, track it
+        if (currentAgents.includes(targetAgent)) {
+            wordContributions[targetAgent].words += wordCount;
         }
 
         // Calculate total words and percentages
-        const totalWords = wordContributions.user.words + wordContributions.alex.words + wordContributions.sam.words;
+        let totalWords = wordContributions.user.words;
+        currentAgents.forEach(agentId => {
+            totalWords += (wordContributions[agentId]?.words || 0);
+        });
         
         if (totalWords > 0) {
             wordContributions.user.percentage = Math.round((wordContributions.user.words / totalWords) * 100 * 100) / 100;
-            wordContributions.alex.percentage = Math.round((wordContributions.alex.words / totalWords) * 100 * 100) / 100;
-            wordContributions.sam.percentage = Math.round((wordContributions.sam.words / totalWords) * 100 * 100) / 100;
+            currentAgents.forEach(agentId => {
+                if (wordContributions[agentId]) {
+                    wordContributions[agentId].percentage = Math.round((wordContributions[agentId].words / totalWords) * 100 * 100) / 100;
+                }
+            });
         }
 
         // Save updated word contributions
@@ -1037,18 +1063,30 @@ router.get('/:id/word-contributions', verifyFirebaseToken, async (req, res) => {
 
         // Initialize wordContributions if it doesn't exist
         let wordContributions = projectData.wordContributions || {
-            user: { words: 0, percentage: 0 },
-            alex: { words: 0, percentage: 0 },
-            sam: { words: 0, percentage: 0 }
+            user: { words: 0, percentage: 0 }
         };
+        
+        // Ensure all current AI teammates are initialized
+        const currentAgents = ['brown', 'elza', 'kati', 'steve', 'sam'];
+        currentAgents.forEach(agentId => {
+            if (!wordContributions[agentId]) {
+                wordContributions[agentId] = { words: 0, percentage: 0 };
+            }
+        });
 
         // Calculate current percentages
-        const totalWords = wordContributions.user.words + wordContributions.alex.words + wordContributions.sam.words;
+        let totalWords = wordContributions.user.words;
+        currentAgents.forEach(agentId => {
+            totalWords += (wordContributions[agentId]?.words || 0);
+        });
         
         if (totalWords > 0) {
             wordContributions.user.percentage = Math.round((wordContributions.user.words / totalWords) * 100 * 100) / 100;
-            wordContributions.alex.percentage = Math.round((wordContributions.alex.words / totalWords) * 100 * 100) / 100;
-            wordContributions.sam.percentage = Math.round((wordContributions.sam.words / totalWords) * 100 * 100) / 100;
+            currentAgents.forEach(agentId => {
+                if (wordContributions[agentId]) {
+                    wordContributions[agentId].percentage = Math.round((wordContributions[agentId].words / totalWords) * 100 * 100) / 100;
+                }
+            });
         }
 
         res.json({

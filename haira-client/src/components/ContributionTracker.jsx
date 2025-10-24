@@ -64,20 +64,21 @@ export default function ContributionTracker({ projectId, showContributions = tru
               percent: wordContributions.user.percentage,
               role: "Student",
               wordCount: wordContributions.user.words
-            },
-            {
-              name: "Alex",
-              percent: wordContributions.alex.percentage,
-              role: "AI Manager",
-              wordCount: wordContributions.alex.words
-            },
-            {
-              name: "Sam",
-              percent: wordContributions.sam.percentage,
-              role: "AI Helper",
-              wordCount: wordContributions.sam.words
             }
           ];
+          
+          // Add all AI teammates dynamically
+          const aiAgentIds = ['brown', 'elza', 'kati', 'steve', 'sam'];
+          aiAgentIds.forEach(agentId => {
+            if (wordContributions[agentId] && AI_TEAMMATES[agentId]) {
+              contributions.push({
+                name: AI_TEAMMATES[agentId].name,
+                percent: wordContributions[agentId].percentage,
+                role: AI_TEAMMATES[agentId].role,
+                wordCount: wordContributions[agentId].words
+              });
+            }
+          });
           
           setContributions(contributions);
           setTotalContribution(response.data.totalWords);
