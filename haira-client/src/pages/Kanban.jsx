@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
@@ -17,40 +17,45 @@ function Kanban() {
     const [deliverables, setDeliverables] = useState([]);
     const [message, setMessage] = useState("Loading project data...");
     const [loading, setLoading] = useState(false);
+    const [kanbanBoardKey, setKanbanBoardKey] = useState(0);
     const auth = getAuth();
 
+    const rerenderKanbanBoard = () => {
+      setKanbanBoardKey(prev => prev + 1);
+    }
+
     useEffect(() => {
-        const fetchProjectData = async () => {
-            // Ensure user is logged in
-            if (!auth.currentUser) {
-                navigate('/login');
-                return;
-            }
+      const fetchProjectData = async () => {
+        // Ensure user is logged in
+        if (!auth.currentUser) {
+            navigate('/login');
+            return;
+        }
 
-            try {
-                // Get Firebase token and fetch project data
-                const token = await auth.currentUser.getIdToken();
-                
-                const response = await axios.get(`${backend_host}/api/project/${id}/kanban`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+        try {
+          // Get Firebase token and fetch project data
+          const token = await auth.currentUser.getIdToken();
+          
+          const response = await axios.get(`${backend_host}/api/project/${id}/kanban`, {
+              headers: {
+                  'Authorization': `Bearer ${token}`
+              }
+          });
 
-                if (response.data.project) {
-                    setProjectData(response.data.project);
-                    setTitle(response.data.project.title || "");
-                    setMessage(response.data.message || "Project loaded");
-                } else {
-                    setMessage("Project data not found");
-                }
-            } catch (err) {
-                console.error("Error fetching project info:", err);
-                setMessage("Error loading project data");
-            }
-        };
+          if (response.data.project) {
+              setProjectData(response.data.project);
+              setTitle(response.data.project.title || "");
+              setMessage(response.data.message || "Project loaded");
+          } else {
+              setMessage("Project data not found");
+          }
+        } catch (err) {
+            console.error("Error fetching project info:", err);
+            setMessage("Error loading project data");
+        }
+      };
 
-        fetchProjectData();
+      fetchProjectData();
     }, [id, navigate, auth]);
 
     const handleSubmit = async (e) => {
@@ -61,9 +66,9 @@ function Kanban() {
         setLoading(true);
         try {
             const token = await auth.currentUser.getIdToken();
-            
+
             const response = await axios.post(
-                `${backend_host}/api/project/${id}/kanban`,
+                `${backend_host}/api/project/kanban/generate`,
                 {
                     title: title,
                 },
@@ -82,14 +87,43 @@ function Kanban() {
         } finally {
             setLoading(false);
         }
-    }
+    };
+
+    const handleSaveTasks = async (e) => {
+      try {
+        const token = await auth.currentUser.getIdToken();
+        const response = await axios.post(
+          `${backend_host}/api/project/${id}/kanban`,
+          {
+            title: title,
+            deliverables: deliverables
+          },
+          {
+              headers: {
+                  'Authorization': `Bearer ${token}`
+              }
+          }
+        );
+
+        if (!response.data.success)
+          throw new Error('data could not be stored to database')
+
+        rerenderKanbanBoard();
+        setDeliverables([]);
+        alert('Now go to work');
+      } catch (error) {
+        const msg = 'data could not be stored to database';
+        console.log(msg);
+        alert(msg);
+      }
+    };
 
     return (
       <div className="chat-container min-h-screen p-6 flex gap-6">
         <h1 className="toolbar text-2xl font-bold mb-4" style={{ color: '#302e2eff' }}>Kanban Board</h1>
         {/* Left side: Kanban Board */}
         <div className="flex-1 bg-white rounded-2xl shadow-xl p-6">
-          <KanbanBoard />
+          <KanbanBoard id={id} key={kanbanBoardKey}/>
         </div>
 
         {/* Right side: Project Info */}
@@ -127,6 +161,7 @@ function Kanban() {
                   </li>
                 ))}
               </ul>
+              <button onClick={handleSaveTasks}>Good to go?</button>
             </div>
           )}
         </div>

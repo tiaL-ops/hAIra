@@ -55,15 +55,15 @@ const getPriorityClass = (priority) => {
   }
 };
 
-export default function KanbanBoard() {
-  const { id } = useParams();
+export default function KanbanBoard({ id }) {
+  // const { id } = useParams();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [tasks, setTasks] = useState(initialData);
   const [editingTask, setEditingTask] = useState(null);
   const [priority, setPriority] = useState([]);
   
-useEffect(() => {
+  useEffect(() => {
     let isMounted = true;
     if (!auth.currentUser) {
       navigate('/login');
@@ -74,9 +74,9 @@ useEffect(() => {
       try {
         const token = await auth.currentUser.getIdToken(true);
         const kanbanData = await axios.get(`http://localhost:3002/api/project/${id}/kanban`, { headers: { Authorization: `Bearer ${token}` } });
-        const tasks = kanbanData.data.tasks;
+        const fetchedTasks = kanbanData.data.tasks;
         let data = {todo : [], inProgress : [], done : []};
-        tasks.map((item) => {
+        fetchedTasks.map((item) => {
           let tmp = { id: item.id, name: item.description, assignee: item.assignedTo, priority: item.priority};
           data[item.status].push(tmp);
         });
@@ -223,7 +223,7 @@ useEffect(() => {
                         >
                           <div className={ getPriorityClass(task.priority) + ' flex justify-between items- rounded-lg' }>
                             <div className="ai-teammate-card" style={{ width: '100%' }}>
-                              <div className="ai-avatar"><img src={getAIAvatar(task.assignee)} alt="Alex" className="team-avatar" />;</div>
+                              <div className="ai-avatar"><img src={getAIAvatar(task.assignee)} alt="Alex" className="team-avatar" /></div>
                               <div className="ai-info">
                                 <h4>{task.name}</h4>
                                 <span className="ai-role">{task.assignee}</span>
