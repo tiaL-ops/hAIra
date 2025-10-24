@@ -160,7 +160,10 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
     // Warning when approaching limit (at 5/7 messages)
     let quotaWarning = null;
     if (userMsgsToday >= 5) {
-      quotaWarning = `${7 - userMsgsToday} messages remaining today`;
+      const remaining = 7 - userMsgsToday;
+      quotaWarning = remaining === 1 
+        ? `${remaining} message remaining today` 
+        : `${remaining} messages remaining today`;
       console.log(`⚠️ Quota warning: ${quotaWarning}`);
     }
 
@@ -226,9 +229,8 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
           try {
             await triggerAgentResponse(projectId, mentionedId, message, db);
             
-            // Decrement daily quota
+            // Update stats (no quota decrement for AI agents)
             await updateTeammateStats(projectId, mentionedId, {
-              'state.messagesLeftToday': FieldValue.increment(-1),
               'stats.messagesSent': FieldValue.increment(1),
               'state.lastActive': Date.now(),
               'state.status': 'online'
@@ -329,9 +331,8 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
             try {
               await triggerAgentResponse(projectId, agentId, message, db);
               
-              // Decrement daily quota
+              // Update stats (no quota decrement for AI agents)
               await updateTeammateStats(projectId, agentId, {
-                'state.messagesLeftToday': FieldValue.increment(-1),
                 'stats.messagesSent': FieldValue.increment(1),
                 'state.lastActive': Date.now(),
                 'state.status': 'online'
@@ -376,6 +377,89 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
       console.log(`📢 Mentions detected, skipping probability-based responses`);
     }
 
+    // 8.6. Add intelligent sign-off if this is the 7th message (last message allowed)
+    if (userMsgsToday === 6) { // This is the 7th message
+      console.log(`🎯 7th message detected - adding intelligent sign-off from Rasoa`);
+      
+      try {
+        // Get all tasks to summarize
+        const tasksSnapshot = await db.collection('userProjects')
+          .doc(projectId)
+          .collection('tasks')
+          .get();
+        
+        const tasks = tasksSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        // Build task summary with more natural language
+        let taskSummary = '';
+        const todoTasks = tasks.filter(t => t.status === 'todo');
+        const inProgressTasks = tasks.filter(t => t.status === 'inprogress');
+        const completedTasks = tasks.filter(t => t.status === 'done');
+        
+        if (tasks.length > 0) {
+          taskSummary = `\n\n� Today's progress:\n`;
+          
+          if (completedTasks.length > 0) {
+            taskSummary += `Great work! We completed ${completedTasks.length} task${completedTasks.length > 1 ? 's' : ''}. `;
+          }
+          
+          if (inProgressTasks.length > 0) {
+            taskSummary += `${inProgressTasks.length} task${inProgressTasks.length > 1 ? 's are' : ' is'} in progress. `;
+          }
+          
+          if (todoTasks.length > 0) {
+            taskSummary += `Still have ${todoTasks.length} task${todoTasks.length > 1 ? 's' : ''} to tackle.`;
+          }
+        } else {
+          taskSummary = `\n\nNo tasks on the Kanban board yet. `;
+        }
+        
+        // Get recent chat messages to check if tasks were discussed
+        const recentMessages = await db.collection('userProjects')
+          .doc(projectId)
+          .collection('chatMessages')
+          .orderBy('timestamp', 'desc')
+          .limit(10)
+          .get();
+        
+        const chatTexts = recentMessages.docs.map(doc => (doc.data().content || doc.data().text || '').toLowerCase()).join(' ');
+        const hasTaskDiscussion = chatTexts.includes('task') || chatTexts.includes('work on') || 
+                                   chatTexts.includes('need to') || chatTexts.includes('should do');
+        
+        let kanbanReminder = '';
+        if (hasTaskDiscussion && tasks.length < 3) {
+          kanbanReminder = `\n\n💡 Reminder: Add any tasks we discussed to the Kanban board so we don't forget!`;
+        }
+        
+        // Build natural sign-off message
+        const signOffMessage = `That's your 7 messages for today! ${taskSummary}${kanbanReminder}\n\nLet's continue tomorrow. See you! 👋`;
+        
+        // Save sign-off message from Rasoa
+        await db.collection('userProjects')
+          .doc(projectId)
+          .collection('chatMessages')
+          .add({
+            messageId: generateId(),
+            projectId: projectId,
+            senderId: 'rasoa',
+            senderName: 'Rasoa',
+            senderType: 'ai',
+            content: signOffMessage,
+            timestamp: Date.now(),
+            type: 'system'
+          });
+        
+        console.log(`✅ Intelligent sign-off added from Rasoa`);
+        
+      } catch (signOffError) {
+        console.error(`❌ Error adding sign-off:`, signOffError);
+        // Continue without sign-off if there's an error
+      }
+    }
+
     // 9. Fetch all messages to return (including AI responses)
     const allMessagesSnapshot = await db.collection('userProjects')
       .doc(projectId)
@@ -389,6 +473,9 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
     }));
 
     // 10. Return success response with all messages
+    const messagesAfterThis = userMsgsToday + 1; // Count including this message
+    const remainingAfterThis = 7 - messagesAfterThis;
+    
     res.json({
       success: true,
       chats: allMessages,
@@ -396,9 +483,11 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
       mentionsHandled: mentionsHandled,
       probabilityHandled: probabilityHandled,
       currentProjectDay: currentDay,
-      quotaWarning: quotaWarning,
-      quotaExceeded: userMsgsToday >= 6, // Will be exceeded after this message (7th)
-      messagesUsedToday: userMsgsToday + 1,
+      quotaWarning: remainingAfterThis > 0 && remainingAfterThis <= 2 
+        ? `${remainingAfterThis} message${remainingAfterThis === 1 ? '' : 's'} remaining today`
+        : null,
+      quotaExceeded: messagesAfterThis >= 7, // Will be true on 7th message
+      messagesUsedToday: messagesAfterThis,
       dailyLimit: 7
     });
 

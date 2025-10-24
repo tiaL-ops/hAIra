@@ -614,16 +614,8 @@ export async function isTeammateAvailable(projectId, teammateId) {
       }
     }
     
-    // Check daily message quota
-    if (teammate.state.messagesLeftToday <= 0) {
-      return {
-        available: false,
-        reason: 'quota_exhausted',
-        message: `${teammate.name} has reached their daily message limit (${teammate.config.maxMessagesPerDay} messages/day).`,
-        messagesLeftToday: 0,
-        maxMessagesPerDay: teammate.config.maxMessagesPerDay
-      };
-    }
+    // Note: No quota checking for AI agents - they can respond unlimited times
+    // Only human users have message quotas enforced at the route level
     
     // All checks passed
     return {
