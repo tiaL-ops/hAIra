@@ -7,7 +7,7 @@ import profileRoutes from './routes/ProfileRoutes.js';
 import loginRoutes from './routes/LoginRoutes.js';
 import classroomRoutes from './routes/ClassroomRoutes.js';
 import projectRoutes from './routes/ProjectRoutes.js';
-import chatRoutes from './routes/ChatRoutesPhase3.js';
+import chatRoutes from './routes/ChatRoutes.js';  // Using official ChatRoutes (formerly Phase3)
 import submissionRoutes from './routes/SubmissionRoutes.js';
 import kanbanRoutes from './routes/KanbanRoutes.js';
 

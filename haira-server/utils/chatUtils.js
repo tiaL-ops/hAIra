@@ -98,20 +98,20 @@ export function decideResponders(content, currentDay, agents) {
 export function getDefaultResponseAgents() {
   const random = Math.random();
   
-  // 40% chance: Both respond (randomize order)
-  if (random < 0.4) { // Changed from 0. to 0.4
+ // 15% chance: Both respond (random < 0.15)
+  if (random < 0.15) {
     return Math.random() < 0.5 ? ['rakoto', 'rasoa'] : ['rasoa', 'rakoto'];
   }
-  // 30% chance: Only Rasoa (executes if 0.4 <= random < 0.7)
-  if (random < 0.7) {
+  
+  // 40% chance: Only Rasoa (executes if 0.15 <= random < 0.55)
+  else if (random < 0.55) { // 0.15 (previous) + 0.40 (this) = 0.55
     return ['rasoa'];
   } 
-  // 30% chance: Only Rakoto (executes if random >= 0.7)
-
+  
+  // 45% chance: Only Rakoto (executes if random >= 0.55)
   else {
     return ['rakoto'];
   }
-
   // The 'return []' line is no longer reachable and has been removed.
 }
 

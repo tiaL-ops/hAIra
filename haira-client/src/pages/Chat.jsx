@@ -333,7 +333,23 @@ function Chat() {
       }, clearTimeoutMs);
     } catch (err) {
       console.error('[Client] Error sending message:', err);
-      setStatusMessage(`❌ Error: ${err.response?.data?.error || err.message}`);
+      
+      // Handle quota exceeded error (429)
+      if (err.response?.status === 429) {
+        const errorData = err.response.data;
+        setQuotaExceeded(true);
+        setStatusMessage(`🚫 ${errorData.message || 'Daily message limit reached (7 messages per 24 hours)'}`);
+        
+        // Update quota stats if available
+        if (errorData.messagesSentToday !== undefined) {
+          setMessagesUsed(errorData.messagesSentToday);
+        }
+        if (errorData.currentProjectDay !== undefined) {
+          setCurrentProjectDay(errorData.currentProjectDay);
+        }
+      } else {
+        setStatusMessage(`❌ Error: ${err.response?.data?.error || err.message}`);
+      }
     } finally {
       setIsSending(false);
     }
