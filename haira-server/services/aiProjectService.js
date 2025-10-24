@@ -1,5 +1,10 @@
 import { LEARNING_TOPICS } from '../config/projectRules.js';
 import { generateAIProject } from '../api/openaiService.js';
+import { 
+  getUnusedTemplatesForTopic, 
+  getLeastUsedTemplatesForTopic, 
+  updateTemplateUsage 
+} from './firebaseService.js';
 
 export async function generateProjectForTopic(topic) {
   try {
@@ -87,5 +92,65 @@ export async function generateProjectForTopic(topic) {
     };
     
     return fallbackProjects[topic] || fallbackProjects.design;
+  }
+}
+
+// Smart template selection: reuse existing templates or generate new ones
+export async function getOrCreateProjectTemplate(topic, userId) {
+  try {
+    console.log(`[AIProjectService] Getting or creating template for topic: ${topic}, user: ${userId}`);
+    
+    // Step 1: Check for unused templates for this topic and user
+    const unusedTemplates = await getUnusedTemplatesForTopic(topic, userId);
+    if (unusedTemplates.length > 0) {
+      const selectedTemplate = unusedTemplates[0]; // Use the first unused template
+      console.log(`[AIProjectService] Found unused template: ${selectedTemplate.title} (${selectedTemplate.id})`);
+      
+      // Update template usage
+      await updateTemplateUsage(selectedTemplate.id, userId);
+      
+      return {
+        template: selectedTemplate,
+        isReused: true,
+        source: 'unused_template'
+      };
+    }
+    
+    // Step 2: Check for least-used templates for this topic
+    const leastUsedTemplates = await getLeastUsedTemplatesForTopic(topic, 3);
+    if (leastUsedTemplates.length > 0) {
+      const selectedTemplate = leastUsedTemplates[0]; // Use the least-used template
+      console.log(`[AIProjectService] Found least-used template: ${selectedTemplate.title} (${selectedTemplate.id})`);
+      
+      // Update template usage
+      await updateTemplateUsage(selectedTemplate.id, userId);
+      
+      return {
+        template: selectedTemplate,
+        isReused: true,
+        source: 'least_used_template'
+      };
+    }
+    
+    // Step 3: Generate new template if no suitable existing templates found
+    console.log(`[AIProjectService] No suitable templates found, generating new template for topic: ${topic}`);
+    const newProjectData = await generateProjectForTopic(topic);
+    
+    return {
+      template: newProjectData,
+      isReused: false,
+      source: 'ai_generated'
+    };
+    
+  } catch (error) {
+    console.error('[AIProjectService] Error in getOrCreateProjectTemplate:', error);
+    
+    // Fallback to AI generation
+    const fallbackProject = await generateProjectForTopic(topic);
+    return {
+      template: fallbackProject,
+      isReused: false,
+      source: 'fallback_generated'
+    };
   }
 }

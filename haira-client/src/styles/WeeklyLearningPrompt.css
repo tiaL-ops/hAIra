@@ -205,6 +205,163 @@
     font-style: italic;
   }
 
+  /* Project Choice Interface */
+  .project-choice {
+    margin-top: 2rem;
+  }
+
+  .choice-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .choice-header h3 {
+    font-size: 1.5rem;
+    color: #408F8C;
+    margin-bottom: 0.5rem;
+  }
+
+  .choice-header p {
+    color: #666;
+    margin-bottom: 1rem;
+  }
+
+  .btn-back {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .btn-back:hover {
+    background: #e0e0e0;
+    color: #333;
+  }
+
+  .choice-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .choice-card {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .choice-card:hover {
+    border-color: #408F8C;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(64, 143, 140, 0.2);
+  }
+
+  .choice-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  .choice-card h4 {
+    font-size: 1.2rem;
+    color: #333;
+    margin-bottom: 0.5rem;
+  }
+
+  .choice-card p {
+    color: #666;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .btn-choice {
+    background: #408F8C;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+  }
+
+  .btn-choice:hover:not(:disabled) {
+    background: #2d6b68;
+    transform: translateY(-1px);
+  }
+
+  .btn-choice:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Templates Section */
+  .templates-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #e0e0e0;
+  }
+
+  .templates-section h4 {
+    color: #333;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .templates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .template-card {
+    background: #f8f9fa;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .template-card:hover {
+    border-color: #408F8C;
+    background: #f0fdfa;
+  }
+
+  .template-card.selected {
+    border-color: #408F8C;
+    background: #f0fdfa;
+    box-shadow: 0 2px 8px rgba(64, 143, 140, 0.2);
+  }
+
+  .template-card h5 {
+    color: #333;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+  }
+
+  .template-card p {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .template-meta {
+    font-size: 0.8rem;
+    color: #999;
+  }
+
   /* Responsive design */
   @media (max-width: 768px) {
     .topics-grid {

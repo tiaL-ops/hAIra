@@ -672,7 +672,7 @@ export async function createAITemplate(aiProject, topic) {
 }
 
 // Create AI-generated project
-export async function createAIGeneratedProject(userId, userName, topic, aiProject) {
+export async function createAIGeneratedProject(userId, userName, topic, aiProject, existingTemplateId = null) {
   try {
     // Check if user can create new project
     const canCreate = await canCreateNewProject(userId);
@@ -689,8 +689,15 @@ export async function createAIGeneratedProject(userId, userName, topic, aiProjec
       });
     }
 
-    // Create AI template first
-    const templateId = await createAITemplate(aiProject, topic);
+    // Use existing template ID or create new template
+    let templateId;
+    if (existingTemplateId) {
+      templateId = existingTemplateId;
+      console.log(`[FirebaseService] Using existing template: ${templateId}`);
+    } else {
+      templateId = await createAITemplate(aiProject, topic);
+      console.log(`[FirebaseService] Created new template: ${templateId}`);
+    }
     
     // Create user project
     const projectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc();
@@ -786,5 +793,86 @@ export async function getUserProjectsWithTemplates(userId) {
   } catch (error) {
     console.error('Error getting user projects with templates:', error);
     return [];
+  }
+}
+
+// Template Reuse Functions
+
+// Get unused templates for a specific topic and user
+export async function getUnusedTemplatesForTopic(topic, userId) {
+  try {
+    console.log(`[FirebaseService] Looking for unused templates for topic: ${topic}, user: ${userId}`);
+    
+    const templates = await getDocuments(COLLECTIONS.PROJECT_TEMPLATES, { 
+      topic: topic,
+      isReusable: true 
+    });
+    
+    // Filter out templates that this user has already used
+    const unusedTemplates = templates.filter(template => {
+      const usedBy = template.usedBy || [];
+      return !usedBy.includes(userId);
+    });
+    
+    console.log(`[FirebaseService] Found ${unusedTemplates.length} unused templates for topic ${topic}`);
+    return unusedTemplates;
+  } catch (error) {
+    console.error('[FirebaseService] Error getting unused templates:', error);
+    return [];
+  }
+}
+
+// Get least-used templates for a specific topic
+export async function getLeastUsedTemplatesForTopic(topic, limit = 3) {
+  try {
+    console.log(`[FirebaseService] Looking for least-used templates for topic: ${topic}`);
+    
+    const templates = await getDocuments(COLLECTIONS.PROJECT_TEMPLATES, { 
+      topic: topic,
+      isReusable: true 
+    });
+    
+    // Sort by usage count (ascending) and limit results
+    const sortedTemplates = templates
+      .sort((a, b) => (a.usageCount || 0) - (b.usageCount || 0))
+      .slice(0, limit);
+    
+    console.log(`[FirebaseService] Found ${sortedTemplates.length} least-used templates for topic ${topic}`);
+    return sortedTemplates;
+  } catch (error) {
+    console.error('[FirebaseService] Error getting least-used templates:', error);
+    return [];
+  }
+}
+
+// Update template usage when a template is used
+export async function updateTemplateUsage(templateId, userId) {
+  try {
+    console.log(`[FirebaseService] Updating template usage for template: ${templateId}, user: ${userId}`);
+    
+    const template = await getDocumentById(COLLECTIONS.PROJECT_TEMPLATES, templateId);
+    if (!template) {
+      throw new Error(`Template ${templateId} not found`);
+    }
+    
+    const usedBy = template.usedBy || [];
+    const usageCount = template.usageCount || 0;
+    
+    // Add user to usedBy array if not already there
+    if (!usedBy.includes(userId)) {
+      usedBy.push(userId);
+    }
+    
+    // Update template with new usage data
+    await updateDocument(COLLECTIONS.PROJECT_TEMPLATES, templateId, {
+      usedBy: usedBy,
+      usageCount: usageCount + 1,
+      lastUsed: Date.now()
+    });
+    
+    console.log(`[FirebaseService] Updated template usage: ${usageCount + 1} total uses`);
+  } catch (error) {
+    console.error('[FirebaseService] Error updating template usage:', error);
+    throw error;
   }
 }

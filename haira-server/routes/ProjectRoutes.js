@@ -7,9 +7,10 @@ import {
   canCreateNewProject, getActiveProject,
   createAIGeneratedProject, getProjectWithTemplate,
   archiveProject, getArchivedProjects, getInactiveProjects,
-  activateProject,
+  activateProject, getUnusedTemplatesForTopic, getLeastUsedTemplatesForTopic,
+  getDocumentById, updateTemplateUsage
 } from '../services/firebaseService.js';
-import { generateProjectForTopic } from '../services/aiProjectService.js';
+import { generateProjectForTopic, getOrCreateProjectTemplate } from '../services/aiProjectService.js';
 import { COLLECTIONS } from '../schema/database.js';
 import { PROJECT_RULES, LEARNING_TOPICS } from '../config/projectRules.js';
 import { AI_AGENTS } from '../config/aiAgents.js';
@@ -216,27 +217,64 @@ router.post('/create', verifyFirebaseToken, async (req, res) => {
 // generate a new project
 router.post('/generate-project', verifyFirebaseToken, async (req, res) => {
   try {
-    const { topic } = req.body;  //chosen topic from the list of topics
+    const { topic, action = 'generate_new', templateId } = req.body;
     const userId = req.user.uid;
     const userName = req.user.name;
 
-    const aiTeammates = [
-      AI_AGENTS.rasoa.name,
-      AI_AGENTS.rakoto.name,
-      AI_AGENTS.alex.name,
-    ];
+    console.log(`[ProjectRoutes] Project generation request: topic=${topic}, action=${action}, templateId=${templateId}`);
 
-    // Generate AI project
-    const aiProject = await generateProjectForTopic(topic);
-    const projectId = await createAIGeneratedProject(
-      userId, userName, topic, aiProject
-    );
+    let templateResult;
+    let projectId;
+
+    if (action === 'use_template' && templateId) {
+      // User selected an existing template
+      console.log(`[ProjectRoutes] Using existing template: ${templateId}`);
+      
+      // Get the template from database
+      const template = await getDocumentById(COLLECTIONS.PROJECT_TEMPLATES, templateId);
+      if (!template) {
+        throw new Error('Template not found');
+      }
+      
+      // Update template usage
+      await updateTemplateUsage(templateId, userId);
+      
+      templateResult = {
+        template: template,
+        isReused: true,
+        source: 'user_selected_template'
+      };
+      
+      // Create project with existing template
+      projectId = await createAIGeneratedProject(
+        userId, userName, topic, template, templateId
+      );
+      
+    } else {
+      // Generate new project (AI-generated)
+      console.log(`[ProjectRoutes] Generating new AI project for topic: ${topic}`);
+      
+      const aiProject = await generateProjectForTopic(topic);
+      projectId = await createAIGeneratedProject(
+        userId, userName, topic, aiProject
+      );
+      
+      templateResult = {
+        template: aiProject,
+        isReused: false,
+        source: 'ai_generated'
+      };
+    }
 
     res.status(201).json({
       success: true,
       projectId: projectId,
-      project: aiProject,
-      message: 'AI-generated project created successfully'
+      project: templateResult.template,
+      isReused: templateResult.isReused,
+      source: templateResult.source,
+      message: templateResult.isReused 
+        ? 'Project created using selected template' 
+        : 'AI-generated project created successfully'
     });
   } catch (error) {
     console.error('Error creating AI project:', error);
@@ -305,6 +343,44 @@ router.get('/topics', verifyFirebaseToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching learning topics:', error);
     res.status(500).json({ error: 'Failed to fetch learning topics' });
+  }
+});
+
+// Get available templates for a specific topic
+router.get('/templates/:topic', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { topic } = req.params;
+    const userId = req.user.uid;
+    
+    console.log(`[ProjectRoutes] Getting templates for topic: ${topic}, user: ${userId}`);
+    
+    // Get unused templates first
+    const unusedTemplates = await getUnusedTemplatesForTopic(topic, userId);
+    
+    // Get least-used templates as fallback
+    const leastUsedTemplates = await getLeastUsedTemplatesForTopic(topic, 5);
+    
+    // Combine and deduplicate templates
+    const allTemplates = [...unusedTemplates];
+    const existingIds = new Set(unusedTemplates.map(t => t.id));
+    
+    leastUsedTemplates.forEach(template => {
+      if (!existingIds.has(template.id)) {
+        allTemplates.push(template);
+      }
+    });
+    
+    console.log(`[ProjectRoutes] Found ${allTemplates.length} templates for topic ${topic}`);
+    
+    res.json({
+      success: true,
+      templates: allTemplates,
+      unusedCount: unusedTemplates.length,
+      totalCount: allTemplates.length
+    });
+  } catch (error) {
+    console.error('Error fetching templates:', error);
+    res.status(500).json({ error: 'Failed to fetch templates' });
   }
 });
 // Export the router so we can use it in index.js

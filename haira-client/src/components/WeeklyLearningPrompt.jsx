@@ -15,6 +15,10 @@ export default function WeeklyLearningPrompt({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [topics, setTopics] = useState([]);
+  const [showChoice, setShowChoice] = useState(false);
+  const [availableTemplates, setAvailableTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState('');
   const auth = getAuth();
 
   const backend_host = "http://localhost:3002";
@@ -55,7 +59,41 @@ export default function WeeklyLearningPrompt({
     fetchTopics();
   }, [auth]);
 
-  const handleGenerateProject = async () => {
+  // Handle topic selection - show choice between generate new vs pick existing
+  const handleTopicSelect = (topicId) => {
+    setSelectedTopic(topicId);
+    setShowChoice(true);
+    setError('');
+  };
+
+  // Fetch available templates for the selected topic
+  const fetchAvailableTemplates = async () => {
+    if (!selectedTopic) return;
+    
+    setLoadingTemplates(true);
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const response = await axios.get(`${backend_host}/api/project/templates/${selectedTopic}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        setAvailableTemplates(response.data.templates || []);
+      } else {
+        setAvailableTemplates([]);
+      }
+    } catch (err) {
+      console.error('Error fetching templates:', err);
+      setAvailableTemplates([]);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  // Handle choice: Generate new project
+  const handleGenerateNew = async () => {
     if (!selectedTopic) return;
     
     setLoading(true);
@@ -64,7 +102,8 @@ export default function WeeklyLearningPrompt({
     try {
       const token = await auth.currentUser.getIdToken();
       const response = await axios.post(`${backend_host}/api/project/generate-project`, {
-        topic: selectedTopic
+        topic: selectedTopic,
+        action: 'generate_new'
       }, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -82,6 +121,52 @@ export default function WeeklyLearningPrompt({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle choice: Pick from existing templates
+  const handlePickExisting = () => {
+    fetchAvailableTemplates();
+  };
+
+  // Handle template selection and project creation
+  const handleTemplateSelect = async (templateId) => {
+    if (!selectedTopic || !templateId) return;
+    
+    setLoading(true);
+    setError('');
+
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const response = await axios.post(`${backend_host}/api/project/generate-project`, {
+        topic: selectedTopic,
+        action: 'use_template',
+        templateId: templateId
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        onTopicSelected(response.data.projectId, response.data.project);
+      } else {
+        throw new Error(response.data.error || 'Failed to create project');
+      }
+    } catch (err) {
+      console.error('Error creating project from template:', err);
+      setError(err.message || 'Failed to create project. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reset choice and go back to topic selection
+  const handleBackToTopics = () => {
+    setShowChoice(false);
+    setSelectedTopic('');
+    setAvailableTemplates([]);
+    setSelectedTemplate('');
+    setError('');
   };
 
   const handleContinueProject = () => {
@@ -115,14 +200,14 @@ export default function WeeklyLearningPrompt({
         </div>
       )}
 
-      {canCreateNew && (
+      {canCreateNew && !showChoice && (
         <div className="topic-selection">
           <div className="topics-grid">
             {topics.map(topic => (
               <div 
                 key={topic.id}
                 className={`topic-card ${selectedTopic === topic.id ? 'selected' : ''}`}
-                onClick={() => setSelectedTopic(topic.id)}
+                onClick={() => handleTopicSelect(topic.id)}
               >
                 <div className="topic-icon">{topic.icon}</div>
                 <h3 className="topic-name">{topic.name}</h3>
@@ -133,19 +218,69 @@ export default function WeeklyLearningPrompt({
               </div>
             ))}
           </div>
-          
-          <div className="generate-section">
-            <button 
-              className="btn-generate-project"
-              onClick={handleGenerateProject}
-              disabled={!selectedTopic || loading}
-            >
-              {loading ? 'Creating...' : '🚀 Create Project'}
+        </div>
+      )}
+
+      {canCreateNew && showChoice && (
+        <div className="project-choice">
+          <div className="choice-header">
+            <h3>🎯 {topics.find(t => t.id === selectedTopic)?.name} Project</h3>
+            <p>How would you like to create your project?</p>
+            <button className="btn-back" onClick={handleBackToTopics}>
+              ← Back to topics
             </button>
-            {!selectedTopic && (
-              <p className="select-topic-hint">Please select a topic to create a new project</p>
-            )}
           </div>
+
+          <div className="choice-options">
+            <div className="choice-card" onClick={handleGenerateNew}>
+              <div className="choice-icon">🤖</div>
+              <h4>Generate New Project</h4>
+              <p>Create a unique AI-generated project tailored to your needs</p>
+              <button className="btn-choice" disabled={loading}>
+                {loading ? 'Generating...' : '🚀 Generate New'}
+              </button>
+            </div>
+
+            <div className="choice-card" onClick={handlePickExisting}>
+              <div className="choice-icon">📋</div>
+              <h4>Pick from Existing</h4>
+              <p>Choose from previously created project templates</p>
+              <button className="btn-choice" disabled={loadingTemplates}>
+                {loadingTemplates ? 'Loading...' : '📚 Browse Templates'}
+              </button>
+            </div>
+          </div>
+
+          {availableTemplates.length > 0 && (
+            <div className="templates-section">
+              <h4>Available Templates:</h4>
+              <div className="templates-grid">
+                {availableTemplates.map(template => (
+                  <div 
+                    key={template.id}
+                    className={`template-card ${selectedTemplate === template.id ? 'selected' : ''}`}
+                    onClick={() => setSelectedTemplate(template.id)}
+                  >
+                    <h5>{template.title}</h5>
+                    <p>{template.description}</p>
+                    <div className="template-meta">
+                      <span>Used {template.usageCount || 0} times</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {selectedTemplate && (
+                <button 
+                  className="btn-generate-project"
+                  onClick={() => handleTemplateSelect(selectedTemplate)}
+                  disabled={loading}
+                >
+                  {loading ? 'Creating...' : '🚀 Use This Template'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
