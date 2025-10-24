@@ -474,6 +474,42 @@ export async function updateUserActiveProject(userId, projectId) {
   });
 }
 
+// Activate a project and set previous active project to inactive
+export async function activateProject(userId, projectId) {
+  try {
+    // Get current active project
+    const activeProject = await getActiveProject(userId);
+    
+    // Set the new project as active
+    const newProjectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc(projectId);
+    await newProjectRef.update({
+      isActive: true,
+      status: 'active'
+    });
+    
+    // Set previous active project to inactive (if exists)
+    if (activeProject) {
+      const previousProjectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc(activeProject.id);
+      await previousProjectRef.update({
+        isActive: false,
+        status: 'inactive'
+      });
+    }
+    
+    // Update user's activeProjectId
+    await updateUserActiveProject(userId, projectId);
+    
+    console.log(`[FirebaseService] Activated project ${projectId} for user ${userId}`);
+    if (activeProject) {
+      console.log(`[FirebaseService] Set previous active project ${activeProject.id} to inactive`);
+    }
+    
+  } catch (error) {
+    console.error('[FirebaseService] Error activating project:', error);
+    throw error;
+  }
+}
+
 // Get count of user messages in the last 24 hours
 export async function getUserMessageCountSince(projectId, userId, projectStartDate, currentDay) {
   try {

@@ -7,7 +7,8 @@ export default function ProjectViewModal({
   title, 
   onClose, 
   onOpenProject, 
-  onArchiveProject 
+  onArchiveProject,
+  onContinueProject 
 }) {
   if (!isOpen) return null;
 
@@ -90,6 +91,14 @@ export default function ProjectViewModal({
                     >
                       Chat
                     </button>
+                    {project.status === 'inactive' && onContinueProject && (
+                      <button 
+                        onClick={() => onContinueProject(project.id)}
+                        className="btn-continue"
+                      >
+                        🔄 Continue
+                      </button>
+                    )}
                     {project.status !== 'archived' && onArchiveProject && (
                       <button 
                         onClick={() => onArchiveProject(project.id)}

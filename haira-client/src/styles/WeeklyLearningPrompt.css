@@ -1,7 +1,7 @@
 .weekly-prompt-container {
-    max-width: 800px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 1.5rem;
     background: white;
     border: 2px solid #20b2aa;
     border-radius: 12px;
@@ -12,19 +12,19 @@
   
   .weekly-prompt-header {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     position: relative;
   }
   
   .weekly-prompt-header h2 {
-    font-size: 1.8rem;
-    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+    margin-bottom: 0.3rem;
     font-weight: 700;
     color: #20b2aa;
   }
   
   .weekly-prompt-header p {
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: #666;
     margin-bottom: 0;
   }
@@ -98,16 +98,16 @@
   
   .topics-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-top: 1.5rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.8rem;
+    margin-top: 1rem;
   }
   
   .topic-card {
     background: white;
     border: 2px solid #20b2aa;
     border-radius: 12px;
-    padding: 1.5rem;
+    padding: 1rem;
     cursor: pointer;
     transition: all 0.3s ease;
     text-align: center;
@@ -127,36 +127,115 @@
   }
   
   .topic-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
   }
   
   .topic-name {
-    font-size: 1.3rem;
-    margin-bottom: 0.8rem;
+    font-size: 1rem;
+    margin-bottom: 0.4rem;
     font-weight: 600;
     color: #333;
   }
   
   .topic-description {
-    font-size: 1rem;
+    font-size: 0.8rem;
     color: #666;
-    margin-bottom: 1rem;
-    line-height: 1.4;
+    margin-bottom: 0.6rem;
+    line-height: 1.3;
   }
   
   .topic-deliverable {
     background: #f0fdfa;
-    border-radius: 8px;
-    padding: 0.8rem;
-    font-size: 0.9rem;
-    border-left: 4px solid #20b2aa;
+    border-radius: 6px;
+    padding: 0.5rem;
+    font-size: 0.75rem;
+    border-left: 3px solid #20b2aa;
     color: #20b2aa;
     font-weight: 500;
   }
   
   .topic-deliverable strong {
     color: #20b2aa;
+  }
+
+  .generate-section {
+    text-align: center;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .btn-generate-project {
+    background: linear-gradient(135deg, #20b2aa 0%, #1a9b94 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(32, 178, 170, 0.3);
+    min-width: 180px;
+  }
+
+  .btn-generate-project:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(32, 178, 170, 0.4);
+  }
+
+  .btn-generate-project:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 2px 4px rgba(32, 178, 170, 0.2);
+  }
+
+  .select-topic-hint {
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+    font-style: italic;
+  }
+
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .topics-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.6rem;
+    }
+    
+    .topic-card {
+      padding: 0.8rem;
+    }
+    
+    .topic-icon {
+      font-size: 1.5rem;
+    }
+    
+    .topic-name {
+      font-size: 0.9rem;
+    }
+    
+    .topic-description {
+      font-size: 0.75rem;
+    }
+    
+    .topic-deliverable {
+      font-size: 0.7rem;
+      padding: 0.4rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .topics-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .weekly-prompt-container {
+      padding: 1rem;
+    }
   }
   
   .limit-reached {

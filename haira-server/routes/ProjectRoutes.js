@@ -7,6 +7,7 @@ import {
   canCreateNewProject, getActiveProject,
   createAIGeneratedProject, getProjectWithTemplate,
   archiveProject, getArchivedProjects, getInactiveProjects,
+  activateProject,
 } from '../services/firebaseService.js';
 import { generateProjectForTopic } from '../services/aiProjectService.js';
 import { COLLECTIONS } from '../schema/database.js';
@@ -116,7 +117,7 @@ router.post('/:projectId/activate', verifyFirebaseToken, async (req, res) => {
     const { projectId } = req.params;
     const userId = req.user.uid;
 
-    await updateUserActiveProject(userId, projectId);
+    await activateProject(userId, projectId);
 
     res.json({
       success: true,

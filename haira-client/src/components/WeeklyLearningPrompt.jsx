@@ -12,7 +12,6 @@ export default function WeeklyLearningPrompt({
   canCreateNew = true
 }) {
   const [selectedTopic, setSelectedTopic] = useState('');
-  const [showTopics, setShowTopics] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [topics, setTopics] = useState([]);
@@ -52,16 +51,16 @@ export default function WeeklyLearningPrompt({
     fetchTopics();
   }, [auth]);
 
-  const handleTopicSelect = async (topicId) => {
-    setSelectedTopic(topicId);
-    setShowTopics(false);
+  const handleGenerateProject = async () => {
+    if (!selectedTopic) return;
+    
     setLoading(true);
     setError('');
 
     try {
       const token = await auth.currentUser.getIdToken();
       const response = await axios.post(`${backend_host}/api/project/generate-project`, {
-        topic: topicId
+        topic: selectedTopic
       }, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -114,32 +113,35 @@ export default function WeeklyLearningPrompt({
 
       {canCreateNew && (
         <div className="topic-selection">
-          <button 
-            className="btn-select-topic"
-            onClick={() => setShowTopics(!showTopics)}
-            disabled={loading}
-          >
-            🚀 Start New Project
-          </button>
-
-          {showTopics && (
-            <div className="topics-grid">
-              {topics.map(topic => (
-                <div 
-                  key={topic.id}
-                  className={`topic-card ${selectedTopic === topic.id ? 'selected' : ''}`}
-                  onClick={() => handleTopicSelect(topic.id)}
-                >
-                  <div className="topic-icon">{topic.icon}</div>
-                  <h3 className="topic-name">{topic.name}</h3>
-                  <p className="topic-description">{topic.description}</p>
-                  <div className="topic-deliverable">
-                    <strong>Deliverable:</strong> {topic.deliverable}
-                  </div>
+          <div className="topics-grid">
+            {topics.map(topic => (
+              <div 
+                key={topic.id}
+                className={`topic-card ${selectedTopic === topic.id ? 'selected' : ''}`}
+                onClick={() => setSelectedTopic(topic.id)}
+              >
+                <div className="topic-icon">{topic.icon}</div>
+                <h3 className="topic-name">{topic.name}</h3>
+                <p className="topic-description">{topic.description}</p>
+                <div className="topic-deliverable">
+                  <strong>Deliverable:</strong> {topic.deliverable}
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            ))}
+          </div>
+          
+          <div className="generate-section">
+            <button 
+              className="btn-generate-project"
+              onClick={handleGenerateProject}
+              disabled={!selectedTopic || loading}
+            >
+              {loading ? 'Generating...' : '🚀 Generate Project'}
+            </button>
+            {!selectedTopic && (
+              <p className="select-topic-hint">Please select a topic above to generate your project</p>
+            )}
+          </div>
         </div>
       )}
 

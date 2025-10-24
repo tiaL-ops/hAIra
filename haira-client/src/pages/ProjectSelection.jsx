@@ -203,12 +203,8 @@ export default function ProjectSelection() {
     <div className="projects-wrapper">
       <div className="projects-container">
         {/* Header Section */}
-        <div className="projects-header">
-          <h1 className="projects-title">Your Projects</h1>
-          <p className="projects-subtitle">
-            Select an existing project or create a new one
-          </p>
-        </div>
+        {/* <div className="projects-header">
+        </div> */}
         
         {error && (
           <div className="projects-error">
@@ -263,6 +259,7 @@ export default function ProjectSelection() {
           onClose={closeProjectModal}
           onOpenProject={handleOpenProject}
           onArchiveProject={handleArchiveProject}
+          onContinueProject={handleContinueInactiveProject}
         />
 
         {/* Confirmation Modal */}
