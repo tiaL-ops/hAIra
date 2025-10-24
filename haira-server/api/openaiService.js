@@ -33,3 +33,56 @@ export async function generateAIContribution(userMessage, personaConfig, systemI
   
   return response.choices[0].message.content;
 }
+
+export async function generateAIProject(prompt) {
+  try {
+    const systemPrompt = `You are an educational AI that creates engaging learning projects. 
+    Generate a project with:
+    - A compelling title (max 50 characters)
+    - A detailed description (2-3 sentences explaining the project)
+    - 3-5 specific deliverables (array of strings)
+    
+    Format your response as JSON with keys: title, description, deliverables (array).
+    
+    Example response:
+    {
+      "title": "Market Research Analysis",
+      "description": "Analyze consumer behavior in the tech industry through surveys, interviews, and data analysis to identify trends and opportunities.",
+      "deliverables": ["Survey Design", "Data Collection", "Statistical Analysis", "Trend Report", "Recommendations"]
+    }`;
+
+    const fullPrompt = `${systemPrompt}\n\nTopic: ${prompt}`;
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: fullPrompt }
+      ],
+      max_tokens: 500,
+      temperature: 0.7
+    });
+    
+    const text = response.choices[0].message.content;
+    
+    // Try to parse JSON response
+    try {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    } catch (parseError) {
+      console.error('Error parsing AI response:', parseError);
+    }
+    
+    // Fallback if JSON parsing fails
+    return {
+      title: "AI-Generated Learning Project",
+      description: text.substring(0, 200) + "...",
+      deliverables: ["Research", "Implementation", "Documentation"]
+    };
+  } catch (error) {
+    console.error('Error generating AI project:', error);
+    throw error;
+  }
+}
