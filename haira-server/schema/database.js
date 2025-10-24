@@ -36,10 +36,19 @@ export const USER_SCHEMA = {
 export const PROJECT_TEMPLATE_SCHEMA = {
   title: String,        // Template name (e.g., "Product Design")
   description: String,  // Description of the project
+  topic: String, // Project topic
   durationDays: Number, // Expected duration in days
   managerName: String,  // Name of the AI project manager
   deliverables: Array,  // Array of required deliverables
-  availableTeammates: Array // Array of AI teammates that can be selected
+  availableTeammates: Array, // Array of AI teammates that can be selected
+  createdAt: Number, // Timestamp when the template was created
+  
+  // Template Reuse Tracking
+  usedBy: Array,        // Array of user IDs who have used this template
+  usageCount: Number,   // Total number of times this template has been used
+  lastUsed: Number,     // Timestamp of last usage (null if never used)
+  isReusable: Boolean,  // Whether this template can be reused (default: true)
+  maxReuses: Number     // Maximum number of reuses allowed (null for unlimited)
 };
 
 // Schema for User Project documents (instances of templates)
@@ -51,6 +60,12 @@ export const USER_PROJECT_SCHEMA = {
   startDate: Number,  // Timestamp when project was started
   dailyMeetingTime: String, // Preferred meeting time
   team: Array,        // Array of team members (user and AI)
+
+  // NEW FIELDS FOR PROJECT MANAGEMENT
+  isActive: Boolean,     // true for active project, false for archived
+  deadline: Number,      // 7-day deadline timestamp
+  archivedAt: Number,    // When project was archived (null if not archived)
+
   draftReport: {      // Draft project report (autosaved)
     content: String,
     lastSaved: Number
