@@ -1,5 +1,5 @@
 import { generateAIContribution as callOpenAIContribution } from '../api/openaiService.js';
-import { getDocumentById, getSubdocuments, updateDocument } from './firebaseService.js';
+import { getDocumentById, getSubdocuments, updateDocument, getProjectWithTasks } from './firebaseService.js';
 import { COLLECTIONS } from '../schema/database.js';
 
 export class AIGradingService {
@@ -25,10 +25,10 @@ export class AIGradingService {
 
   async evaluateProject(projectId, userId) {
     try {
-      console.log(`Starting AI evaluation for project ${projectId}`);
+      console.log(`[AIGradingService] Starting AI evaluation for project ${projectId}, user ${userId}`);
       
       // Gather comprehensive project data
-      const projectData = await this.gatherProjectData(projectId);
+      const projectData = await this.gatherProjectData(projectId, userId);
       
       if (!projectData.project) {
         throw new Error('Project not found');
@@ -63,35 +63,69 @@ export class AIGradingService {
     }
   }
   
-  async gatherProjectData(projectId) {
+  async gatherProjectData(projectId, userId) {
     try {
-      const project = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
-      const chatMessages = await getSubdocuments(COLLECTIONS.USER_PROJECTS, projectId, 'messages');
-      const tasks = await getSubdocuments(COLLECTIONS.USER_PROJECTS, projectId, 'tasks');
+      console.log(`[AIGradingService] Gathering project data for project: ${projectId}, user: ${userId}`);
       
-      const projectDuration = project ? (Date.now() - project.startDate) / (1000 * 60 * 60 * 24) : 0; // days
-      const teamMembers = project?.team ? project.team.map(member => member.name) : [];
+      // Use the existing getProjectWithTasks function that properly loads tasks from subcollection
+      const projectData = await getProjectWithTasks(projectId, userId);
+      
+      if (!projectData) {
+        console.log('[AIGradingService] No project data found');
+        return {
+          project: null,
+          chatMessages: [],
+          tasks: [],
+          projectDuration: 0,
+          teamMembers: []
+        };
+      }
+      
+      console.log('[AIGradingService] Project data loaded:', {
+        projectTitle: projectData.project?.title,
+        tasksCount: projectData.tasks?.length || 0,
+        projectId: projectData.project?.id
+      });
+      
+      // Get chat messages from subcollection
+      const chatMessages = await getSubdocuments(COLLECTIONS.USER_PROJECTS, projectId, 'chatMessages');
+      console.log(`[AIGradingService] Chat messages loaded: ${chatMessages?.length || 0}`);
+      
+      const projectDuration = projectData.project ? (Date.now() - projectData.project.startDate) / (1000 * 60 * 60 * 24) : 0; // days
+      const teamMembers = projectData.project?.team ? projectData.project.team.map(member => member.name) : [];
+      
+      console.log('[AIGradingService] Project data gathered:', {
+        project: projectData.project,
+        chatMessages: chatMessages || [],
+        tasks: projectData.tasks || [],
+        projectDuration: projectDuration.toFixed(1),
+        teamMembers: teamMembers
+      });
       
       return {
-        project,
+        project: projectData.project,
         chatMessages: chatMessages || [],
-        tasks: tasks || [],
+        tasks: projectData.tasks || [],
         projectDuration,
         teamMembers
       };
     } catch (error) {
-      console.error('Error gathering project data:', error);
+      console.error('[AIGradingService] Error gathering project data:', error);
       throw error;
     }
   }
   
   async evaluateResponsiveness(projectData) {
+    console.log(`[AIGradingService] Evaluating responsiveness for project: ${projectData.project?.title}`);
+    console.log(`[AIGradingService] Chat messages count: ${projectData.chatMessages?.length || 0}`);
+    
     const prompt = this.buildResponsivenessPrompt(projectData);
     const response = await callOpenAIContribution(prompt, { temperature: 0.3 }, '');
     
     try {
       const cleanedResponse = this.cleanAIResponse(response);
       const evaluation = JSON.parse(cleanedResponse);
+      console.log(`[AIGradingService] Responsiveness evaluation result:`, evaluation);
       return {
         score: evaluation.score || 0,
         reasoning: evaluation.reasoning || 'No reasoning provided',
@@ -101,6 +135,7 @@ export class AIGradingService {
       };
     } catch (error) {
       console.error('Failed to parse responsiveness evaluation:', error);
+      console.error('Raw AI response:', response);
       return { 
         score: 0, 
         reasoning: 'Failed to evaluate responsiveness - AI response parsing error',
@@ -112,12 +147,16 @@ export class AIGradingService {
   }
   
   async evaluateWorkPercentage(projectData) {
+    console.log(`[AIGradingService] Evaluating work percentage for project: ${projectData.project?.title}`);
+    console.log(`[AIGradingService] Tasks count: ${projectData.tasks?.length || 0}`);
+    
     const prompt = this.buildWorkPercentagePrompt(projectData);
     const response = await callOpenAIContribution(prompt, { temperature: 0.3 }, '');
     
     try {
       const cleanedResponse = this.cleanAIResponse(response);
       const evaluation = JSON.parse(cleanedResponse);
+      console.log(`[AIGradingService] Work percentage evaluation result:`, evaluation);
       return {
         score: evaluation.score || 0,
         reasoning: evaluation.reasoning || 'No reasoning provided',
@@ -127,6 +166,7 @@ export class AIGradingService {
       };
     } catch (error) {
       console.error('Failed to parse work percentage evaluation:', error);
+      console.error('Raw AI response:', response);
       return { 
         score: 0, 
         reasoning: 'Failed to evaluate work percentage - AI response parsing error',
@@ -320,15 +360,25 @@ Provide your evaluation in this exact JSON format:
       return 'No chat messages available for analysis.';
     }
     
+    console.log(`[AIGradingService] Formatting ${chatMessages.length} chat messages for analysis`);
+    
     return chatMessages
       .sort((a, b) => a.timestamp - b.timestamp)
-      .map(msg => ({
-        sender: msg.senderName,
-        type: msg.senderType,
-        timestamp: new Date(msg.timestamp).toLocaleString(),
-        text: msg.text.substring(0, 200) + (msg.text.length > 200 ? '...' : ''),
-        isActiveHours: msg.isActiveHours
-      }))
+      .map(msg => {
+        // Determine if this is a human message
+        const isHuman = msg.senderType === 'human' || 
+          (msg.senderId && !['rasoa', 'rakoto', 'alex', 'sam', 'ai_manager', 'ai_helper', 'manager'].includes(msg.senderId.toLowerCase()));
+        
+        return {
+          sender: msg.senderName || msg.senderId,
+          type: isHuman ? 'HUMAN' : 'AI',
+          senderId: msg.senderId,
+          timestamp: new Date(msg.timestamp).toLocaleString(),
+          text: msg.text.substring(0, 200) + (msg.text.length > 200 ? '...' : ''),
+          isActiveHours: msg.isActiveHours,
+          isHuman: isHuman
+        };
+      })
       .slice(-50) // Last 50 messages for analysis
       .map(msg => `${msg.sender} (${msg.type}) [${msg.timestamp}]: ${msg.text}`)
       .join('\n');
@@ -339,15 +389,37 @@ Provide your evaluation in this exact JSON format:
       return 'No tasks available for analysis.';
     }
     
-    return tasks.map(task => ({
-      title: task.title,
-      assignedTo: task.assignedTo,
-      status: task.status,
-      description: task.description?.substring(0, 100) + (task.description?.length > 100 ? '...' : ''),
-      createdAt: new Date(task.createdAt).toLocaleString(),
-      completedAt: task.completedAt ? new Date(task.completedAt).toLocaleString() : 'Not completed'
-    }))
-    .map(task => `Task: ${task.title} | Assigned to: ${task.assignedTo} | Status: ${task.status} | Description: ${task.description}`)
+    console.log(`[AIGradingService] Formatting ${tasks.length} tasks for analysis`);
+    
+    // Separate user tasks from AI tasks
+    const userTasks = tasks.filter(task => {
+      const assignedTo = task.assignedTo?.toLowerCase();
+      return assignedTo && !['rasoa', 'rakoto', 'alex', 'sam', 'ai_manager', 'ai_helper', 'manager'].includes(assignedTo);
+    });
+    
+    const aiTasks = tasks.filter(task => {
+      const assignedTo = task.assignedTo?.toLowerCase();
+      return assignedTo && ['rasoa', 'rakoto', 'alex', 'sam', 'ai_manager', 'ai_helper', 'manager'].includes(assignedTo);
+    });
+    
+    console.log(`[AIGradingService] Task breakdown: ${userTasks.length} user tasks, ${aiTasks.length} AI tasks`);
+    
+    return tasks.map(task => {
+      const isUserTask = userTasks.includes(task);
+      const isCompleted = task.status === 'done' || task.status === 'completed';
+      
+      return {
+        title: task.title || task.text || 'Untitled Task',
+        assignedTo: task.assignedTo,
+        status: task.status,
+        description: task.description?.substring(0, 100) + (task.description?.length > 100 ? '...' : ''),
+        createdAt: new Date(task.createdAt).toLocaleString(),
+        completedAt: task.completedAt ? new Date(task.completedAt).toLocaleString() : 'Not completed',
+        isUserTask: isUserTask,
+        isCompleted: isCompleted
+      };
+    })
+    .map(task => `Task: ${task.title} | Assigned to: ${task.assignedTo} | Status: ${task.status} | User Task: ${task.isUserTask} | Completed: ${task.isCompleted} | Description: ${task.description}`)
     .join('\n');
   }
   
@@ -356,13 +428,26 @@ Provide your evaluation in this exact JSON format:
       return 'No user contributions available for analysis.';
     }
     
-    const userMessages = chatMessages.filter(msg => msg.senderType === 'human');
+    // Filter for human messages - check both senderType and senderId
+    const userMessages = chatMessages.filter(msg => {
+      // Check if it's a human message by senderType or by senderId not being an AI agent
+      const isHumanByType = msg.senderType === 'human';
+      const isHumanById = msg.senderId && 
+        !['rasoa', 'rakoto', 'alex', 'sam', 'ai_manager', 'ai_helper', 'manager'].includes(msg.senderId.toLowerCase());
+      
+      return isHumanByType || isHumanById;
+    });
+    
+    console.log(`[AIGradingService] Found ${userMessages.length} user messages out of ${chatMessages.length} total messages`);
+    
     return userMessages
       .map(msg => ({
         timestamp: new Date(msg.timestamp).toLocaleString(),
-        text: msg.text.substring(0, 300) + (msg.text.length > 300 ? '...' : '')
+        text: msg.text.substring(0, 300) + (msg.text.length > 300 ? '...' : ''),
+        senderId: msg.senderId,
+        senderName: msg.senderName
       }))
-      .map(msg => `[${msg.timestamp}] ${msg.text}`)
+      .map(msg => `[${msg.timestamp}] ${msg.senderName || msg.senderId}: ${msg.text}`)
       .join('\n');
   }
   
@@ -391,6 +476,14 @@ ${draftReport.content.substring(0, 2000)}${draftReport.content.length > 2000 ? '
   
   buildGlobalFeedbackPrompt(projectData) {
     const { project, chatMessages, tasks, projectDuration, teamMembers } = projectData;
+    console.log("AI Grading: Computing Score and Feedback for project:", project?.title);
+    console.log("AI Grading: Project duration:", projectDuration.toFixed(1));
+    console.log("AI Grading: Team members:", teamMembers.join(', '));
+    console.log("AI Grading: Chat messages:", chatMessages);
+    console.log("AI Grading: Tasks:", tasks);
+    console.log("AI Grading: Draft report:", project?.draftReport);
+    console.log("AI Grading: Final report:", project?.finalReport);
+    console.log("AI Grading: Project data:", projectData);
     
     return `You are an expert project manager providing comprehensive feedback on a student's collaborative AI team project.
 
