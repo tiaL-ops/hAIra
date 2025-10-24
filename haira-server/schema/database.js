@@ -9,9 +9,27 @@ export const COLLECTIONS = {
 
 // Schema for User documents
 export const USER_SCHEMA = {
+  // --- Basic Info ---
   name: String,           // User's display name
   email: String,          // User's email address
-  activeProjectId: String // Reference to user's current active project
+  avatarUrl: String,      // Profile picture (base64 or URL)
+  
+  // --- State ---
+  activeProjectId: String, // Reference to user's current active project
+  
+  // --- Profile Summary ---
+  summary: {
+    xp: Number,                 // Total XP (sum of all grades)
+    level: Number,              // Calculated from XP
+    totalProjectsCompleted: Number,
+    averageGrade: Number,
+    achievements: Array         // e.g. ["first_project", "team_leader"]
+  },
+  
+  // --- User Settings ---
+  preferences: {
+    language: String            // 'en' | 'fr'
+  }
 };
 
 // Schema for Project Template documents
@@ -33,10 +51,16 @@ export const USER_PROJECT_SCHEMA = {
   startDate: Number,  // Timestamp when project was started
   dailyMeetingTime: String, // Preferred meeting time
   team: Array,        // Array of team members (user and AI)
+  draftReport: {      // Draft project report (autosaved)
+    content: String,
+    lastSaved: Number
+  },
   finalReport: {      // Final project submission
     content: String,
     submittedAt: Number
   },
+  finalReflection: String, // AI-generated reflection
+  reflectionUpdatedAt: Number, // When reflection was last updated
   grade: {            // Project evaluation
     overall: Number,
     workPercentage: Number,

@@ -1,0 +1,276 @@
+/* TeamPanel Styles - Modern dark theme */
+.team-panel {
+  background: #2d3748; /* Dark gray background */
+  border: none;
+  border-radius: 12px;
+  margin: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-height: 300px;
+  overflow-y: auto;
+  flex: 0 0 auto;
+  padding: 16px;
+}
+
+.team-panel-header {
+  background: #1e293b; /* Dark blue background like in the image */
+  padding: 12px 16px;
+  border: none;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.team-panel-header .team-icon {
+  width: 24px;
+  height: 24px;
+  background: none;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #60a5fa; /* Light blue color for robot icon */
+  font-size: 20px;
+}
+
+.team-panel-header .header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.team-panel-header h3 {
+  margin: 0;
+  color: white; /* White text for main title */
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: 'Jersey 10', monospace;
+}
+
+.team-panel-header p {
+  margin: 0;
+  color: #cbd5e1; /* Light gray for subtitle */
+  font-size: 0.8rem;
+  font-weight: 400;
+  font-family: 'Jersey 10', monospace;
+}
+
+.ai-teammates {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+}
+
+.ai-teammate {
+  position: relative;
+}
+
+.ai-teammate-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: white; /* White card background */
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ai-teammate-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.ai-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px; /* Square with rounded corners for pixel-art style */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: white;
+  flex-shrink: 0;
+  background: #f3f4f6; /* Light background for avatars */
+}
+
+/* Custom team avatar styling */
+.team-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px; /* Square with rounded corners for pixel-art style */
+  object-fit: cover;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.ai-info {
+  flex: 1;
+}
+
+.ai-info h4 {
+  margin: 0 0 4px 0;
+  color: #1f2937; /* Dark text for white background */
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: 'Jersey 10', monospace;
+}
+
+.ai-info p {
+  margin: 0 0 4px 0;
+  color: #6b7280; /* Lighter gray for description */
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.ai-role {
+  font-size: 0.75rem;
+  color: #9ca3af; /* Light gray for role */
+  font-weight: 500;
+  font-family: 'Jersey 10', monospace;
+}
+
+.ai-status {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f3f4f6;
+  transition: all 0.2s ease;
+}
+
+.ai-status:hover {
+  transform: scale(1.1);
+}
+
+/* Status-specific styling */
+.ai-status.loading {
+  background: #fef3c7; /* Light yellow for loading */
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.ai-status.completed {
+  background: #d1fae5; /* Light green for completed */
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Task Menu styles removed - now using modal popup */
+
+.no-ai-teammates {
+  text-align: center;
+  padding: 20px;
+  color: #64748b;
+  font-style: italic;
+}
+
+/* Right Sidebar Layout */
+.right-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  height: calc(100vh - 180px); /* Adjusted to match new editor padding */
+  background: #1e293b;
+  border-left: 1px solid #334155;
+  border-radius: 12px;
+  padding: 12px; /* Reduced from 20px to give more space for content */
+  margin: 1rem 0 1rem 0; /* Consistent margins with main editor */
+  overflow: hidden;
+}
+
+/* Team Panel - Give more space */
+.team-panel {
+  flex: 0 0 auto; /* Don't grow or shrink */
+  max-height: 60vh; /* Limit height to 60% of viewport */
+  overflow-y: auto; /* Allow scrolling if needed */
+  margin-bottom: 1rem; /* Add space between sections */
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #334155;
+}
+
+/* AI Teammates - Better spacing */
+.ai-teammates {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+/* AI Teammate Cards - More compact */
+.ai-teammate-card {
+  padding: 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.ai-teammate-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Comment Sidebar - Move down and take remaining space */
+.sidebar {
+  flex: 1; /* Take remaining space */
+  max-height: 40vh; /* Limit to 40% of viewport */
+  overflow-y: auto; /* Allow scrolling */
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .right-sidebar {
+    width: 100%;
+    height: auto;
+    border-left: none;
+    border-top: 1px solid #e2e8f0;
+  }
+  
+  .team-panel {
+    margin: 8px;
+    max-height: 50vh; /* Give more space on mobile */
+    padding: 12px;
+  }
+  
+  .sidebar {
+    max-height: 50vh; /* Balance space on mobile */
+  }
+  
+  .ai-teammate-card {
+    padding: 8px 10px;
+  }
+  
+  .ai-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.875rem;
+  }
+  
+  .task-menu {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+}

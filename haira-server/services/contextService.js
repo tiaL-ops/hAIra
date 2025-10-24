@@ -35,20 +35,38 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
     // 1. Check if we have cached context for today
     const cachedContext = getDailyContext(projectId, currentDay);
     if (cachedContext && (Date.now() - cachedContext.lastUpdated) < 300000) { // 5 minutes
-      console.log(`[ContextService] Using cached context for ${agentId}`);
-      return getEnhancedContextCache(projectId, currentDay, agentId);
+      console.log(`[ContextService] ⚠️ Using cached context for ${agentId} - tasks: ${cachedContext.allTasks?.length || 0}`);
+      // TEMPORARILY DISABLED CACHE TO DEBUG
+      // return getEnhancedContextCache(projectId, currentDay, agentId);
+      console.log(`[ContextService] 🔧 Cache DISABLED - fetching fresh from Firestore`);
     }
     
     // 2. Get project data and tasks from Firebase
     const projectData = await getProjectWithTasks(projectId, userId);
     
     if (!projectData) {
-      console.log(`[ContextService] No project data found for ${projectId}`);
+      console.log(`[ContextService] ❌ No project data found for ${projectId}`);
       return buildEmptyContext(agentId, currentDay);
+    }
+    
+    console.log(`[ContextService] ✅ Project data loaded from Firestore:`);
+    console.log(`[ContextService]    - Project: ${projectData.project?.title || projectData.project?.name || 'Untitled'}`);
+    console.log(`[ContextService]    - Tasks: ${projectData.tasks?.length || 0}`);
+    
+    // CRITICAL CHECK: Verify tasks exist
+    if (!projectData.tasks || projectData.tasks.length === 0) {
+      console.log(`[ContextService] ⚠️⚠️⚠️ NO TASKS FETCHED FROM FIRESTORE!`);
+      console.log(`[ContextService] projectData:`, JSON.stringify(projectData, null, 2));
+    } else {
+      console.log(`[ContextService] ✅ ${projectData.tasks.length} tasks fetched from Firestore:`);
+      projectData.tasks.forEach((task, idx) => {
+        console.log(`[ContextService]    ${idx + 1}. "${task.description || task.title}" [${task.status}] -> ${task.assignedTo}`);
+      });
     }
     
     // 3. Store in task memory for quick access
     storeProjectData(projectId, projectData.tasks, projectData.project);
+    console.log(`[ContextService] ✅ Stored ${projectData.tasks?.length || 0} tasks in memory`);
     
     // 4. Get conversation history from memory (including previous days)
     const conversationHistory = getConversationHistory(projectId, currentDay, 15);
@@ -71,6 +89,8 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
     console.log(`[ContextService] Agent ${agentId} tasks:`, tasksByAssignee[agentId] || []);
     
     // 5. Build agent-specific context
+    console.log(`[ContextService] 🏗️ Building context object with ${projectData.tasks?.length || 0} tasks`);
+    
     const context = {
       // Project information
       projectId,
@@ -114,7 +134,21 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
       assignmentSummary: buildAssignmentSummary(tasksByAssignee, agentId)
     };
     
-    console.log(`[ContextService] Context built successfully. Tasks: ${context.allTasks.length}, My tasks: ${context.myTasks.length}`);
+    console.log(`[ContextService] ✅ Context built successfully for ${agentId}:`);
+    console.log(`[ContextService]    - Total tasks: ${context.allTasks.length}`);
+    console.log(`[ContextService]    - My tasks (${agentId}): ${context.myTasks.length}`);
+    console.log(`[ContextService]    - User tasks: ${context.userTasks.length}`);
+    console.log(`[ContextService]    - Unassigned tasks: ${context.unassignedTasks.length}`);
+    console.log(`[ContextService]    - Conversation history: ${context.conversationHistory.length} messages`);
+    console.log(`[ContextService]    - Previous days context: ${context.previousDaysContext.length} messages`);
+    
+    // Log what the AI agent will see
+    if (context.allTasks.length > 0) {
+      console.log(`[ContextService] Tasks that ${agentId} can see:`);
+      context.allTasks.forEach((task, idx) => {
+        console.log(`[ContextService]    ${idx + 1}. [${task.status || 'todo'}] ${task.title || task.text} -> ${task.assignedTo || 'unassigned'}`);
+      });
+    }
     
     // Cache the context for quick access
     storeDailyContext(projectId, currentDay, context);
@@ -336,15 +370,20 @@ export function buildEnhancedPrompt(agentId, context, userMessage) {
   taskContext += `${context.taskSummary}\n\n`;
   
   // Show ALL tasks to every agent so they know what's happening
-  taskContext += `=== ALL PROJECT TASKS ===\n`;
-  taskContext += `(You can see all tasks and who they're assigned to)\n\n`;
+  taskContext += `=== ALL PROJECT TASKS FROM FIRESTORE ===\n`;
+  taskContext += `IMPORTANT: These are the actual tasks from the Kanban board. You MUST be aware of these!\n\n`;
+  
+  console.log(`[buildEnhancedPrompt] Building task section for ${agentId}. Total tasks: ${context.allTasks.length}`);
   
   if (context.allTasks.length > 0) {
     context.allTasks.forEach((task, idx) => {
-      const title = task.title || task.text || 'Untitled';
-      const description = task.description || '';
+      // The DESCRIPTION field is the actual task to do!
+      const taskToDo = task.description || task.text || task.title || 'Untitled';
+      const projectTitle = task.title || '';
       const status = task.status || 'todo';
       const assignedTo = task.assignedTo || 'unassigned';
+      
+      console.log(`[buildEnhancedPrompt] Task ${idx + 1}: "${taskToDo}" (assigned to: ${assignedTo})`);
       
       // Determine who this task belongs to
       let assigneeName = 'Unknown';
@@ -360,14 +399,18 @@ export function buildEnhancedPrompt(agentId, context, userMessage) {
         assigneeName = `Unassigned (${assignedTo})`;
       }
       
-      taskContext += `${idx + 1}. [${status}] ${title}\n`;
-      if (description) {
-        taskContext += `   Description: ${description}\n`;
-      }
+      // Format: Show the actual TASK (from description field)
+      taskContext += `TASK ${idx + 1}: ${taskToDo}\n`;
+      taskContext += `   Status: [${status}]\n`;
+      taskContext += `   Project: ${projectTitle}\n`;
       taskContext += `   Assigned to: ${assigneeName}\n\n`;
     });
+    
+    console.log(`[buildEnhancedPrompt] ✅ Added ${context.allTasks.length} tasks to prompt for ${agentId}`);
+    console.log(`[buildEnhancedPrompt] TASK SECTION PREVIEW:\n${taskContext.substring(0, 800)}`);
   } else {
     taskContext += `No tasks defined yet.\n\n`;
+    console.log(`[buildEnhancedPrompt] ⚠️ NO TASKS FOUND for ${agentId}`);
   }
   
   // Add specific assignments for this agent
@@ -409,9 +452,14 @@ export function buildEnhancedPrompt(agentId, context, userMessage) {
   return `
 ${agent.systemPrompt}
 
+⚠️⚠️⚠️ CRITICAL: READ THE TASKS BELOW ⚠️⚠️⚠️
+You have ${context.allTasks.length} tasks from Firestore. 
+They are listed in the "ALL PROJECT TASKS FROM FIRESTORE" section below.
+YOU MUST be aware of these tasks and reference them when the user asks about tasks or project status!
+
 === ENHANCED CONTEXT AWARENESS ===
 You now have access to enhanced context including:
-- Real-time task information from Firestore
+- Real-time task information from Firestore (${context.allTasks.length} tasks)
 - Conversation insights and potential tasks mentioned
 - Action items identified in discussions
 - Key topics discussed today
@@ -454,14 +502,16 @@ User: ${userMessage}
 
 === RESPONSE GUIDELINES ===
 - You are ${context.agentName}. NEVER speak as other agents.
-- You can see ALL project tasks and who they're assigned to.
+- You can see ALL project tasks listed above in "ALL PROJECT TASKS FROM FIRESTORE".
+- When user asks about tasks or project status, YOU MUST reference the tasks listed above.
+- The tasks are REAL and from the Kanban board - acknowledge them!
+- If user asks "what tasks do we have?", list the tasks from above.
+- If user asks about project status, reference the task statuses shown above.
 - Reference any task when relevant, even if not assigned to you.
 - Be aware of what everyone is working on (User, Alex, Rasoa, Rakoto).
 - REMEMBER and reference previous days' discussions when relevant.
 - Build on the conversation history naturally across all days.
 - Keep responses brief (2-4 sentences) and conversational.
-- If asked about tasks, you can reference ANY task from the project.
-- If asked about project status, use the task information above.
 - When the day changes, acknowledge continuity: "Following up from yesterday..." or "As we discussed earlier..."
 - You can help coordinate tasks even if they're not assigned to you.
 
@@ -514,4 +564,3 @@ export default {
   buildEnhancedPrompt,
   getTaskAssignmentGuide
 };
-
