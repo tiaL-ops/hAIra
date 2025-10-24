@@ -46,11 +46,15 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
 
 
   const getAITeammate = (memberId) => {
-    // Map memberId to the correct AI_TEAMMATES key - now using chat agents (Rasoa & Rakoto)
-    if (memberId === 'rasoa' || memberId === 'ai_manager') {
-      return AI_TEAMMATES.rasoa;
-    } else if (memberId === 'rakoto' || memberId === 'ai_helper') {
-      return AI_TEAMMATES.rakoto;
+    // Map memberId to AI_TEAMMATES - supports new 5-agent team and legacy IDs
+    if (AI_TEAMMATES[memberId]) {
+      return AI_TEAMMATES[memberId];
+    }
+    // Legacy mapping
+    if (memberId === 'ai_manager' || memberId === 'rasoa') {
+      return AI_TEAMMATES.brown;
+    } else if (memberId === 'ai_helper' || memberId === 'rakoto') {
+      return AI_TEAMMATES.sam;
     }
     return null;
   };

@@ -499,8 +499,8 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
 
 /**
  * POST /api/project/:id/init-teammates
- * Initialize teammates subcollection for a project (migration helper)
- * For now, only creates Rasoa and Rakoto
+ * Initialize teammates subcollection for a project
+ * Creates 5 AI teammates: Brown, Elza, Kati, Steve, Sam
  */
 router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
   const { id: projectId } = req.params;
@@ -564,8 +564,8 @@ router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
     };
     batch.set(teammatesRef.doc(userId), humanTeammate);
 
-    // Create only Rasoa and Rakoto
-    const selectedAgents = ['rasoa', 'rakoto'];
+    // Create all 5 AI teammates: Brown, Elza, Kati, Steve, Sam
+    const selectedAgents = ['brown', 'elza', 'kati', 'steve', 'sam'];
     let agentCount = 0;
 
     for (const agentId of selectedAgents) {

@@ -672,26 +672,27 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
         return res.status(400).json({ error: 'AI type is required' });
     }
 
-    // Support both chat agent IDs (rasoa, rakoto) and legacy IDs (ai_manager, ai_helper)
-    const validAITypes = ['ai_manager', 'ai_helper', 'rasoa', 'rakoto'];
+    // Support new 5-agent team and legacy IDs for backwards compatibility
+    const validAITypes = ['brown', 'elza', 'kati', 'steve', 'sam', 'ai_manager', 'ai_helper', 'rasoa', 'rakoto'];
     if (!validAITypes.includes(aiType)) {
         return res.status(400).json({ error: `AI type must be one of: ${validAITypes.join(', ')}` });
     }
 
     try {
         await ensureProjectExists(id, userId);
-        // Map agent IDs to correct teammates
+        
+        // Map agent IDs to correct teammates (support legacy IDs)
         let aiTeammate;
-        if (aiType === 'rasoa' || aiType === 'ai_manager') {
-            aiTeammate = AI_TEAMMATES.rasoa;
+        if (['brown', 'elza', 'kati', 'steve', 'sam'].includes(aiType)) {
+            aiTeammate = AI_TEAMMATES[aiType];
+        } else if (aiType === 'rasoa' || aiType === 'ai_manager') {
+            aiTeammate = AI_TEAMMATES.brown; // Map old rasoa to brown
         } else if (aiType === 'rakoto' || aiType === 'ai_helper') {
-            aiTeammate = AI_TEAMMATES.rakoto;
+            aiTeammate = AI_TEAMMATES.sam; // Map old rakoto to sam
         }
         
-        // Create writing-specific prompt (not their chat persona)
-        const writingContext = aiType === 'rasoa' || aiType === 'ai_manager' 
-            ? 'You are an academic writing specialist. Focus on clear, well-structured academic prose with proper citations and formal tone.'
-            : 'You are a technical content writer. Focus on clarity, data-driven insights, and practical explanations.';
+        // Use agent's actual personality for writing context (not generic)
+        const writingContext = aiTeammate ? `You are ${aiTeammate.name}, ${aiTeammate.role}. ${aiTeammate.personality}` : 'You are an academic writing assistant.';
         
         const taskPrompt = `${writingContext}
 
@@ -774,26 +775,27 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         return res.status(400).json({ error: 'AI type is required' });
     }
 
-    // Support both chat agent IDs (rasoa, rakoto) and legacy IDs (ai_manager, ai_helper)
-    const validAITypes = ['ai_manager', 'ai_helper', 'rasoa', 'rakoto'];
+    // Support new 5-agent team and legacy IDs for backwards compatibility
+    const validAITypes = ['brown', 'elza', 'kati', 'steve', 'sam', 'ai_manager', 'ai_helper', 'rasoa', 'rakoto'];
     if (!validAITypes.includes(aiType)) {
         return res.status(400).json({ error: `AI type must be one of: ${validAITypes.join(', ')}` });
     }
 
     try {
         await ensureProjectExists(id, userId);
-        // Map agent IDs to correct teammates
+        
+        // Map agent IDs to correct teammates (support legacy IDs)
         let aiTeammate;
-        if (aiType === 'rasoa' || aiType === 'ai_manager') {
-            aiTeammate = AI_TEAMMATES.rasoa;
+        if (['brown', 'elza', 'kati', 'steve', 'sam'].includes(aiType)) {
+            aiTeammate = AI_TEAMMATES[aiType];
+        } else if (aiType === 'rasoa' || aiType === 'ai_manager') {
+            aiTeammate = AI_TEAMMATES.brown;
         } else if (aiType === 'rakoto' || aiType === 'ai_helper') {
-            aiTeammate = AI_TEAMMATES.rakoto;
+            aiTeammate = AI_TEAMMATES.sam;
         }
         
-        // Create review-specific context
-        const reviewContext = aiType === 'rasoa' || aiType === 'ai_manager'
-            ? 'You are an academic writing reviewer focusing on structure, clarity, and academic rigor.'
-            : 'You are a technical content reviewer focusing on accuracy, clarity, and practical value.';
+        // Use agent's personality for review context
+        const reviewContext = aiTeammate ? `You are ${aiTeammate.name}, ${aiTeammate.role}. ${aiTeammate.personality}` : 'You are an academic reviewer.';
         
         // Clean the content to remove HTML markup for better AI review
         const cleanedContent = cleanContentForReview(currentContent);
@@ -870,26 +872,27 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         return res.status(400).json({ error: 'AI type is required' });
     }
 
-    // Support both chat agent IDs (rasoa, rakoto) and legacy IDs (ai_manager, ai_helper)
-    const validAITypes = ['ai_manager', 'ai_helper', 'rasoa', 'rakoto'];
+    // Support new 5-agent team and legacy IDs for backwards compatibility
+    const validAITypes = ['brown', 'elza', 'kati', 'steve', 'sam', 'ai_manager', 'ai_helper', 'rasoa', 'rakoto'];
     if (!validAITypes.includes(aiType)) {
         return res.status(400).json({ error: `AI type must be one of: ${validAITypes.join(', ')}` });
     }
 
     try {
         await ensureProjectExists(id, userId);
-        // Map agent IDs to correct teammates
+        
+        // Map agent IDs to correct teammates (support legacy IDs)
         let aiTeammate;
-        if (aiType === 'rasoa' || aiType === 'ai_manager') {
-            aiTeammate = AI_TEAMMATES.rasoa;
+        if (['brown', 'elza', 'kati', 'steve', 'sam'].includes(aiType)) {
+            aiTeammate = AI_TEAMMATES[aiType];
+        } else if (aiType === 'rasoa' || aiType === 'ai_manager') {
+            aiTeammate = AI_TEAMMATES.brown;
         } else if (aiType === 'rakoto' || aiType === 'ai_helper') {
-            aiTeammate = AI_TEAMMATES.rakoto;
+            aiTeammate = AI_TEAMMATES.sam;
         }
         
-        // Create suggestion-specific context
-        const suggestionContext = aiType === 'rasoa' || aiType === 'ai_manager'
-            ? 'You are an academic writing consultant providing improvement suggestions for academic papers.'
-            : 'You are a technical content consultant providing practical improvement suggestions.';
+        // Use agent's personality for suggestions context
+        const suggestionContext = aiTeammate ? `You are ${aiTeammate.name}, ${aiTeammate.role}. ${aiTeammate.personality}` : 'You are an academic consultant.';
         
         // Clean the content to remove HTML markup for better AI suggestions
         const cleanedContent = cleanContentForReview(currentContent);

@@ -127,28 +127,21 @@ function Submission() {
         const hasAITeammates = team.some(member => member.type === 'ai');
         const legacyAIIds = ['manager-ai', 'lazy-ai', 'ai_manager', 'ai_helper'];
         const hasOldAITeammates = team.some(member => legacyAIIds.includes(member.id));
-        const hasCorrectAITeammates = team.some(member => member.id === 'rasoa' || member.id === 'rakoto');
+        const hasCorrectAITeammates = team.some(member => 
+          ['brown', 'elza', 'kati', 'steve', 'sam'].includes(member.id)
+        );
         
         console.log('Team setup:', { team, hasAITeammates, hasOldAITeammates, hasCorrectAITeammates });
         
         if (!hasCorrectAITeammates) {
-          // Add or update AI teammates using centralized configuration - use same agents as chat (Rasoa & Rakoto)
-          const defaultAITeammates = [
-            {
-              ...AI_TEAMMATES.rasoa,
-              id: 'rasoa',
-              name: AI_TEAMMATES.rasoa.name,
-              isActive: true,
-              type: 'ai'
-            },
-            {
-              ...AI_TEAMMATES.rakoto,
-              id: 'rakoto',
-              name: AI_TEAMMATES.rakoto.name,
-              isActive: true,
-              type: 'ai'
-            }
-          ];
+          // Add or update AI teammates using centralized configuration - all 5 teammates
+          const defaultAITeammates = ['brown', 'elza', 'kati', 'steve', 'sam'].map(agentId => ({
+            ...AI_TEAMMATES[agentId],
+            id: agentId,
+            name: AI_TEAMMATES[agentId].name,
+            isActive: true,
+            type: 'ai'
+          }));
           
           // Filter out ALL AI teammates (old and new) and keep only human teammates
           const filteredTeam = team.filter(member => member.type !== 'ai');
@@ -175,20 +168,13 @@ function Submission() {
           const updatedTeam = team.map(member => {
             if (member.type === 'ai') {
               // Update AI teammates with latest persona configurations from centralized config
-              if (member.id === 'rasoa' || member.id === 'ai_manager') {
+              const agentId = member.id;
+              if (AI_TEAMMATES[agentId]) {
                 return {
                   ...member,
-                  ...AI_TEAMMATES.rasoa,
-                  id: 'rasoa',
-                  name: AI_TEAMMATES.rasoa.name,
-                  isActive: true
-                };
-              } else if (member.id === 'rakoto' || member.id === 'ai_helper') {
-                return {
-                  ...member,
-                  ...AI_TEAMMATES.rakoto,
-                  id: 'rakoto',
-                  name: AI_TEAMMATES.rakoto.name,
+                  ...AI_TEAMMATES[agentId],
+                  id: agentId,
+                  name: AI_TEAMMATES[agentId].name,
                   isActive: true
                 };
               }
