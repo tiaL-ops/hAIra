@@ -41,7 +41,7 @@
 /* pixel style logo text at left */
 .header-top .logo {
   font-family: var(--font-pixel);
-  font-size: 20px;   /* big pixel title */
+  font-size: 24px;   /* bigger pixel title */
   letter-spacing: 1px;
   text-shadow: 0 0 0 rgba(0,0,0,0); /* no blur, keep crisp */
   margin: 0;
@@ -53,7 +53,7 @@
   display:flex;
   gap: 18px;
   align-items:center;
-  font-size: 10px;
+  font-size: 12px;
 }
 .header-top nav a {
   color: #f7fbfa;
@@ -96,7 +96,7 @@
 /* auth buttons */
 .header-top .btn {
   font-family: var(--font-pixel);
-  font-size: 10px;
+  font-size: 12px;
   color: #0f2a23;
   background: #e8fff5;
   border: 2px solid var(--border-color);

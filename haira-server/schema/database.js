@@ -117,3 +117,57 @@ export const CHAT_SCHEMA = {
   timestamp: Number,  // Message timestamp
   systemPrompt: String // System prompt used for AI messages (only stored with AI messages)
 };
+
+
+// ...existing code...
+
+// Schema for Teammate documents (subcollection of userProjects)
+export const TEAMMATE_SCHEMA = {
+  // --- Identity ---
+  id: String,                  // Unique teammate ID ('ai_manager', 'ai_helper', or userId)
+  name: String,                // Display name (e.g., "Alex (Project Manager)", "Landy RAKOTOARISON")
+  type: String,                // Teammate type: 'ai' | 'human'
+  role: String,                // Role in project (e.g., "Project Manager", "owner", "AI Team Member")
+  
+  // --- UI Properties ---
+  avatar: String,              // Avatar path or URL (e.g., "/src/images/Alex.png")
+  color: String,               // Color code for UI display (e.g., "#9b59b6")
+  
+  // --- AI Configuration (null for human teammates) ---
+  config: {
+    maxTokens: Number,         // Max tokens for AI response (e.g., 50)
+    temperature: Number,       // AI temperature setting (e.g., 0.7)
+    emoji: String,             // Representative emoji (e.g., "🧠")
+    personality: String,       // Personality traits (e.g., "organized, deadline-focused")
+    prompt: String,            // Full system prompt for AI agent
+    isActive: Boolean,         // Whether AI agent is currently active
+    activeDays: Array,         // Days when AI is active (e.g., [1, 3, 6]) - null for humans
+    activeHours: {             // Hours when AI is active - null for humans
+      start: Number,           // Start hour in UTC (e.g., 9)
+      end: Number              // End hour in UTC (e.g., 18)
+    },
+    maxMessagesPerDay: Number, // Daily message limit (e.g., 2 for Alex) - null for unlimited
+    sleepResponses: Array      // Array of responses when AI is offline - null for humans
+  },
+  
+  // --- Current State (dynamic data) ---
+  state: {
+    status: String,            // Current status: 'online' | 'offline' | 'busy'
+    currentTask: String,       // ID of current task being worked on (null if none)
+    assignedTasks: Array,      // Array of task IDs currently assigned to this teammate
+    lastActive: Number,        // Timestamp of last activity
+    messagesLeftToday: Number  // Remaining daily message quota (resets at midnight)
+  },
+  
+  // --- Statistics (incremental counters) ---
+  stats: {
+    tasksAssigned: Number,     // Total number of tasks ever assigned
+    tasksCompleted: Number,    // Total number of tasks completed
+    messagesSent: Number,      // Total number of messages sent
+    wordsContributed: Number   // Total words contributed to report (synced with wordContributions)
+  },
+  
+  // --- Timestamps ---
+  createdAt: Number,           // Timestamp when teammate was added to project
+  updatedAt: Number            // Timestamp of last update to this document
+};

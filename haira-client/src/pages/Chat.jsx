@@ -6,6 +6,11 @@ import { useAuth } from '../App';
 import '../styles/Chat.css'; // Your CSS (the updated one you shared)
 
 import AlexAvatar from '../images/Alex.png';
+import BrownAvatar from '../images/Brown.png';
+import ElzaAvatar from '../images/Elza.png';
+import KatiAvatar from '../images/Kati.png';
+import SteveAvatar from '../images/Steve.png';
+import SamAvatar from '../images/Sam.png';
 import RasoaAvatar from '../images/Rasoa.png';
 import RakotoAvatar from '../images/Rakoto.png';
 
@@ -31,6 +36,7 @@ function Chat() {
   const [dailyLimit, setDailyLimit] = useState(7);
   const [tasks, setTasks] = useState([]);
   const [showQuotaWarning, setShowQuotaWarning] = useState(false);
+  const [teammates, setTeammates] = useState({});
   const auth = getAuth();
   
   // Ref for auto-scrolling to the bottom
@@ -51,12 +57,40 @@ function Chat() {
     }
   };
 
-  // Agent info (you can replace avatar string with an image URL later)
-const agentInfo = {
-    alex: { name: 'Alex', avatar: AlexAvatar, role: 'Project Manager', color: '#8e44ad' },
-    rasoa: { name: 'Rasoa', avatar: RasoaAvatar, role: 'Planner', color: '#e74c3c' },
-    rakoto: { name: 'Rakoto', avatar: RakotoAvatar, role: 'Developer', color: '#3498db' }
+  // Agent avatar mapping
+  const avatarMap = {
+    alex: AlexAvatar,
+    brown: BrownAvatar,
+    elza: ElzaAvatar,
+    kati: KatiAvatar,
+    steve: SteveAvatar,
+    sam: SamAvatar,
+    rasoa: RasoaAvatar,
+    rakoto: RakotoAvatar
   };
+
+  // Agent info - will be populated from Firestore teammates, with fallback to hardcoded
+  const agentInfo = Object.keys(teammates).length > 0 
+    ? Object.entries(teammates).reduce((acc, [id, teammate]) => {
+        if (teammate.type === 'ai') {
+          acc[id] = {
+            name: teammate.name,
+            avatar: avatarMap[id] || teammate.avatar,
+            role: teammate.role,
+            color: teammate.color || '#3498db'
+          };
+        }
+        return acc;
+      }, {})
+    : {
+        brown: { name: 'Brown', avatar: BrownAvatar, role: 'Strategic Researcher', color: '#8B4513' },
+        elza: { name: 'Elza', avatar: ElzaAvatar, role: 'Creative Writer', color: '#9B59B6' },
+        kati: { name: 'Kati', avatar: KatiAvatar, role: 'Data Analyst', color: '#E67E22' },
+        steve: { name: 'Steve', avatar: SteveAvatar, role: 'Technical Expert', color: '#16A085' },
+        sam: { name: 'Sam', avatar: SamAvatar, role: 'Critical Reviewer', color: '#2980B9' },
+        rasoa: { name: 'Rasoa', avatar: RasoaAvatar, role: 'Research Planner', color: '#27ae60' },
+        rakoto: { name: 'Rakoto', avatar: RakotoAvatar, role: 'Technical Developer', color: '#3498db' }
+      };
   
   // Auto-scroll to bottom when messages change or when loading finishes
   useEffect(() => {
@@ -207,6 +241,12 @@ const agentInfo = {
           const sorted = newChats.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
           setMessages(sorted);
           
+          // Set teammates from backend response
+          if (chatResp.data.teammates) {
+            console.log('📥 Teammates loaded from backend:', chatResp.data.teammates);
+            setTeammates(chatResp.data.teammates);
+          }
+          
           // Refresh tasks after loading messages
           setTimeout(() => {
             refreshTasks();
@@ -265,7 +305,7 @@ const agentInfo = {
       }, { headers: { Authorization: `Bearer ${token}` } });
 
       setStatusMessage(`✅ Message sent to team`);
-      const newChats = response.data.messages || [];
+      const newChats = response.data.chats || [];
       setActiveAgents(response.data.activeAgents || []);
       if (response.data.quotaWarning) {
         setQuotaWarning(response.data.quotaWarning);
@@ -279,9 +319,8 @@ const agentInfo = {
       if (response.data.currentProjectDay) setCurrentProjectDay(response.data.currentProjectDay);
 
       setMessages(prev => {
-        const updated = [...prev, ...newChats];
-        // Sort chronologically - oldest to newest (ascending order) for proper display
-        const sorted = updated.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        // Use all messages from server (includes AI responses)
+        const sorted = newChats.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         
         // Force scroll to bottom after state update with multiple attempts
         setTimeout(() => scrollToBottom(), 50);
@@ -315,7 +354,23 @@ const agentInfo = {
       }, clearTimeoutMs);
     } catch (err) {
       console.error('[Client] Error sending message:', err);
-      setStatusMessage(`❌ Error: ${err.response?.data?.error || err.message}`);
+      
+      // Handle quota exceeded error (429)
+      if (err.response?.status === 429) {
+        const errorData = err.response.data;
+        setQuotaExceeded(true);
+        setStatusMessage(`🚫 ${errorData.message || 'Daily message limit reached (7 messages per 24 hours)'}`);
+        
+        // Update quota stats if available
+        if (errorData.messagesSentToday !== undefined) {
+          setMessagesUsed(errorData.messagesSentToday);
+        }
+        if (errorData.currentProjectDay !== undefined) {
+          setCurrentProjectDay(errorData.currentProjectDay);
+        }
+      } else {
+        setStatusMessage(`❌ Error: ${err.response?.data?.error || err.message}`);
+      }
     } finally {
       setIsSending(false);
     }
@@ -516,7 +571,9 @@ const agentInfo = {
           ) : messages.length === 0 ? (
             <div className="empty-state">
               <p>👋 Start the conversation with your AI teammates!</p>
-              <p className="hint">Alex, Rasoa, and Rakoto are {isActiveHours() ? 'online and ready to help' : 'offline (daily message limit reached)'}</p>
+              <p className="hint">
+                {Object.keys(teammates).filter(id => teammates[id].type === 'ai').map(id => teammates[id].name).join(', ') || 'AI teammates'} are {isActiveHours() ? 'online and ready to help' : 'offline (daily message limit reached)'}
+              </p>
             </div>
           ) : (
             <div className="messages-list" ref={messagesListRef}>
@@ -551,7 +608,7 @@ const agentInfo = {
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={quotaExceeded ? "Daily message limit reached..." : "Type @ to mention someone (e.g., @Alex, @Rasoa, @Rakoto)"}
+              placeholder={quotaExceeded ? "Daily message limit reached..." : `Type @ to mention someone (e.g., ${Object.keys(teammates).filter(id => teammates[id].type === 'ai').map(id => '@' + teammates[id].name).join(', ') || '@teammate'})`}
               className="message-input"
               disabled={isSending || quotaExceeded}
             />
@@ -564,18 +621,36 @@ const agentInfo = {
             </button>
           </form>
 
-          {newMessage.includes('@') && (
+          {newMessage.includes('@') && Object.keys(teammates).length > 0 && (
             <div className="mention-helper">
               <div className="mention-hint">
                 💡 <strong>Direct mention detected!</strong>
-                {newMessage.toLowerCase().includes('@alex') && ` @Alex will respond directly (only on Days 1, 3, 6)`}
-                {newMessage.toLowerCase().includes('@rasoa') && ` @Rasoa will respond directly`}
-                {newMessage.toLowerCase().includes('@rakoto') && ` @Rakoto will respond directly`}
+                {Object.entries(teammates)
+                  .filter(([id, t]) => t.type === 'ai')
+                  .map(([id, t]) => {
+                    if (newMessage.toLowerCase().includes('@' + t.name.toLowerCase())) {
+                      return ` @${t.name} will respond directly${t.activeDays ? ` (only on ${t.activeDays.map(d => `Day ${d}`).join(', ')})` : ''}`;
+                    }
+                    return null;
+                  })
+                  .filter(Boolean)
+                  .join('')
+                }
               </div>
               <div className="mention-options">
-                <button type="button" className="mention-btn" onClick={() => setNewMessage(newMessage.includes('@') ? newMessage : newMessage + ' @Alex')}>@Alex 📋</button>
-                <button type="button" className="mention-btn" onClick={() => setNewMessage(newMessage.includes('@') ? newMessage : newMessage + ' @Rasoa')}>@Rasoa 📚</button>
-                <button type="button" className="mention-btn" onClick={() => setNewMessage(newMessage.includes('@') ? newMessage : newMessage + ' @Rakoto')}>@Rakoto 🔧</button>
+                {Object.entries(teammates)
+                  .filter(([id, t]) => t.type === 'ai')
+                  .map(([id, t]) => (
+                    <button 
+                      key={id}
+                      type="button" 
+                      className="mention-btn" 
+                      onClick={() => setNewMessage(newMessage.includes('@') ? newMessage : newMessage + ' @' + t.name)}
+                    >
+                      @{t.name} {t.emoji || t.avatar}
+                    </button>
+                  ))
+                }
               </div>
             </div>
           )}

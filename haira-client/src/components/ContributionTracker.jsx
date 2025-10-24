@@ -1,10 +1,8 @@
 // src/components/ContributionTracker.jsx
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
-import { AI_TEAMMATES } from '../../../haira-server/config/aiReportAgents.js';
-// Use public folder for images to avoid import issues
-import AlexAvatar from '../images/Alex.png';
-import SamAvatar from '../images/Sam.png';
+import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
+// Using emoji from agent config instead of images
 import '../styles/ContributionTracker.css';
 
 const backend_host = "http://localhost:3002";
@@ -66,20 +64,21 @@ export default function ContributionTracker({ projectId, showContributions = tru
               percent: wordContributions.user.percentage,
               role: "Student",
               wordCount: wordContributions.user.words
-            },
-            {
-              name: "Alex",
-              percent: wordContributions.alex.percentage,
-              role: "AI Manager",
-              wordCount: wordContributions.alex.words
-            },
-            {
-              name: "Sam",
-              percent: wordContributions.sam.percentage,
-              role: "AI Helper",
-              wordCount: wordContributions.sam.words
             }
           ];
+          
+          // Add all AI teammates dynamically
+          const aiAgentIds = ['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'];
+          aiAgentIds.forEach(agentId => {
+            if (wordContributions[agentId] && AI_TEAMMATES[agentId]) {
+              contributions.push({
+                name: AI_TEAMMATES[agentId].name,
+                percent: wordContributions[agentId].percentage,
+                role: AI_TEAMMATES[agentId].role,
+                wordCount: wordContributions[agentId].words
+              });
+            }
+          });
           
           setContributions(contributions);
           setTotalContribution(response.data.totalWords);
@@ -116,23 +115,22 @@ export default function ContributionTracker({ projectId, showContributions = tru
 
   //Get Avatar dynamically
   const getMemberAvatar = (member) => {
-    switch(member.name) {
-      case 'You':
-        return '👤';
-      case AI_TEAMMATES.MANAGER.name:
-        return AlexAvatar;
-      case AI_TEAMMATES.LAZY.name:
-        return SamAvatar;
-      default:
-        return '🤖';
+    if (member.name === 'You') {
+      return '👤';
     }
+    // Check if member matches any AI teammate by name
+    const aiAgent = Object.values(AI_TEAMMATES).find(agent => agent.name === member.name);
+    if (aiAgent) {
+      return aiAgent.emoji;
+    }
+    return '🤖';
   };
 
   const getMemberColor = (member) => {
-    if (member.name === AI_TEAMMATES.MANAGER.name) {
-      return AI_TEAMMATES.MANAGER.color;
-    } else if (member.name === AI_TEAMMATES.LAZY.name) {
-      return AI_TEAMMATES.LAZY.color;
+    // Check if member matches any AI teammate by name
+    const aiAgent = Object.values(AI_TEAMMATES).find(agent => agent.name === member.name);
+    if (aiAgent) {
+      return aiAgent.color;
     }
     return getContributionColor(contributions.indexOf(member));
   };

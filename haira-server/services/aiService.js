@@ -227,3 +227,86 @@ export async function generateContextAwareResponse(agentId, projectId, userId, c
   }
 }
 
+/**
+ * Trigger AI agent response when mentioned in chat
+ * Fetches context, generates response, and saves to chatMessages
+ * 
+ * @param {string} projectId - The project ID
+ * @param {string} agentId - The AI agent ID (alex, rasoa, rakoto)
+ * @param {Object} triggerMessage - The message that mentioned the agent
+ * @param {Object} db - Firestore database instance
+ * @returns {Promise<Object>} The generated message object
+ */
+export async function triggerAgentResponse(projectId, agentId, triggerMessage, db) {
+  try {
+    console.log(`[AI Service] 🤖 Triggering response for ${agentId} in project ${projectId}`);
+    
+    // 1. Fetch project data
+    const projectDoc = await db.collection('userProjects').doc(projectId).get();
+    if (!projectDoc.exists) {
+      throw new Error(`Project ${projectId} not found`);
+    }
+    
+    const projectData = projectDoc.data();
+    
+    // 2. Fetch recent chat messages for context
+    const messagesSnapshot = await db.collection('userProjects')
+      .doc(projectId)
+      .collection('chatMessages')
+      .orderBy('timestamp', 'desc')
+      .limit(20)
+      .get();
+    
+    const conversationHistory = messagesSnapshot.docs
+      .map(doc => doc.data())
+      .reverse(); // Oldest first
+    
+    // 3. Build project info
+    const projectInfo = {
+      title: projectData.title || projectData.name || 'Untitled Project',
+      currentDay: projectData.currentDay || 1,
+      userId: projectData.userId,
+      templateId: projectData.templateId
+    };
+    
+    // 4. Generate AI response using existing context-aware function
+    const aiResponse = await generateContextAwareResponse(
+      agentId,
+      projectId,
+      projectInfo.userId,
+      projectInfo.currentDay,
+      triggerMessage.content
+    );
+    
+    // 5. Generate unique message ID
+    const generateId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    
+    // 6. Create message object
+    const agent = AI_AGENTS[agentId];
+    const responseMessage = {
+      messageId: generateId(),
+      projectId: projectId,
+      senderId: agentId,
+      senderName: agent?.name || agentId,
+      senderType: 'ai',
+      content: aiResponse,
+      timestamp: Date.now(),
+      type: 'message',
+      inReplyTo: triggerMessage.messageId || null
+    };
+    
+    // 7. Save to chatMessages
+    await db.collection('userProjects')
+      .doc(projectId)
+      .collection('chatMessages')
+      .add(responseMessage);
+    
+    console.log(`[AI Service] ✅ ${agentId} responded successfully`);
+    
+    return responseMessage;
+    
+  } catch (error) {
+    console.error(`[AI Service] ❌ Error triggering agent response for ${agentId}:`, error);
+    throw error;
+  }
+}
