@@ -735,7 +735,7 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
         
         // Create a config for the AI call
         const aiConfig = {
-            max_tokens: 800,
+            max_tokens: 50,
             temperature: 0.7
         };
         
@@ -746,6 +746,8 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
         console.log('🔧 AI Service: OpenAI (GPT-4o-mini)');
         console.log('📝 Task prompt:', taskPrompt.substring(0, 200) + '...');
         console.log('⚙️ AI config:', aiConfig);
+        
+        const writingContext = `You are ${aiTeammate.name}, a ${aiTeammate.role}. ${aiTeammate.personality}`;
         console.log('👤 Writing context:', writingContext);
         
         try {
@@ -863,6 +865,7 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         };
         
         // const aiResponse = await generateAIContribution(taskPrompt, aiConfig, reviewContext);
+        const reviewContext = `You are ${aiTeammate.name}, a ${aiTeammate.role}. ${aiTeammate.personality}`;
         const aiResponse = await callOpenAIContribution(taskPrompt, aiConfig, reviewContext);
         const cleanedResponse = cleanAIResponse(aiResponse);
         const aiName = aiTeammate.name;
@@ -949,6 +952,7 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         };
         
         // const aiResponse = await generateAIContribution(taskPrompt, aiConfig, suggestionContext);
+        const suggestionContext = `You are ${aiTeammate.name}, a ${aiTeammate.role}. ${aiTeammate.personality}`;
         const aiResponse = await callOpenAIContribution(taskPrompt, aiConfig, suggestionContext);
         const cleanedResponse = cleanAIResponse(aiResponse);
         const aiName = aiTeammate.name;
