@@ -14,7 +14,7 @@ router.get('/:id/kanban', verifyFirebaseToken, async (req, res) => {
 
         // Get project and tasks data
         const projectData = await getProjectWithTasks(id, userId);
-        
+
         if (!projectData) {
             return res.status(404).json({ error: 'Project not found or access denied' });
         }
@@ -33,6 +33,31 @@ router.get('/:id/kanban', verifyFirebaseToken, async (req, res) => {
 
 router.post('/:id/kanban', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;
+    const { title, deliverables } = req.body;
+    const userId = req.user.uid;
+
+    console.log('=====>');
+    console.log(deliverables);
+
+    try {
+        console.log("From Kanban: Making sure the project exists...")
+        await ensureProjectExists(id, userId);
+        console.log("From Kanban: Store deliverables");
+        await addTasks(id, userId, title, 'todo', deliverables);
+
+        res.status(201).json({
+            success: true,
+            deliverables,
+        });
+    } catch (err) {
+        res.status(500).json({ 
+            success: false,
+            error: err.message 
+        });
+    }
+});
+
+router.post('/kanban/generate', verifyFirebaseToken, async (req, res) => {
     const { title } = req.body;
     const userId = req.user.uid;
 
@@ -50,9 +75,6 @@ Do not include anything else.
 `;
 
     try {
-        console.log("From Kanban: Making sure the project exists...")
-        await ensureProjectExists(id, userId);
-
         console.log("From Kanban: looking for deliverables")
         const aiResponse = await generateDeliverablesResponse(title, SYSTEM_INSTRUCTION);
 
@@ -62,9 +84,6 @@ Do not include anything else.
             .trim();
 
         let deliverables = JSON.parse(cleaned);
-        console.log("From Kanban: generating deliverables");
-        await addTasks(id, userId, title, 'todo', deliverables);
-        console.log("From Kanban: tasks added to project data");
 
         res.status(201).json({
             success: true,

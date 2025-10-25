@@ -430,6 +430,88 @@ export async function getUserProjects(userId) {
   return projects;
 }
 
+export async function getNotifications(userId) {
+  // Dummy notifications for now
+  const dummyNotif = [
+    { type: 1, message: 'The deadline is close' },
+    { type: 1, message: 'Keep at it, you doing great' },
+  ];
+
+  const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
+  const userDoc = await userRef.get();
+  if (!userDoc.exists)
+    return null;
+
+  const notifRef = userRef.collection('notifications');
+  const notifSnapshot = await notifRef.get();
+  let notif = [];
+  notifSnapshot.forEach((doc) => {
+    notif.push({ id: doc.id, ...doc.data() });
+  });
+
+  if (!notif)
+    return dummyNotif;
+
+  console.log('notifications: fetched user notifications');
+
+  return notif;
+}
+
+export async function getLateTasks(id, userId) {
+  // TODO:
+  // . search condition should be done on the DB level
+  // . only look for projects that have not yet been archived
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+  const oneHourAgo = new Date(Date.now() - (60 * 60 * 1000));
+
+  const userProjectsSnapshot = await db.collection('userProjects')
+    .where('userId', '==', userId)
+    .get();
+  const lateTasks = [];
+
+  for (const projectDoc of userProjectsSnapshot.docs) {
+    const tasksSnapshot = await projectDoc.ref.collection('tasks')
+      // TODO
+      // .where('createdAt', '<=', oneHourAgo)
+      .where('status', '!=', 'done')
+      .get();
+    
+    tasksSnapshot.forEach(taskDoc => {
+      lateTasks.push({
+        userId: taskDoc.id,
+        projectId: projectDoc.id,
+        ...taskDoc.data(),
+      });
+    });
+  }
+
+  return lateTasks;
+}
+
+export async function pushNotification(userId, type, message) {
+  const notif = {
+    type: type,
+    message: message,
+    sentAt: Date.now(),
+  };
+  return addSubdocument(COLLECTIONS.USERS, userId, 'notifications', notif);
+}
+
+export async function clearNotifications(userId) {
+  const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
+  const userDoc = await userRef.get();
+  if (!userDoc.exists)
+    return null;
+
+  const notifRef = userRef.collection('notifications');
+  const notifSnapshot = await notifRef.get();
+  for (const doc of notifSnapshot.docs) {
+    await doc.ref.delete();
+  }
+}
+
 // Get project with tasks
 export async function getProjectWithTasks(projectId, userId) {
   console.log(`[FirebaseService] Looking for project ${projectId} for user ${userId}`);
