@@ -53,7 +53,9 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
   };
 
   const handleAssignTask = (aiType, taskType, sectionName) => {
-    console.log('TeamPanel handleAssignTask called:', { aiType, taskType, sectionName });
+    console.log('🎯 TeamPanel: Task assignment initiated');
+    console.log('📋 TeamPanel handleAssignTask called:', { aiType, taskType, sectionName });
+    
     // Map task type from modal to TASK_TYPES
     let mappedTaskType;
     switch (taskType) {
@@ -69,6 +71,9 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
       default:
         mappedTaskType = TASK_TYPES.WRITE_SECTION;
     }
+    
+    console.log('🔄 TeamPanel: Mapped task type:', mappedTaskType);
+    console.log('📤 TeamPanel: Calling onAssignTask with:', { aiType, mappedTaskType, sectionName });
     
     onAssignTask(aiType, mappedTaskType, sectionName);
     setSelectedTeammate(null);
@@ -93,13 +98,20 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
     return null;
   };
 
-  // Filter AI teammates from team members
-  const aiTeammates = teamMembers
-    .filter(member => member.type === 'ai')
-    .map(member => ({
-      ...member,
-      ...getAITeammate(member.id)
-    }));
+  // Filter AI teammates from team members, or use default teammates for testing
+  const aiTeammates = teamMembers.length > 0 
+    ? teamMembers
+        .filter(member => member.type === 'ai')
+        .map(member => ({
+          ...member,
+          ...getAITeammate(member.id)
+        }))
+    : [
+        // Default AI teammates for testing
+        { id: 'rasoa', type: 'ai', ...AI_TEAMMATES.rasoa },
+        { id: 'brown', type: 'ai', ...AI_TEAMMATES.brown },
+        { id: 'elza', type: 'ai', ...AI_TEAMMATES.elza }
+      ];
 
   return (
     <div className="team-panel">
@@ -107,6 +119,11 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
         <div className="team-icon">🤖</div>
         <div className="header-text">
           <h3>Assign tasks to teammates</h3>
+          {teamMembers.length === 0 && (
+            <p style={{ fontSize: '12px', color: '#666', margin: '5px 0 0 0' }}>
+              🧪 Default AI teammates for testing (Chrome Writer API first, then OpenAI fallback)
+            </p>
+          )}
         </div>
       </div>
 
@@ -135,7 +152,7 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
 
       {aiTeammates.length === 0 && (
         <div className="no-ai-teammates">
-          <p>No AI teammates found. They will be added automatically.</p>
+          <p>No AI teammates found. Default teammates are being loaded for testing.</p>
         </div>
       )}
 

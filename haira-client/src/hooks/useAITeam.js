@@ -2,64 +2,47 @@ import { useState, useCallback } from 'react';
 import { getAuth } from 'firebase/auth';
 import axios from 'axios';
 import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
-import AlexAvatar from '../images/Alex.png';
-import SamAvatar from '../images/Sam.png';
 import { getChromeWriter } from '../utils/chromeAPI.js';
 
 const backend_host = "http://localhost:3002";
 
 const convertMarkdownToHTML = (markdown) => {
   if (!markdown) return '';
-  
   return markdown
-      // Convert headers first
-      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-      // Convert bold text
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      // Convert italic text
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      // Convert numbered lists
-      .replace(/^\d+\.\s+(.*)$/gm, '<li>$1</li>')
-      // Convert bullet points
-      .replace(/^[-*]\s+(.*)$/gm, '<li>$1</li>')
-      // Convert double line breaks to paragraph breaks
-      .replace(/\n\n/g, '</p><p>')
-      // Wrap text blocks in paragraphs
-      .replace(/^(?!<[h1-6]|<[uo]l|<li)(.*)$/gm, (match, content) => {
-          if (content.trim() === '') return '';
-          return `<p>${content}</p>`;
-      })
-      // Clean up empty paragraphs
-      .replace(/<p><\/p>/g, '')
-      .replace(/<p>\s*<\/p>/g, '');
+    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/^\d+\.\s+(.*)$/gm, '<li>$1</li>')
+    .replace(/^[-*]\s+(.*)$/gm, '<li>$1</li>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/^(?!<[h1-6]|<[uo]l|<li)(.*)$/gm, (match, content) => {
+      if (content.trim() === '') return '';
+      return `<p>${content}</p>`;
+    })
+    .replace(/<p><\/p>/g, '')
+    .replace(/<p>\s*<\/p>/g, '');
 };
 
 const convertMarkdownToPlainText = (markdown) => {
   if (!markdown) return '';
-  
   return markdown
-      // Remove headers (keep the text, remove the # symbols)
-      .replace(/^#{1,6}\s+(.*)$/gm, '$1')
-      // Remove bold formatting
-      .replace(/\*\*(.*?)\*\*/g, '$1')
-      // Remove italic formatting
-      .replace(/\*(.*?)\*/g, '$1')
-      // Convert numbered lists to plain text with proper indentation
-      .replace(/^\d+\.\s+(.*)$/gm, '• $1')
-      // Convert bullet points to plain text with proper indentation
-      .replace(/^[-*]\s+(.*)$/gm, '• $1')
-      // Clean up extra whitespace
-      .replace(/\n\s*\n/g, '\n\n')
-      .trim();
+    .replace(/^#{1,6}\s+(.*)$/gm, '$1')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/^\d+\.\s+(.*)$/gm, '• $1')
+    .replace(/^[-*]\s+(.*)$/gm, '• $1')
+    .replace(/\n\s*\n/g, '\n\n')
+    .trim();
 };
+
+const resolveTeammate = (aiType) => AI_TEAMMATES[aiType] || AI_TEAMMATES.rasoa;
 
 export const useAITeam = (projectId, editorRef, onAddComment = null) => {
   const [loadingAIs, setLoadingAIs] = useState(new Set());
   const [taskCompletionMessages, setTaskCompletionMessages] = useState([]);
 
-  // Utility to get token safely
   const getIdTokenSafely = async () => {
     try {
       const auth = getAuth();
@@ -72,367 +55,333 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     return null;
   };
 
-  // Insert AI text at the end of document with color marking and avatar
   const insertAIText = useCallback(async (text, aiType, taskType = '') => {
-    if (!editorRef.current) return;
+    console.log('📝 insertAIText called with:', { text: text?.substring(0, 100) + '...', aiType, taskType });
+    
+    if (!editorRef.current) {
+      console.log('❌ insertAIText: No editor reference available');
+      return;
+    }
 
     const editor = editorRef.current;
+    const aiTeammate = resolveTeammate(aiType);
+    const { name, role, color, emoji } = aiTeammate;
     
-    // Get AI teammate info - supports new 5-agent team and legacy IDs
-    let aiTeammate;
-    
-    // Check if it's one of the agents
-    if (AI_TEAMMATES[aiType]) {
-      aiTeammate = AI_TEAMMATES[aiType];
-    } 
-    // Legacy mapping for old IDs
-    else if (aiType === 'ai_manager') {
-      aiTeammate = AI_TEAMMATES.rasoa;
-    } else if (aiType === 'ai_helper') {
-      aiTeammate = AI_TEAMMATES.rakoto;
-    } else {
-      // Default to rasoa if unknown
-      aiTeammate = AI_TEAMMATES.rasoa;
-    }
-    
-    const aiName = aiTeammate.name;
-    const aiRole = aiTeammate.role;
-    const aiColor = aiTeammate.color;
-    const aiAvatar = aiTeammate.emoji; // Use emoji instead of images
+    console.log('👤 AI Teammate resolved:', { name, role, color, emoji });
 
-    // Calculate word count for contribution tracking
     const wordCount = text.trim().split(/\s+/).filter(word => word.length > 0).length;
+    const textColor = taskType === 'review' ? '#DC2626' : color;
+    
+    console.log('📊 Text stats:', { wordCount, textColor });
 
-    // Use red for review tasks, otherwise use agent's color
-    const color = (taskType === 'review') ? '#DC2626' : aiColor;
-    
-    // Move cursor to end of document
     const docSize = editor.state.doc.content.size;
+    console.log('📄 Current document size:', docSize);
+    
     editor.commands.setTextSelection({ from: docSize, to: docSize });
-    
-    // Create avatar HTML element with emoji
+
     const avatarHtml = `
-      <div class="ai-contribution-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 8px; background: linear-gradient(135deg, ${aiColor}20 0%, ${aiColor}10 100%); border-radius: 8px; border-left: 3px solid ${aiColor};">
-        <div class="ai-contribution-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, ${aiColor} 0%, ${aiColor}CC 100%); display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.3); font-size: 18px;">
-          ${aiAvatar}
+      <div class="ai-contribution-header" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px;background:linear-gradient(135deg,${color}20 0%,${color}10 100%);border-radius:8px;border-left:3px solid ${color};">
+        <div class="ai-contribution-avatar" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,${color} 0%,${color}CC 100%);display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,0.1);border:2px solid rgba(255,255,255,0.3);font-size:18px;">${emoji}</div>
+        <div class="ai-contribution-info" style="display:flex;flex-direction:column;gap:2px;">
+          <span style="font-weight:600;color:${color};font-size:0.9rem;">${name}</span>
+          <span style="font-size:0.75rem;color:#6b7280;">${role}</span>
         </div>
-        <div class="ai-contribution-info" style="display: flex; flex-direction: column; gap: 2px;">
-          <span style="font-weight: 600; color: ${aiColor}; font-size: 0.9rem;">${aiName}</span>
-          <span style="font-size: 0.75rem; color: #6b7280;">${aiRole}</span>
-        </div>
-      </div>
-    `;
-    
-    // Insert avatar header and text
+      </div>`;
+
+    console.log('🎨 Inserting content into editor...');
     editor.commands.insertContent(`${avatarHtml}<p>${text}</p>`);
     
-    // Apply color and highlight to the text content only
     const newDocSize = editor.state.doc.content.size;
-    const textLength = text.length;
-    const headerLength = avatarHtml.length;
+    console.log('📄 New document size:', newDocSize);
     
-    // Select only the text content (not the avatar header)
-    editor.commands.setTextSelection({ 
-      from: newDocSize - textLength - 7, // -7 for <p></p> tags
-      to: newDocSize - 4 // -4 for </p> tag
-    });
-    editor.commands.setColor(color);
-    
-    // Apply highlight based on task type
-    if (taskType === 'review') {
-      editor.commands.setHighlight({ color: '#FEF2F2' }); // Light red highlight
-    } else if (taskType === 'suggest') {
-      editor.commands.setHighlight({ color: '#FFF7ED' }); // Light orange highlight
-    } else {
-      // For write tasks, use agent's color with transparency
-      const highlightColor = aiColor + '20';
-      editor.commands.setHighlight({ color: highlightColor });
-    }
+    editor.commands.setTextSelection({ from: newDocSize - text.length - 7, to: newDocSize - 4 });
+    editor.commands.setColor(textColor);
 
-    // Track word count contribution for write tasks
+    const highlightMap = { review: '#FEF2F2', suggest: '#FFF7ED', write_section: color + '20' };
+    editor.commands.setHighlight({ color: highlightMap[taskType] || color + '20' });
+    
+    console.log('✅ Content inserted and styled successfully');
+
     if (wordCount > 0 && projectId && taskType === 'write_section') {
       try {
         const token = await getIdTokenSafely();
         if (token) {
+          console.log('📊 Tracking word count contribution...');
           await axios.post(`${backend_host}/api/project/${projectId}/word-contributions/track`, {
             contributorId: aiType,
-            contributorName: aiName,
-            contributorRole: aiRole,
-            wordCount: wordCount,
-            taskType: taskType
-          }, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          console.log(`Tracked ${wordCount} words for ${aiName} (${aiType})`);
+            contributorName: name,
+            contributorRole: role,
+            wordCount,
+            taskType
+          }, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
+          console.log('✅ Word count tracked successfully');
         }
       } catch (error) {
-        console.error('Error tracking word count contribution:', error);
+        console.error('❌ Error tracking word count:', error);
       }
     }
   }, [editorRef, projectId, getIdTokenSafely]);
 
-
-  // Add AI comment to the editor
   const addAIComment = useCallback((text, aiType, taskType = '') => {
     if (!editorRef.current) return;
-
     const editor = editorRef.current;
     const { from, to } = editor.state.selection;
-    
-    // Get AI teammate for color
-    let aiTeammate;
-    if (AI_TEAMMATES[aiType]) {
-      aiTeammate = AI_TEAMMATES[aiType];
-    } else if (aiType === 'ai_manager') {
-      aiTeammate = AI_TEAMMATES.rasoa;
-    } else if (aiType === 'ai_helper') {
-      aiTeammate = AI_TEAMMATES.rakoto;
-    } else {
-      aiTeammate = AI_TEAMMATES.rasoa;
-    }
-    
-    const aiColor = aiTeammate.color;
-    const highlightColor = aiColor + '20'; // Add transparency
-    
-    // Use red for review tasks, orange for suggest, otherwise use agent color
-    let color, backgroundColor;
-    if (taskType === 'review') {
-      color = '#DC2626';
-      backgroundColor = '#FEF2F2';
-    } else if (taskType === 'suggest') {
-      color = '#EA580C';
-      backgroundColor = '#FFF7ED';
-    } else {
-      color = aiColor;
-      backgroundColor = highlightColor;
-    }
-    
-    // If no selection, insert at current cursor position
-    if (from === to) {
+
+    const { color } = resolveTeammate(aiType);
+    const backgroundMap = {
+      review: ['#DC2626', '#FEF2F2'],
+      suggest: ['#EA580C', '#FFF7ED'],
+      default: [color, color + '20']
+    };
+    const [textColor, bgColor] = backgroundMap[taskType] || backgroundMap.default;
+
+    const insertAtCursor = () => {
       const cursorPos = editor.state.selection.from;
       editor.commands.insertContent(`<span class="ai-comment" data-ai-type="${aiType}">${text}</span>`);
-      
-      // Apply color and highlight to the inserted text
-      const newPos = cursorPos + text.length + 50; // Approximate position after insertion
-      editor.commands.setTextSelection({ from: cursorPos, to: newPos });
-      editor.commands.setColor(color);
-      editor.commands.setHighlight({ color: backgroundColor });
-    } else {
-      // If there's a selection, wrap it with the comment
+      editor.commands.setTextSelection({ from: cursorPos, to: cursorPos + text.length + 50 });
+      editor.commands.setColor(textColor);
+      editor.commands.setHighlight({ color: bgColor });
+    };
+
+    if (from === to) insertAtCursor();
+    else {
       const selectedText = editor.state.doc.textBetween(from, to);
-      editor.commands.insertContent(
-        `<span class="ai-comment" data-ai-type="${aiType}">${selectedText}</span>`
-      );
-      
-      // Apply color and highlight to the wrapped text
-      editor.commands.setTextSelection({ from, to: to + 50 }); // Approximate new position
-      editor.commands.setColor(color);
-      editor.commands.setHighlight({ color: backgroundColor });
+      editor.commands.insertContent(`<span class="ai-comment" data-ai-type="${aiType}">${selectedText}</span>`);
+      editor.commands.setTextSelection({ from, to: to + 50 });
+      editor.commands.setColor(textColor);
+      editor.commands.setHighlight({ color: bgColor });
     }
   }, [editorRef]);
 
-  
-  // Perform AI task
-  const performAITask = useCallback(async (aiType, taskType, sectionName = '', currentContent = '') => {
-    if (!projectId) {
-      throw new Error('Project ID is required');
-    }
-
-    // Add this AI to loading set
-    setLoadingAIs(prev => new Set([...prev, aiType]));
+  const performWriteTask = useCallback(async (aiTeammate, sectionName, currentContent, projectTitle = null) => {
+    console.log('🎯 performWriteTask called with:', { aiTeammate, sectionName, currentContent: currentContent?.substring(0, 50) + '...' });
     
-    try {
+    // Create server fallback function
+    const serverFallback = async () => {
+      console.log('🔄 Server fallback: Calling OpenAI API...');
       const token = await getIdTokenSafely();
-      
-      // Determine the correct endpoint based on task type
-      let endpoint = '';
-      let requestData = { aiType };
-      
-      switch (taskType) {
-        case 'write_section':
-          endpoint = `${backend_host}/api/project/${projectId}/ai/write`;
-          requestData = { aiType, sectionName, currentContent };
-          break;
-        case 'review':
-        case 'review_content':
-          endpoint = `${backend_host}/api/project/${projectId}/ai/review`;
-          requestData = { aiType, currentContent };
-          break;
-        case 'suggest_improvements':
-          endpoint = `${backend_host}/api/project/${projectId}/ai/suggest`;
-          requestData = { aiType, currentContent };
-          break;
-        default:
-          throw new Error(`Unknown task type: ${taskType}`);
-      }
-      
-      console.log('Sending AI task request:', { endpoint, requestData });
-      
-      const serverSideFallback = async () => {
-        const token = await getIdTokenSafely();
-        const aiResponse = await axios.post(endpoint, requestData, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          }
-        });
-        return aiResponse.data;
+      const endpoint = `${backend_host}/api/project/${projectId}/ai/write`;
+      const requestData = { 
+        aiType: aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate), 
+        sectionName, 
+        currentContent,
+        projectTitle
       };
-
-      // Get AI teammate info for Chrome Writer
-      const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
       
-      // Determine task-specific context
-      let taskContext = '';
-      if (taskType === 'write_section') {
-        taskContext = aiTeammate.contexts?.write || aiTeammate.context;
-      } else if (taskType === 'suggest_improvements') {
-        taskContext = aiTeammate.contexts?.suggest || aiTeammate.context;
-      } else if (taskType === 'review') {
-        taskContext = aiTeammate.contexts?.review || aiTeammate.context;
-      } else {
-        taskContext = aiTeammate.context;
-      }
+      console.log('🚀 Server fallback: Sending write request:', requestData);
+      const { data } = await axios.post(endpoint, requestData, { headers: { Authorization: `Bearer ${token}` } });
       
-      // Prepare options for Chrome Writer
-      const writerOptions = {
-        tone: aiTeammate.tone || 'formal',
-        length: aiTeammate.length || 'medium',
-        context: taskContext
-      };
-
-      // Use Chrome Writer with fallback
-      const writerResult = await getChromeWriter(currentContent, writerOptions, serverSideFallback);
-      
-      console.log('Chrome Writer result:', writerResult);
-      
-      // Extract the actual content from the result
-      let aiResponse;
-      if (writerResult.content) {
-        aiResponse = writerResult.content;
-      } else if (typeof writerResult === 'string') {
-        aiResponse = writerResult;
-      } else if (writerResult.response || writerResult.text || writerResult.content) {
-        aiResponse = writerResult.response || writerResult.text || writerResult.content;
-      } else {
-        console.error('Unexpected response structure:', writerResult);
-        aiResponse = JSON.stringify(writerResult);
-      }
-      
-      // Ensure we have a valid string response
-      if (!aiResponse || typeof aiResponse !== 'string') {
-        console.error('Invalid AI response:', aiResponse);
-        throw new Error('AI response is not a valid string');
-      }
-      const cleanAIResponse = convertMarkdownToHTML(aiResponse);
-      // Handle the response based on task type
-      if (taskType === 'write_section') {
-        // For write tasks, insert text directly into the editor
-        insertAIText(cleanAIResponse, aiType, taskType);
-      } else if (taskType === 'review') {
-        // For review tasks, convert markdown to plain text and add as a comment in the sidebar
-        if (onAddComment) {
-          // Get AI teammate info
-          let aiTeammate;
-          if (AI_TEAMMATES[aiType]) {
-            aiTeammate = AI_TEAMMATES[aiType];
-          } else if (aiType === 'ai_manager') {
-            aiTeammate = AI_TEAMMATES.rasoa;
-          } else if (aiType === 'ai_helper') {
-            aiTeammate = AI_TEAMMATES.rakoto;
-          } else {
-            aiTeammate = AI_TEAMMATES.rasoa; // default
-          }
-          const aiName = `${aiTeammate.name} (${aiTeammate.role})`;
-          const plainTextResponse = convertMarkdownToPlainText(aiResponse);
-          const commentText = `Review by ${aiName}:\n${plainTextResponse}`;
-          onAddComment(commentText, 'review', aiName);
-        }
-      } else if (taskType === 'suggest_improvements') {
-        // For suggestion tasks, convert markdown to plain text and add as a comment in the sidebar
-        if (onAddComment) {
-          // Get AI teammate info
-          let aiTeammate;
-          if (AI_TEAMMATES[aiType]) {
-            aiTeammate = AI_TEAMMATES[aiType];
-          } else if (aiType === 'ai_manager') {
-            aiTeammate = AI_TEAMMATES.rasoa;
-          } else if (aiType === 'ai_helper') {
-            aiTeammate = AI_TEAMMATES.rakoto;
-          } else {
-            aiTeammate = AI_TEAMMATES.rasoa; // default
-          }
-          const aiName = `${aiTeammate.name} (${aiTeammate.role})`;
-          const plainTextResponse = convertMarkdownToPlainText(aiResponse);
-          const commentText = `Suggestion by ${aiName}:\n${plainTextResponse}`;
-          onAddComment(commentText, 'suggestion', aiName);
-        }
-      } else {
-        // Default fallback - insert as text
-        insertAIText(aiResponse, aiType, taskType);
-      }
-
-      // Create completion message
-      const completionMessage = `${aiTeammate.name} completed ${taskType.replace('_', ' ')} task`;
-
-      // Add completion message to the feedback system
-      const messageId = Date.now() + Math.random(); // Ensure unique ID
-      setTaskCompletionMessages(prev => [
-        ...prev,
-        {
-          id: messageId,
-          aiType,
-          message: completionMessage,
-          timestamp: Date.now()
-        }
-      ]);
-
-      // Auto-remove completion message after 5 seconds
-      setTimeout(() => {
-        setTaskCompletionMessages(prev => 
-          prev.filter(msg => msg.id !== messageId)
-        );
-      }, 5000);
-
-      return aiResponse;
-    } catch (error) {
-      console.error('AI Task error:', error);
-      if (error.response) {
-        console.error('Error response data:', error.response.data);
-        console.error('Error response status:', error.response.status);
-      }
-      throw error;
-    } finally {
-      // Remove this AI from loading set
-      setLoadingAIs(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(aiType);
-        return newSet;
+      console.log('📥 Server fallback: Received response from OpenAI:', {
+        success: data.success,
+        aiType: data.aiType,
+        responseLength: data.response?.length,
+        responsePreview: data.response?.substring(0, 100) + '...',
+        completionMessage: data.completionMessage
       });
+      
+      return {
+        content: data.content || data.response,
+        source: 'openai-server',
+        error: null
+      };
+    };
+    
+    // Try Chrome Writer API first
+    console.log('🔧 AI Service: Trying Chrome Writer API first...');
+    try {
+      const result = await getChromeWriter(currentContent, 'write_section', aiTeammate, serverFallback, sectionName, projectTitle);
+      
+      console.log('📥 Chrome Writer result:', {
+        source: result.source,
+        contentLength: result.content?.length,
+        contentPreview: result.content?.substring(0, 100) + '...',
+        error: result.error
+      });
+      
+      const htmlResponse = convertMarkdownToHTML(result.content);
+      console.log('🔄 Client: Converted to HTML:', htmlResponse?.substring(0, 100) + '...');
+      
+      console.log('📝 Client: Inserting AI text into editor...');
+      insertAIText(htmlResponse, aiTeammate.id, 'write_section');
+      console.log('✅ Client: AI text inserted successfully');
+      
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Chrome Writer failed, using server fallback:', error);
+      const fallbackResult = await serverFallback();
+      
+      const htmlResponse = convertMarkdownToHTML(fallbackResult.content);
+      console.log('🔄 Client: Converted fallback to HTML:', htmlResponse?.substring(0, 100) + '...');
+      
+      console.log('📝 Client: Inserting fallback AI text into editor...');
+      insertAIText(htmlResponse, aiTeammate.id, 'write_section');
+      console.log('✅ Client: Fallback AI text inserted successfully');
+      
+      return fallbackResult;
     }
-  }, [projectId, insertAIText, addAIComment]);
+  }, [projectId, insertAIText]);
 
-  // Clear completion messages
-  const clearCompletionMessages = useCallback(() => {
-    setTaskCompletionMessages([]);
-  }, []);
+  const performReviewTask = useCallback(async (aiTeammate, currentContent) => {
+    console.log('🎯 performReviewTask called with:', { aiTeammate, currentContent: currentContent?.substring(0, 50) + '...' });
+    
+    // Create server fallback function
+    const serverFallback = async () => {
+      const token = await getIdTokenSafely();
+      const endpoint = `${backend_host}/api/project/${projectId}/ai/review`;
+      const requestData = { 
+        aiType: aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate), 
+        currentContent 
+      };
+      
+      console.log('🚀 Server fallback: Sending review request:', requestData);
+      const { data } = await axios.post(endpoint, requestData, { headers: { Authorization: `Bearer ${token}` } });
+      
+      console.log('📥 Server fallback: Received review response from OpenAI:', {
+        success: data.success,
+        aiType: data.aiType,
+        responseLength: data.response?.length,
+        responsePreview: data.response?.substring(0, 100) + '...',
+        completionMessage: data.completionMessage
+      });
+      
+      return {
+        content: data.content || data.response,
+        source: 'openai-server',
+        error: null
+      };
+    };
+    
+    // Try Chrome API first (if available for review)
+    console.log('🔧 AI Service: Trying Chrome API first for review...');
+    try {
+      const result = await getChromeWriter(currentContent, 'review', aiTeammate, serverFallback);
+      
+      console.log('📥 Chrome Writer result:', {
+        source: result.source,
+        contentLength: result.content?.length,
+        contentPreview: result.content?.substring(0, 100) + '...',
+        error: result.error
+      });
+      
+      console.log('📥 Review result:', {
+        source: result.source,
+        contentLength: result.content?.length,
+        contentPreview: result.content?.substring(0, 100) + '...',
+        error: result.error
+      });
+      
+      const plainResponse = convertMarkdownToPlainText(result.content);
+      console.log('🔄 Client: Converted to plain text:', plainResponse?.substring(0, 100) + '...');
+      
+      console.log('📝 Client: Adding review comment...');
+      if (onAddComment) onAddComment(`Review by ${aiTeammate.name}:\n${plainResponse}`, 'review', aiTeammate.name);
+      console.log('✅ Client: Review comment added successfully');
+      
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Review failed, using server fallback:', error);
+      const fallbackResult = await serverFallback();
+      
+      const plainResponse = convertMarkdownToPlainText(fallbackResult.content);
+      console.log('🔄 Client: Converted fallback to plain text:', plainResponse?.substring(0, 100) + '...');
+      
+      console.log('📝 Client: Adding fallback review comment...');
+      if (onAddComment) onAddComment(`Review by ${aiTeammate.name}:\n${plainResponse}`, 'review', aiTeammate.name);
+      console.log('✅ Client: Fallback review comment added successfully');
+      
+      return fallbackResult;
+    }
+  }, [projectId, onAddComment]);
 
-  // Remove specific completion message
-  const removeCompletionMessage = useCallback((messageId) => {
-    setTaskCompletionMessages(prev => 
-      prev.filter(msg => msg.id !== messageId)
-    );
-  }, []);
+  const performSuggestTask = useCallback(async (aiTeammate, currentContent) => {
+    console.log('🎯 performSuggestTask called with:', { aiTeammate, currentContent: currentContent?.substring(0, 50) + '...' });
+    
+    // Create server fallback function
+    const serverFallback = async () => {
+      console.log('🔄 Server fallback: Calling OpenAI API for suggestions...');
+      const token = await getIdTokenSafely();
+      const endpoint = `${backend_host}/api/project/${projectId}/ai/suggest`;
+      const requestData = { 
+        aiType: aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate), 
+        currentContent 
+      };
+      
+      console.log('🚀 Server fallback: Sending suggest request:', requestData);
+      const { data } = await axios.post(endpoint, requestData, { headers: { Authorization: `Bearer ${token}` } });
+      
+      console.log('📥 Server fallback: Received suggest response from OpenAI:', {
+        success: data.success,
+        aiType: data.aiType,
+        responseLength: data.response?.length,
+        responsePreview: data.response?.substring(0, 100) + '...',
+        completionMessage: data.completionMessage
+      });
+      
+      return {
+        content: data.content || data.response,
+        source: 'openai-server',
+        error: null
+      };
+    };
+    
+    // Try Chrome API first (if available for suggestions)
+    console.log('🔧 AI Service: Trying Chrome API first for suggestions...');
+    try {
+      const result = await getChromeWriter(currentContent, 'suggestion', aiTeammate, serverFallback);
+      
+      console.log('📥 Chrome Writer result:', {
+        source: result.source,
+        contentLength: result.content?.length,
+        contentPreview: result.content?.substring(0, 100) + '...',
+        error: result.error
+      });
+      
+      console.log('📥 Suggest result:', {
+        source: result.source,
+        contentLength: result.content?.length,
+        contentPreview: result.content?.substring(0, 100) + '...',
+        error: result.error
+      });
+      
+      const plainResponse = convertMarkdownToPlainText(result.content);
+      console.log('🔄 Client: Converted to plain text:', plainResponse?.substring(0, 100) + '...');
+      
+      console.log('📝 Client: Adding suggestion comment...');
+      if (onAddComment) onAddComment(`Suggestion by ${aiTeammate.name}:\n${plainResponse}`, 'suggest', aiTeammate.name);
+      console.log('✅ Client: Suggestion comment added successfully');
+      
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Suggest failed, using server fallback:', error);
+      const fallbackResult = await serverFallback();
+      
+      const plainResponse = convertMarkdownToPlainText(fallbackResult.content);
+      console.log('🔄 Client: Converted fallback to plain text:', plainResponse?.substring(0, 100) + '...');
+      
+      console.log('📝 Client: Adding fallback suggestion comment...');
+      if (onAddComment) onAddComment(`Suggestion by ${aiTeammate.name}:\n${plainResponse}`, 'suggest', aiTeammate.name);
+      console.log('✅ Client: Fallback suggestion comment added successfully');
+      
+      return fallbackResult;
+    }
+  }, [projectId, onAddComment]);
+
+  const clearCompletionMessages = useCallback(() => setTaskCompletionMessages([]), []);
+  const removeCompletionMessage = useCallback((messageId) => setTaskCompletionMessages(prev => prev.filter(msg => msg.id !== messageId)), []);
 
   return {
-    performAITask,
+    write: performWriteTask,
+    review: performReviewTask,
+    suggest: performSuggestTask,
+    addComment: addAIComment,
+    insertAIText,
     isLoading: loadingAIs.size > 0,
     loadingAIs,
     taskCompletionMessages,
     clearCompletionMessages,
-    removeCompletionMessage
+    removeCompletionMessage,
   };
 };

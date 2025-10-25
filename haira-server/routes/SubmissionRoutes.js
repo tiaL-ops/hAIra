@@ -123,7 +123,17 @@ function cleanContentForReview(htmlContent) {
 
 // Generate AI-specific completion messages
 async function generateCompletionMessage(aiType, taskType) {
-    const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.alex_report : AI_TEAMMATES.sam;
+    // Get the correct AI teammate
+    let aiTeammate;
+    if (['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'].includes(aiType)) {
+        aiTeammate = AI_TEAMMATES[aiType];
+    } else if (aiType === 'ai_manager') {
+        aiTeammate = AI_TEAMMATES.rasoa; // Legacy ai_manager maps to rasoa
+    } else if (aiType === 'ai_helper') {
+        aiTeammate = AI_TEAMMATES.rakoto; // Legacy ai_helper maps to rakoto
+    } else {
+        aiTeammate = AI_TEAMMATES.rasoa; // Default fallback
+    }
     
     const completionPrompts = {
         write: `Generate a short, casual completion message (1-2 sentences max) for when you finish writing a section. Be true to your personality: ${aiTeammate.personality}. Make it sound natural and in character.`,
@@ -134,8 +144,15 @@ async function generateCompletionMessage(aiType, taskType) {
     const prompt = completionPrompts[taskType] || completionPrompts.write;
     
     try {
-        // const response = await generateAIContribution(prompt, aiTeammate.config, aiTeammate.prompt);
-        const aiResponse = await callOpenAIContribution(prompt, aiTeammate.config, aiTeammate.prompt)
+        // Create proper config object from teammate properties
+        const config = {
+            max_tokens: aiTeammate.maxTokens || 500,
+            temperature: aiTeammate.temperature || 0.7
+        };
+        
+        const systemInstruction = `You are ${aiTeammate.name}, ${aiTeammate.role}. ${aiTeammate.personality}`;
+        
+        const aiResponse = await callOpenAIContribution(prompt, config, systemInstruction);
         return cleanAIResponse(aiResponse);
     } catch (error) {
         console.error('Error generating completion message:', error);
@@ -676,10 +693,11 @@ Do not include anything else.
 // AI Write Section endpoint
 router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;
-    const { aiType, sectionName, currentContent } = req.body;
+    const { aiType, sectionName, currentContent, projectTitle } = req.body;
     const userId = req.user.uid;
 
     console.log('AI Write request received:', { id, aiType, sectionName, userId });
+    console.log('🔧 AI Service: Will use server-side OpenAI (GPT-4o-mini) - NOT Chrome API');
 
     if (!aiType) {
         return res.status(400).json({ error: 'AI type is required' });
@@ -694,6 +712,11 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
     try {
         await ensureProjectExists(id, userId);
         
+        // Get project data to fetch the actual project title
+        const projectDoc = await db.collection('userProjects').doc(id).get();
+        const projectInfo = projectDoc.data();
+        const actualProjectTitle = projectInfo?.title || 'the project';
+        
         // Map agent IDs to correct teammates (support legacy IDs)
         let aiTeammate;
         if (['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'].includes(aiType)) {
@@ -704,24 +727,11 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
             aiTeammate = AI_TEAMMATES.rakoto; // Legacy ai_helper maps to rakoto
         }
         
-        // Use agent's actual personality for writing context (not generic)
-        const writingContext = aiTeammate ? `You are ${aiTeammate.name}, ${aiTeammate.role}. ${aiTeammate.personality}` : 'You are an academic writing assistant.';
-        
-        const taskPrompt = `${writingContext}
-
-Task: Write a section titled "${sectionName || 'the project'}" for an academic research paper.
-
-Current document content:
-${currentContent || 'No content yet - this is the first section.'}
-
-Instructions:
-- Write clear, academic prose (NOT code or technical implementation)
-- Include relevant examples and explanations
-- Maintain consistency with existing content
-- Use proper academic tone and structure
-- Length: 2-3 well-developed paragraphs
-
-Write the section now:`;
+        // Use the new standardized prompt format
+        const writePrompt = aiTeammate?.writePrompt || 'Write content for the report.';
+        const taskPrompt = writePrompt
+            .replace('{section}', sectionName || 'the project')
+            .replace('{projectTitle}', actualProjectTitle);
         
         // Create a config for the AI call
         const aiConfig = {
@@ -732,16 +742,36 @@ Write the section now:`;
         // Try Chrome Write API first, fallback to Gemini
         let aiResponse;
        
-        console.log('Calling AI for writing task...');
-        // aiResponse = await generateAIContribution(taskPrompt, aiConfig, writingContext);
-        aiResponse = await callOpenAIContribution(taskPrompt, aiConfig, writingContext);
+        console.log('🤖 Calling AI for writing task...');
+        console.log('🔧 AI Service: OpenAI (GPT-4o-mini)');
+        console.log('📝 Task prompt:', taskPrompt.substring(0, 200) + '...');
+        console.log('⚙️ AI config:', aiConfig);
+        console.log('👤 Writing context:', writingContext);
+        
+        try {
+            console.log('🚀 Making OpenAI API call...');
+            aiResponse = await callOpenAIContribution(taskPrompt, aiConfig, writingContext);
+            console.log('✅ OpenAI response received:', aiResponse?.substring(0, 200) + '...');
+        } catch (aiError) {
+            console.error('❌ OpenAI API call failed:', aiError);
+            throw aiError;
+        }
 
+        console.log('🧹 Cleaning AI response...');
         const cleanedResponse = cleanAIResponse(aiResponse);
+        console.log('✅ Cleaned response:', cleanedResponse?.substring(0, 200) + '...');
+        
+        console.log('🔄 Converting to HTML...');
         const htmlResponse = convertMarkdownToHTML(cleanedResponse);
+        console.log('✅ HTML response:', htmlResponse?.substring(0, 200) + '...');
+        
         const aiName = aiTeammate.name;
         const prefixedResponse = `[${aiName}] ${htmlResponse}`;
+        console.log('📤 Final prefixed response:', prefixedResponse?.substring(0, 200) + '...');
 
+        console.log('💬 Generating completion message...');
         const completionMessage = await generateCompletionMessage(aiType, 'write');
+        console.log('✅ Completion message:', completionMessage);
 
         // Log activity
         const activityLog = {
@@ -761,14 +791,24 @@ Write the section now:`;
         // Update AI contribution automatically
         await updateAIContribution(id, aiType, 'write');
 
-        res.json({
+        const finalResponse = {
             success: true,
             aiType: aiType,
             response: prefixedResponse,
             responseType: 'text',
             completionMessage: completionMessage,
             timestamp: Date.now()
+        };
+        
+        console.log('📤 Sending final response to client:', {
+            success: finalResponse.success,
+            aiType: finalResponse.aiType,
+            responseLength: finalResponse.response?.length,
+            responsePreview: finalResponse.response?.substring(0, 100) + '...',
+            completionMessage: finalResponse.completionMessage
         });
+
+        res.json(finalResponse);
 
     } catch (err) {
         console.error('AI Write error:', err);
@@ -797,6 +837,11 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
     try {
         await ensureProjectExists(id, userId);
         
+        // Get project data to fetch the actual project title
+        const projectDoc = await db.collection('userProjects').doc(id).get();
+        const projectInfo = projectDoc.data();
+        const actualProjectTitle = projectInfo?.title || 'the project';
+        
         // Map agent IDs to correct teammates (support legacy IDs)
         let aiTeammate;
         if (['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'].includes(aiType)) {
@@ -807,26 +852,10 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
             aiTeammate = AI_TEAMMATES.rakoto;
         }
         
-        // Use agent's personality for review context
-        const reviewContext = aiTeammate ? `You are ${aiTeammate.name}, ${aiTeammate.role}. ${aiTeammate.personality}` : 'You are an academic reviewer.';
-        
-        // Clean the content to remove HTML markup for better AI review
-        const cleanedContent = cleanContentForReview(currentContent);
-        
-        const taskPrompt = `${reviewContext}
-
-Task: Review the following academic content and provide constructive feedback.
-
-Content to review:
-${cleanedContent}
-
-Provide exactly 4 bullet points of helpful feedback focusing on:
-- Content quality and clarity
-- Logical flow and organization  
-- Completeness of ideas
-- Writing style and tone
-
-Format: Each bullet point should start with a dash (-). Be specific and constructive.`;
+        // Use the new standardized prompt format
+        const reviewPrompt = aiTeammate?.reviewPrompt || 'Review the content.';
+        const taskPrompt = reviewPrompt
+            .replace('{reportContent}', currentContent || 'No content available');
         
         const aiConfig = {
             max_tokens: 600,
@@ -894,6 +923,11 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
     try {
         await ensureProjectExists(id, userId);
         
+        // Get project data to fetch the actual project title
+        const projectDoc = await db.collection('userProjects').doc(id).get();
+        const projectInfo = projectDoc.data();
+        const actualProjectTitle = projectInfo?.title || 'the project';
+        
         // Map agent IDs to correct teammates (support legacy IDs)
         let aiTeammate;
         if (['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'].includes(aiType)) {
@@ -904,25 +938,10 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
             aiTeammate = AI_TEAMMATES.rakoto;
         }
         
-        // Use agent's personality for suggestions context
-        const suggestionContext = aiTeammate ? `You are ${aiTeammate.name}, ${aiTeammate.role}. ${aiTeammate.personality}` : 'You are an academic consultant.';
-        
-        // Clean the content to remove HTML markup for better AI suggestions
-        const cleanedContent = cleanContentForReview(currentContent);
-        
-        const taskPrompt = `${suggestionContext}
-
-Task: Provide exactly 3 specific, actionable improvement suggestions for the following content.
-
-Content:
-${cleanedContent || 'No content to improve.'}
-
-Format your response as exactly 3 bullet points, each starting with a dash (-). Be specific and actionable. Focus on:
-1. Strengthening arguments or evidence
-2. Improving clarity or structure
-3. Enhancing academic rigor or depth
-
-Do not use HTML tags or markdown formatting.`;
+        // Use the new standardized prompt format
+        const suggestPrompt = aiTeammate?.suggestPrompt || 'Suggest improvements.';
+        const taskPrompt = suggestPrompt
+            .replace('{reportContent}', currentContent || 'No content available');
         
         const aiConfig = {
             max_tokens: 500,

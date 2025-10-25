@@ -64,6 +64,11 @@ function Submission() {
   const [proofreadError, setProofreadError] = useState(null);
   const editorRef = useRef(null);
   
+  // Debug states
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [debugLogs, setDebugLogs] = useState([]);
+  const [testTeammate, setTestTeammate] = useState('rasoa'); // Default test teammate
+  
   // Data states
   const [proofreadData, setProofreadData] = useState(null);
   const [summarizeData, setSummarizeData] = useState(null);
@@ -77,6 +82,98 @@ function Submission() {
     }
     setSelectionRange(null);
     setSelectedText("");
+  };
+  
+  // Debug logging function
+  const addDebugLog = (message, type = 'info') => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = {
+      id: Date.now() + Math.random(),
+      timestamp,
+      message,
+      type
+    };
+    setDebugLogs(prev => [logEntry, ...prev].slice(0, 50)); // Keep last 50 logs
+    console.log(`[DEBUG ${timestamp}] ${message}`);
+  };
+  
+  // Enhanced debug logging for API calls
+  const logApiCall = (endpoint, data, type = 'request') => {
+    if (type === 'request') {
+      addDebugLog(`🚀 API Request: ${endpoint}`, 'info');
+      addDebugLog(`📤 Data: ${JSON.stringify(data, null, 2)}`, 'info');
+    } else if (type === 'response') {
+      addDebugLog(`✅ API Response: ${JSON.stringify(data, null, 2)}`, 'success');
+    } else if (type === 'error') {
+      addDebugLog(`❌ API Error: ${data}`, 'error');
+    }
+  };
+  
+  // Test functions for debugging
+  const testWriteSuggestion = async () => {
+    addDebugLog('🧪 Testing Write Suggestion API...', 'info');
+    addDebugLog('🔧 AI Service: Chrome Writer API first, then OpenAI fallback', 'info');
+    try {
+      const aiTeammate = AI_TEAMMATES[testTeammate];
+      if (!aiTeammate) {
+        addDebugLog(`❌ Error: Teammate '${testTeammate}' not found`, 'error');
+        return;
+      }
+      
+      // Add id property to the teammate object for API compatibility
+      const teammateWithId = { ...aiTeammate, id: testTeammate };
+      
+      addDebugLog(`👤 Using teammate: ${teammateWithId.name} (${teammateWithId.role})`, 'info');
+      addDebugLog(`⚙️ Teammate config: tone=${teammateWithId.tone}, length=${teammateWithId.length}`, 'info');
+      addDebugLog(`🆔 Teammate ID: ${teammateWithId.id}`, 'info');
+      
+      const testContent = "Write a brief introduction about the importance of research methodology in academic projects.";
+      addDebugLog(`📝 Test content: "${testContent}"`, 'info');
+      
+      logApiCall('/api/project/ai/write', { aiType: teammateWithId.id, sectionName: 'introduction', currentContent: testContent });
+      
+      await write(teammateWithId, 'introduction', testContent);
+      addDebugLog('✅ Write suggestion test completed successfully!', 'success');
+    } catch (error) {
+      addDebugLog(`❌ Write suggestion test failed: ${error.message}`, 'error');
+      logApiCall('', error.message, 'error');
+      console.error('Write test error:', error);
+    }
+  };
+  
+  const testReview = async () => {
+    addDebugLog('🧪 Testing Review API...', 'info');
+    addDebugLog('🔧 AI Service: Server-side OpenAI (GPT-4o-mini) - NOT Chrome API', 'info');
+    try {
+      const aiTeammate = AI_TEAMMATES[testTeammate];
+      if (!aiTeammate) {
+        addDebugLog(`❌ Error: Teammate '${testTeammate}' not found`, 'error');
+        return;
+      }
+      
+      // Add id property to the teammate object for API compatibility
+      const teammateWithId = { ...aiTeammate, id: testTeammate };
+      
+      addDebugLog(`👤 Using teammate: ${teammateWithId.name} (${teammateWithId.role})`, 'info');
+      addDebugLog(`🆔 Teammate ID: ${teammateWithId.id}`, 'info');
+      
+      const testContent = "This is a sample research paper that needs review. The methodology section could be improved and the conclusion needs more evidence.";
+      addDebugLog(`📝 Test content: "${testContent}"`, 'info');
+      
+      logApiCall('/api/project/ai/review', { aiType: teammateWithId.id, currentContent: testContent });
+      
+      await review(teammateWithId, testContent);
+      addDebugLog('✅ Review test completed successfully!', 'success');
+    } catch (error) {
+      addDebugLog(`❌ Review test failed: ${error.message}`, 'error');
+      logApiCall('', error.message, 'error');
+      console.error('Review test error:', error);
+    }
+  };
+  
+  const clearDebugLogs = () => {
+    setDebugLogs([]);
+    addDebugLog('Debug logs cleared', 'info');
   };
   
   // Team collaboration state
@@ -98,7 +195,9 @@ function Submission() {
 
   // AI Team hook
   const { 
-    performAITask, 
+    write, 
+    review, 
+    suggest,
     isLoading: aiTaskLoading, 
     loadingAIs,
     taskCompletionMessages, 
@@ -537,8 +636,23 @@ function Submission() {
   // Handle AI task assignment
   async function handleAssignAITask(aiType, taskType, sectionName) {
     console.log('handleAssignAITask called:', { aiType, taskType, sectionName });
+  
     try {
-      await performAITask(aiType, taskType, sectionName, reportContent);
+      const aiTeammate = AI_TEAMMATES[aiType] || AI_TEAMMATES.rasoa;
+  
+      if (taskType === 'write_section') {
+        await write(aiTeammate, sectionName, reportContent, projectData?.title);
+      } else if (taskType === 'review' || taskType === 'review_content') {
+        await review(aiTeammate, reportContent);
+      } else if (taskType === 'suggest' || taskType === 'suggest_improvements') {
+        await suggest(aiTeammate, reportContent);
+      } else {
+        console.warn(`Unknown taskType: ${taskType}`);
+        setAiFeedback(`⚠️ Unknown AI task: ${taskType}`);
+        return;
+      }
+  
+      setAiFeedback(`✅ ${aiTeammate.name} completed ${taskType.replace('_', ' ')} task`);
     } catch (error) {
       console.error('AI task assignment failed:', error);
       setAiFeedback(`❌ AI task failed: ${error.message}`);
@@ -653,6 +767,143 @@ function Submission() {
           }}
         />
 
+        {/* Debug Panel */}
+        <div className="debug-panel" style={{
+          marginTop: '20px',
+          padding: '15px',
+          border: '2px solid #e5e7eb',
+          borderRadius: '8px',
+          backgroundColor: '#f9fafb'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <div>
+              <h3 style={{ margin: 0, color: '#374151' }}>🔧 Debug Panel</h3>
+              <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
+                AI Service: Chrome Writer API first, then OpenAI (GPT-4o-mini) fallback
+              </p>
+            </div>
+            <button
+              onClick={() => setShowDebugPanel(!showDebugPanel)}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: showDebugPanel ? '#dc2626' : '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              {showDebugPanel ? 'Hide Logs' : 'Show Logs'}
+            </button>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
+            <button
+              onClick={testWriteSuggestion}
+              disabled={aiTaskLoading}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: aiTaskLoading ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                opacity: aiTaskLoading ? 0.6 : 1
+              }}
+            >
+              {aiTaskLoading ? 'Testing...' : 'Test Write Suggestion'}
+            </button>
+            
+            <button
+              onClick={testReview}
+              disabled={aiTaskLoading}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#f59e0b',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: aiTaskLoading ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                opacity: aiTaskLoading ? 0.6 : 1
+              }}
+            >
+              {aiTaskLoading ? 'Testing...' : 'Test Review'}
+            </button>
+            
+            <select
+              value={testTeammate}
+              onChange={(e) => setTestTeammate(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                backgroundColor: 'white',
+                fontSize: '14px'
+              }}
+            >
+              {Object.entries(AI_TEAMMATES).map(([key, teammate]) => (
+                <option key={key} value={key}>
+                  {teammate.name} ({teammate.role})
+                </option>
+              ))}
+            </select>
+            
+            <button
+              onClick={clearDebugLogs}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#6b7280',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Clear Logs
+            </button>
+          </div>
+          
+          {showDebugPanel && (
+            <div style={{
+              backgroundColor: '#1f2937',
+              color: '#f9fafb',
+              padding: '15px',
+              borderRadius: '6px',
+              fontFamily: 'monospace',
+              fontSize: '12px',
+              maxHeight: '300px',
+              overflowY: 'auto',
+              border: '1px solid #374151'
+            }}>
+              <div style={{ marginBottom: '10px', fontWeight: 'bold', color: '#60a5fa' }}>
+                Debug Logs ({debugLogs.length} entries)
+              </div>
+              {debugLogs.length === 0 ? (
+                <div style={{ color: '#9ca3af', fontStyle: 'italic' }}>No logs yet. Click a test button to start debugging.</div>
+              ) : (
+                debugLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    style={{
+                      marginBottom: '4px',
+                      padding: '4px 0',
+                      borderBottom: '1px solid #374151',
+                      color: log.type === 'error' ? '#f87171' : 
+                            log.type === 'success' ? '#34d399' : 
+                            log.type === 'warning' ? '#fbbf24' : '#d1d5db'
+                    }}
+                  >
+                    <span style={{ color: '#9ca3af' }}>[{log.timestamp}]</span> {log.message}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
 
       </div>
 
