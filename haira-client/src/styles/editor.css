@@ -48,6 +48,26 @@
   border: 1px solid var(--color-border);
   height: calc(100vh - 180px);
   min-width: 0; /* Allow flex item to shrink */
+  overflow-y: auto; /* Make main editor area scrollable */
+}
+
+/* Scrollbar styling for main editor */
+.main-editor::-webkit-scrollbar {
+  width: 8px;
+}
+
+.main-editor::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.main-editor::-webkit-scrollbar-thumb {
+  background: #B4565A;
+  border-radius: 4px;
+}
+
+.main-editor::-webkit-scrollbar-thumb:hover {
+  background: #a74e53;
 }
 
 /* Project Title Header */
@@ -3005,6 +3025,9 @@ span[data-ai-type="ai_helper"] {
   margin-bottom: 1rem;
   box-shadow: var(--shadow);
   border: 2px solid var(--color-teal);
+  max-height: 300px; /* Set max height for scrolling */
+  display: flex;
+  flex-direction: column;
 }
 
 .pending-tasks-panel h3 {
@@ -3013,12 +3036,35 @@ span[data-ai-type="ai_helper"] {
   font-size: 1.1rem;
   font-weight: 600;
   font-family: "Jersey 10", sans-serif;
+  flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .pending-tasks-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  overflow-y: auto; /* Make list scrollable */
+  flex: 1; /* Allow to grow and fill available space */
+  padding-right: 0.5rem; /* Space for scrollbar */
+}
+
+/* Scrollbar styling for pending tasks list */
+.pending-tasks-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pending-tasks-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.pending-tasks-list::-webkit-scrollbar-thumb {
+  background: var(--color-teal);
+  border-radius: 3px;
+}
+
+.pending-tasks-list::-webkit-scrollbar-thumb:hover {
+  background: #3a7a77;
 }
 
 .pending-task-item {
@@ -3056,11 +3102,15 @@ span[data-ai-type="ai_helper"] {
   font-size: 1.3rem;
   flex-shrink: 0;
   box-shadow: var(--shadow-sm);
+  overflow: hidden; /* Ensure images stay within circle */
+  position: relative;
 }
 
 .task-details {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center; /* Center vertically since we only have description now */
 }
 
 .task-assignee {
@@ -3072,8 +3122,9 @@ span[data-ai-type="ai_helper"] {
 }
 
 .task-description {
-  font-size: 0.9rem;
-  color: var(--color-text-light);
+  font-size: 0.95rem; /* Slightly larger since it's the only text now */
+  color: var(--color-text); /* Darker color for better readability */
+  font-weight: 500; /* Slightly bolder */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

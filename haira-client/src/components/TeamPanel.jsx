@@ -43,8 +43,25 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
         />
       );
     }
-    // Fallback to emoji if no image found
-    return <span className="team-emoji">{teammate.emoji || teammate.avatar || '🤖'}</span>;
+    // Fallback to initial letter if no image found
+    return (
+      <div 
+        style={{ 
+          width: '40px', 
+          height: '40px', 
+          borderRadius: '50%',
+          backgroundColor: teammate.color || '#666',
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: 'bold',
+          fontSize: '18px'
+        }}
+      >
+        {teammate.name ? teammate.name.charAt(0).toUpperCase() : '?'}
+      </div>
+    );
   };
 
   const handleAIClick = (teammate) => {
@@ -120,12 +137,11 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
   return (
     <div className="team-panel">
       <div className="team-panel-header">
-        <div className="team-icon">🤖</div>
         <div className="header-text">
           <h3>Assign tasks to teammates</h3>
           {teamMembers.length === 0 && (
             <p style={{ fontSize: '12px', color: '#666', margin: '5px 0 0 0' }}>
-              🧪 Default AI teammates for testing
+              Default AI teammates for testing
             </p>
           )}
         </div>

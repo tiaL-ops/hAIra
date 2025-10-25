@@ -278,12 +278,19 @@ function Submission() {
       });
       
       if (response.data.success) {
-        // Filter for AI tasks that are in "todo" status
-        const aiTasks = response.data.tasks?.filter(task => 
-          task.status === 'todo' && task.assignedTo !== 'user'
-        ) || [];
+        // List of valid AI teammate IDs
+        const aiTeammateIds = ['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto', 'ai_manager', 'ai_helper'];
         
-        console.log('[Submission] Pending AI tasks:', aiTasks);
+        // Filter for AI tasks that are in "todo" status
+        // Only include tasks assigned to known AI teammates
+        const aiTasks = response.data.tasks?.filter(task => {
+          const isAITask = task.assignedTo && aiTeammateIds.includes(task.assignedTo.toLowerCase());
+          const isTodoStatus = task.status === 'todo';
+          return isAITask && isTodoStatus;
+        }) || [];
+        
+        console.log('[Submission] All tasks:', response.data.tasks);
+        console.log('[Submission] Filtered pending AI tasks:', aiTasks);
         setPendingTasks(aiTasks);
       }
     } catch (err) {
@@ -847,14 +854,14 @@ function Submission() {
               className="nav-btn nav-btn-kanban"
               title="Go to Kanban Board"
             >
-              📋 Kanban
+              Kanban
             </button>
             <button 
               onClick={() => navigate(`/project/${id}/chat`)}
               className="nav-btn nav-btn-chat"
               title="Go to Chat"
             >
-              💬 Chat
+              Chat
             </button>
           </div>
         
@@ -898,7 +905,7 @@ function Submission() {
         {/* Pending Tasks Section */}
         {pendingTasks.length > 0 && (
           <div className="pending-tasks-panel">
-            <h3>📋 Pending Tasks</h3>
+            <h3>Pending Tasks</h3>
             <div className="pending-tasks-list">
               {pendingTasks.map((task) => {
                 // Find the teammate for this task
@@ -906,6 +913,19 @@ function Submission() {
                   (m.id || m.name?.toLowerCase()) === task.assignedTo
                 );
                 const aiAgent = AI_TEAMMATES[task.assignedTo];
+                
+                // Get avatar mapping
+                const avatarMap = {
+                  brown: BrownAvatar,
+                  elza: ElzaAvatar,
+                  kati: KatiAvatar,
+                  steve: SteveAvatar,
+                  sam: SamAvatar,
+                  rasoa: RasoaAvatar,
+                  rakoto: RakotoAvatar
+                };
+                
+                const avatarSrc = avatarMap[task.assignedTo];
                 
                 // Parse task description to get task type and section
                 const taskDesc = task.description || task.title || '';
@@ -935,10 +955,33 @@ function Submission() {
                     title={`Click to start: ${taskDesc}`}
                   >
                     <div className="task-avatar" style={{ backgroundColor: aiAgent?.color || '#607D8B' }}>
-                      {aiAgent?.emoji || '🤖'}
+                      {avatarSrc ? (
+                        <img 
+                          src={avatarSrc} 
+                          alt={teammate?.name || task.assignedTo}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: '50%',
+                            objectFit: 'cover'
+                          }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontWeight: 'bold',
+                          fontSize: '16px'
+                        }}>
+                          {teammate?.name ? teammate.name.charAt(0).toUpperCase() : '?'}
+                        </div>
+                      )}
                     </div>
                     <div className="task-details">
-                      <div className="task-assignee">{teammate?.name || task.assignedTo}</div>
                       <div className="task-description">{taskDesc}</div>
                     </div>
                     <div className="task-action">▶</div>
