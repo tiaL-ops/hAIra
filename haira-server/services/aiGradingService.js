@@ -1,5 +1,5 @@
 import { generateAIContribution as callOpenAIContribution } from '../api/openaiService.js';
-import { getDocumentById, getSubdocuments, updateDocument, getProjectWithTasks } from './firebaseService.js';
+import { getDocumentById, getSubdocuments, updateDocument, getProjectWithTasks, getChatMessagesByUser } from './firebaseService.js';
 import { COLLECTIONS } from '../schema/database.js';
 
 export class AIGradingService {
@@ -87,9 +87,9 @@ export class AIGradingService {
         projectId: projectData.project?.id
       });
       
-      // Get chat messages from subcollection
-      const chatMessages = await getSubdocuments(COLLECTIONS.USER_PROJECTS, projectId, 'chatMessages');
-      console.log(`[AIGradingService] Chat messages loaded: ${chatMessages?.length || 0}`);
+      // Get chat messages from subcollection - filtered by user ID
+      const chatMessages = await getChatMessagesByUser(COLLECTIONS.USER_PROJECTS, projectId, 'chatMessages', userId);
+      console.log(`[AIGradingService] User chat messages loaded: ${chatMessages?.length || 0}`);
       
       const projectDuration = projectData.project ? (Date.now() - projectData.project.startDate) / (1000 * 60 * 60 * 24) : 0; // days
       const teamMembers = projectData.project?.team ? projectData.project.team.map(member => member.name) : [];
@@ -233,16 +233,18 @@ PROJECT CONTEXT:
 - Team Members: ${teamMembers.join(', ') || 'No team members'}
 - Start Date: ${project?.startDate ? new Date(project.startDate).toLocaleDateString() : 'Unknown'}
 
+IMPORTANT: The chat messages below are ALL from the STUDENT (human user). Do not confuse AI teammates with the student. The student is the human participant in this project.
+
 CHAT INTERACTION ANALYSIS:
 ${this.formatChatForAnalysis(chatMessages)}
 
 EVALUATION CRITERIA:
-Analyze the student's responsiveness based on:
-1. **Response Time**: How quickly they respond to team messages
-2. **Engagement Quality**: Depth and relevance of their responses  
-3. **Proactive Communication**: Do they initiate discussions or only respond?
-4. **Collaboration Spirit**: How well they work with AI teammates
-5. **Meeting Participation**: Attendance and contribution to team discussions
+Analyze the STUDENT'S responsiveness based on:
+1. **Response Time**: How quickly the student responds to team messages
+2. **Engagement Quality**: Depth and relevance of the student's responses  
+3. **Proactive Communication**: Does the student initiate discussions or only respond?
+4. **Collaboration Spirit**: How well the student works with AI teammates
+5. **Meeting Participation**: Student's attendance and contribution to team discussions
 
 GRADING SCALE:
 - 90-100: Exceptional responsiveness, always engaged, proactive leader
@@ -254,17 +256,20 @@ GRADING SCALE:
 Provide your evaluation in this exact JSON format:
 {
   "score": <number 0-100>,
-  "reasoning": "<detailed explanation of the score>",
-  "strengths": ["<list of positive behaviors>"],
-  "areas_for_improvement": ["<list of areas to improve>"],
-  "specific_examples": ["<concrete examples from the data>"]
-}`;
+  "reasoning": "<detailed explanation of the score - do not mention any names>",
+  "strengths": ["<list of positive behaviors - do not mention any names>"],
+  "areas_for_improvement": ["<list of areas to improve - do not mention any names>"],
+  "specific_examples": ["<concrete examples from the data - do not mention any names>"]
+}
+
+IMPORTANT: Do not mention any names (like Kati, Sam, etc.) in your response. Focus only on the student's behavior and performance.`;
   }
   
   buildWorkPercentagePrompt(projectData) {
     const { project, tasks, chatMessages, projectDuration } = projectData;
     
-    const userTasks = tasks.filter(task => task.assignedTo === 'user');
+    // Since tasks are already filtered by user ID, we can use them directly
+    const userTasks = tasks; // All tasks are already user-assigned due to filtering
     const completedTasks = userTasks.filter(task => task.status === 'done');
     const totalTasks = tasks.length;
     
@@ -284,15 +289,17 @@ CHAT CONTRIBUTIONS:
 ${this.formatUserContributions(chatMessages)}
 
 REPORT CONTRIBUTIONS:
-${this.formatReportContributions(project?.draftReport)}
+${this.formatReportContributions(project?.finalReport || project?.draftReport)}
 
 EVALUATION CRITERIA:
 Analyze the student's work contribution based on:
-1. **Task Completion**: Percentage and quality of completed tasks
-2. **Initiative Taking**: Creating new tasks, suggesting improvements
-3. **Report Writing**: Direct contributions to the final report
+1. **Report Content**: The actual work documented in the final report (MOST IMPORTANT)
+2. **Task Completion**: Percentage and quality of completed tasks
+3. **Initiative Taking**: Creating new tasks, suggesting improvements
 4. **Problem Solving**: Addressing challenges and blockers
 5. **Leadership**: Taking ownership of project aspects
+
+IMPORTANT: Focus primarily on the REPORT CONTENT as it represents the student's actual work and contributions. The report content is the most reliable indicator of what the student has accomplished.
 
 GRADING SCALE:
 - 90-100: Exceptional contribution, takes leadership, high initiative
@@ -304,16 +311,18 @@ GRADING SCALE:
 Provide your evaluation in this exact JSON format:
 {
   "score": <number 0-100>,
-  "reasoning": "<detailed explanation of the score>",
+  "reasoning": "<detailed explanation of the score - do not mention any names>",
   "contribution_breakdown": {
     "task_completion": <percentage>,
     "initiative_score": <percentage>,
     "report_contribution": <percentage>,
     "leadership_demonstrated": <percentage>
   },
-  "specific_examples": ["<concrete examples of their work>"],
-  "recommendations": ["<suggestions for improvement>"]
-}`;
+  "specific_examples": ["<concrete examples of their work - do not mention any names>"],
+  "recommendations": ["<suggestions for improvement - do not mention any names>"]
+}
+
+IMPORTANT: Do not mention any names (like Kati, Sam, etc.) in your response. Focus only on the student's work and performance.`;
   }
   
   buildReportQualityPrompt(projectData) {
@@ -328,7 +337,7 @@ PROJECT CONTEXT:
 - Report Type: Academic project report
 
 REPORT CONTENT:
-${reportContent.substring(0, 5000)}${reportContent.length > 5000 ? '...' : ''}
+${(reportContent || '').substring(0, 5000)}${(reportContent || '').length > 5000 ? '...' : ''}
 
 EVALUATION CRITERIA:
 Analyze the report quality based on:
@@ -366,15 +375,13 @@ Provide your evaluation in this exact JSON format:
       .sort((a, b) => a.timestamp - b.timestamp)
       .map(msg => {
         // Determine if this is a human message
-        const isHuman = msg.senderType === 'human' || 
-          (msg.senderId && !['rasoa', 'rakoto', 'alex', 'sam', 'ai_manager', 'ai_helper', 'manager'].includes(msg.senderId.toLowerCase()));
-        
+        const isHuman = msg.senderType === 'human' || msg.senderId === 'user';
         return {
           sender: msg.senderName || msg.senderId,
           type: isHuman ? 'HUMAN' : 'AI',
           senderId: msg.senderId,
           timestamp: new Date(msg.timestamp).toLocaleString(),
-          text: msg.text.substring(0, 200) + (msg.text.length > 200 ? '...' : ''),
+          text: (msg.text || msg.content || '').substring(0, 200) + ((msg.text || msg.content || '').length > 200 ? '...' : ''),
           isActiveHours: msg.isActiveHours,
           isHuman: isHuman
         };
@@ -403,6 +410,12 @@ Provide your evaluation in this exact JSON format:
     });
     
     console.log(`[AIGradingService] Task breakdown: ${userTasks.length} user tasks, ${aiTasks.length} AI tasks`);
+    console.log(`[AIGradingService] All tasks:`, tasks.map(task => ({
+      title: task.title || task.text,
+      assignedTo: task.assignedTo,
+      status: task.status,
+      isUserTask: userTasks.includes(task)
+    })));
     
     return tasks.map(task => {
       const isUserTask = userTasks.includes(task);
@@ -428,22 +441,19 @@ Provide your evaluation in this exact JSON format:
       return 'No user contributions available for analysis.';
     }
     
-    // Filter for human messages - check both senderType and senderId
-    const userMessages = chatMessages.filter(msg => {
-      // Check if it's a human message by senderType or by senderId not being an AI agent
-      const isHumanByType = msg.senderType === 'human';
-      const isHumanById = msg.senderId && 
-        !['rasoa', 'rakoto', 'alex', 'sam', 'ai_manager', 'ai_helper', 'manager'].includes(msg.senderId.toLowerCase());
-      
-      return isHumanByType || isHumanById;
-    });
+    // Since chatMessages are already filtered by user ID, we can use them directly
+    console.log(`[AIGradingService] Found ${chatMessages.length} user messages for analysis`);
+    console.log(`[AIGradingService] User messages:`, chatMessages.map(msg => ({
+      senderId: msg.senderId,
+      senderName: msg.senderName,
+      senderType: msg.senderType,
+      text: (msg.text || msg.content || '').substring(0, 100)
+    })));
     
-    console.log(`[AIGradingService] Found ${userMessages.length} user messages out of ${chatMessages.length} total messages`);
-    
-    return userMessages
+    return chatMessages
       .map(msg => ({
         timestamp: new Date(msg.timestamp).toLocaleString(),
-        text: msg.text.substring(0, 300) + (msg.text.length > 300 ? '...' : ''),
+        text: (msg.text || msg.content || '').substring(0, 300) + ((msg.text || msg.content || '').length > 300 ? '...' : ''),
         senderId: msg.senderId,
         senderName: msg.senderName
       }))
@@ -456,8 +466,8 @@ Provide your evaluation in this exact JSON format:
       return 'No report content available for analysis.';
     }
     
-    return `Report Content (${draftReport.content.length} characters):
-${draftReport.content.substring(0, 2000)}${draftReport.content.length > 2000 ? '...' : ''}`;
+    return `Report Content (${(draftReport.content || '').length} characters):
+${(draftReport.content || '').substring(0, 2000)}${(draftReport.content || '').length > 2000 ? '...' : ''}`;
   }
   
   calculateOverallGrade(responsiveness, workPercentage, reportQuality) {
@@ -490,7 +500,7 @@ ${draftReport.content.substring(0, 2000)}${draftReport.content.length > 2000 ? '
 PROJECT CONTEXT:
 - Project: ${project?.title || 'Unknown Project'}
 - Duration: ${projectDuration.toFixed(1)} days
-- Team Members: ${teamMembers.join(', ') || 'No team members'}
+
 
 PROJECT DATA ANALYSIS:
 
@@ -501,14 +511,20 @@ TASK COMPLETION:
 ${this.formatTaskData(tasks)}
 
 REPORT CONTENT:
-${this.formatReportContributions(project?.draftReport)}
+${this.formatReportContributions(project?.finalReport || project?.draftReport)}
 
 EVALUATION TASK:
-Write a brief, direct feedback summary that:
-1. **Highlights key achievements** - What they did well
-2. **Notes collaboration quality** - How they worked with AI teammates
-3. **Suggests one improvement area** - One specific thing to work on
-4. **Keeps it encouraging** - Positive but honest
+Write a brief, direct feedback summary that considers ALL aspects of their work:
+1. **Chat Interactions** - How they communicated and collaborated
+2. **Task Completion** - What tasks they accomplished and their quality
+3. **Report Content** - The actual work documented in their final report
+4. **Overall Contribution** - Their role and impact on the project
+
+EVALUATION APPROACH:
+- Review their chat messages to understand their communication style and engagement
+- Examine completed tasks to see what they accomplished
+- Analyze the final report content to see the quality and depth of their work
+- Consider how all these elements work together to show their overall contribution
 
 FORMAT REQUIREMENTS:
 - Write in a casual, friendly tone (like a mentor giving quick feedback)
@@ -516,7 +532,9 @@ FORMAT REQUIREMENTS:
 - Be direct and specific
 - No formal greetings or signatures
 - Focus on the most important points only
+- Base your feedback on the COMPLETE picture of their work
+- Do NOT mention any names (like Kati, Sam, etc.) - focus only on the student's work
 
-Write as if giving quick feedback after reviewing their work - concise and to the point.`;
+Write as if giving quick feedback after reviewing their complete work - concise and to the point.`;
   }
 }

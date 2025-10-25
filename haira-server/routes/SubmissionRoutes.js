@@ -690,6 +690,95 @@ Do not include anything else.
 
 
 
+// Track AI word contribution
+async function trackAIWordContribution(projectId, aiType, wordCount, taskType) {
+    try {
+        console.log(`Tracking ${wordCount} words for ${aiType} (${taskType})`);
+        
+        // Get current project data
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
+        if (!projectData) {
+            console.error('Project not found for word tracking');
+            return;
+        }
+
+        // Initialize wordContributions if it doesn't exist
+        let wordContributions = projectData.wordContributions || {
+            user: { words: 0, percentage: 100 }
+        };
+        
+        // Get project teammates to determine which AI agents are participating
+        const projectTeammates = projectData.team || [];
+        const participatingAgents = projectTeammates
+            .filter(teammate => teammate.type === 'ai')
+            .map(teammate => teammate.id || teammate.name?.toLowerCase())
+            .filter(agentId => agentId);
+
+        // Ensure participating AI agents are initialized
+        participatingAgents.forEach(agentId => {
+            if (!wordContributions[agentId]) {
+                wordContributions[agentId] = { words: 0, percentage: 0 };
+            }
+        });
+
+        // Map legacy agent IDs to new ones
+        const agentMapping = {
+            'ai_manager': 'rasoa',  // Legacy ai_manager maps to rasoa
+            'ai_helper': 'rakoto'    // Legacy ai_helper maps to rakoto
+        };
+
+        // Update the specific AI agent's word count
+        let targetAgent = aiType;
+        
+        // Check if this is a legacy ID that needs mapping
+        if (agentMapping[aiType]) {
+            targetAgent = agentMapping[aiType];
+        }
+        
+        // Only track if this agent is participating in the project
+        if (participatingAgents.includes(targetAgent)) {
+            wordContributions[targetAgent].words += wordCount;
+            console.log(`Updated ${targetAgent} word count: +${wordCount} words (total: ${wordContributions[targetAgent].words})`);
+        } else {
+            console.log(`Skipping ${targetAgent} - not participating in this project`);
+        }
+
+        // Calculate total words and percentages
+        let totalWords = wordContributions.user.words;
+        participatingAgents.forEach(agentId => {
+            totalWords += (wordContributions[agentId]?.words || 0);
+        });
+        
+        if (totalWords > 0) {
+            wordContributions.user.percentage = Math.round((wordContributions.user.words / totalWords) * 100 * 100) / 100;
+            participatingAgents.forEach(agentId => {
+                if (wordContributions[agentId]) {
+                    wordContributions[agentId].percentage = Math.round((wordContributions[agentId].words / totalWords) * 100 * 100) / 100;
+                }
+            });
+        } else {
+            // Default to 100% human if no content yet
+            wordContributions.user.percentage = 100;
+            participatingAgents.forEach(agentId => {
+                if (wordContributions[agentId]) {
+                    wordContributions[agentId].percentage = 0;
+                }
+            });
+        }
+
+        // Save updated word contributions
+        await updateDocument(COLLECTIONS.USER_PROJECTS, projectId, {
+            wordContributions: wordContributions,
+            wordContributionsUpdatedAt: Date.now()
+        });
+
+        console.log(`Updated word contributions for ${targetAgent}: ${wordContributions[targetAgent].words} words (${wordContributions[targetAgent].percentage}%)`);
+        
+    } catch (error) {
+        console.error('Error tracking AI word contribution:', error);
+    }
+}
+
 // AI Write Section endpoint
 router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;
@@ -793,6 +882,12 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
         // Update AI contribution automatically
         await updateAIContribution(id, aiType, 'write');
 
+        // Track word contribution for this AI write
+        const wordCount = cleanedResponse.trim().split(/\s+/).filter(word => word.length > 0).length;
+        if (wordCount > 0) {
+            await trackAIWordContribution(id, aiType, wordCount, 'write');
+        }
+
         const finalResponse = {
             success: true,
             aiType: aiType,
@@ -890,6 +985,12 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         // Update AI contribution automatically
         await updateAIContribution(id, aiType, 'review');
 
+        // Track word contribution for this AI review
+        const wordCount = cleanedResponse.trim().split(/\s+/).filter(word => word.length > 0).length;
+        if (wordCount > 0) {
+            await trackAIWordContribution(id, aiType, wordCount, 'review');
+        }
+
         res.json({
             success: true,
             aiType: aiType,
@@ -976,6 +1077,12 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
 
         // Update AI contribution automatically
         await updateAIContribution(id, aiType, 'suggest');
+
+        // Track word contribution for this AI suggestion
+        const wordCount = cleanedResponse.trim().split(/\s+/).filter(word => word.length > 0).length;
+        if (wordCount > 0) {
+            await trackAIWordContribution(id, aiType, wordCount, 'suggest');
+        }
 
         res.json({
             success: true,
@@ -1173,21 +1280,47 @@ router.post('/:id/word-contributions/calculate-user', verifyFirebaseToken, async
 
         // Get current word contributions
         let wordContributions = projectData.wordContributions || {
-            user: { words: 0, percentage: 0 },
-            alex: { words: 0, percentage: 0 },
-            sam: { words: 0, percentage: 0 }
+            user: { words: 0, percentage: 100 }
         };
+        
+        // Get project teammates to determine which AI agents are participating
+        const projectTeammates = projectData.team || [];
+        const participatingAgents = projectTeammates
+            .filter(teammate => teammate.type === 'ai')
+            .map(teammate => teammate.id || teammate.name?.toLowerCase())
+            .filter(agentId => agentId);
+
+        // Ensure participating AI agents are initialized
+        participatingAgents.forEach(agentId => {
+            if (!wordContributions[agentId]) {
+                wordContributions[agentId] = { words: 0, percentage: 0 };
+            }
+        });
 
         // Update user word count
         wordContributions.user.words = userWordCount;
 
-        // Recalculate percentages
-        const totalWords = wordContributions.user.words + wordContributions.alex.words + wordContributions.sam.words;
+        // Calculate total words and percentages
+        let totalWords = wordContributions.user.words;
+        participatingAgents.forEach(agentId => {
+            totalWords += (wordContributions[agentId]?.words || 0);
+        });
         
         if (totalWords > 0) {
             wordContributions.user.percentage = Math.round((wordContributions.user.words / totalWords) * 100 * 100) / 100;
-            wordContributions.alex.percentage = Math.round((wordContributions.alex.words / totalWords) * 100 * 100) / 100;
-            wordContributions.sam.percentage = Math.round((wordContributions.sam.words / totalWords) * 100 * 100) / 100;
+            participatingAgents.forEach(agentId => {
+                if (wordContributions[agentId]) {
+                    wordContributions[agentId].percentage = Math.round((wordContributions[agentId].words / totalWords) * 100 * 100) / 100;
+                }
+            });
+        } else {
+            // Default to 100% human if no content yet
+            wordContributions.user.percentage = 100;
+            participatingAgents.forEach(agentId => {
+                if (wordContributions[agentId]) {
+                    wordContributions[agentId].percentage = 0;
+                }
+            });
         }
 
         // Save updated word contributions
@@ -1208,6 +1341,250 @@ router.post('/:id/word-contributions/calculate-user', verifyFirebaseToken, async
 
     } catch (error) {
         console.error('Error calculating user word count:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Get real-time contribution data for submission page
+router.get('/:id/contributions/realtime', verifyFirebaseToken, async (req, res) => {
+    try {
+        const { id: projectId } = req.params;
+        const userId = req.user.uid;
+
+        console.log('Getting real-time contributions for submission page');
+
+        // Ensure project exists
+        await ensureProjectExists(projectId, userId);
+
+        // Get current project data
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
+        if (!projectData) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        // Get current word contributions
+        let wordContributions = projectData.wordContributions || {
+            user: { words: 0, percentage: 100 }
+        };
+
+        // Get project teammates to determine which AI agents are participating
+        const projectTeammates = projectData.team || [];
+        const participatingAgents = projectTeammates
+            .filter(teammate => teammate.type === 'ai')
+            .map(teammate => teammate.id || teammate.name?.toLowerCase())
+            .filter(agentId => agentId); // Remove any undefined values
+
+        console.log('Project teammates:', projectTeammates);
+        console.log('Participating AI agents:', participatingAgents);
+
+        // Ensure participating AI agents are initialized
+        participatingAgents.forEach(agentId => {
+            if (!wordContributions[agentId]) {
+                wordContributions[agentId] = { words: 0, percentage: 0 };
+            }
+        });
+
+        // Calculate total words and percentages
+        let totalWords = wordContributions.user.words;
+        participatingAgents.forEach(agentId => {
+            totalWords += (wordContributions[agentId]?.words || 0);
+        });
+        
+        if (totalWords > 0) {
+            wordContributions.user.percentage = Math.round((wordContributions.user.words / totalWords) * 100 * 100) / 100;
+            participatingAgents.forEach(agentId => {
+                if (wordContributions[agentId]) {
+                    wordContributions[agentId].percentage = Math.round((wordContributions[agentId].words / totalWords) * 100 * 100) / 100;
+                }
+            });
+        } else {
+            // Default to 100% human if no content yet
+            wordContributions.user.percentage = 100;
+            participatingAgents.forEach(agentId => {
+                if (wordContributions[agentId]) {
+                    wordContributions[agentId].percentage = 0;
+                }
+            });
+        }
+
+        // Format for frontend with participating AI agents only
+        const contributions = [
+            {
+                name: "You",
+                role: "Student", 
+                words: wordContributions.user.words,
+                percentage: wordContributions.user.percentage,
+                color: "#4CAF50"
+            }
+        ];
+
+        // Import AI agents configuration for colors
+        const { AI_AGENTS } = await import('../config/aiAgents.js');
+        
+        // Add participating AI agents that have contributed
+        const aiColors = {
+            'brown': AI_AGENTS.brown.color,
+            'elza': AI_AGENTS.elza.color, 
+            'kati': AI_AGENTS.kati.color,
+            'steve': AI_AGENTS.steve.color,
+            'sam': AI_AGENTS.sam.color,
+            'rasoa': AI_AGENTS.rasoa.color,
+            'rakoto': AI_AGENTS.rakoto.color
+        };
+
+        participatingAgents.forEach(agentId => {
+            if (wordContributions[agentId] && wordContributions[agentId].words > 0) {
+                // Get agent name from project teammates or capitalize agentId
+                const teammate = projectTeammates.find(t => (t.id || t.name?.toLowerCase()) === agentId);
+                const agentName = teammate?.name || agentId.charAt(0).toUpperCase() + agentId.slice(1);
+                const agentRole = teammate?.role || "AI Assistant";
+                
+                contributions.push({
+                    name: agentName,
+                    role: agentRole,
+                    words: wordContributions[agentId].words,
+                    percentage: wordContributions[agentId].percentage,
+                    color: aiColors[agentId] || '#607D8B'
+                });
+            }
+        });
+
+        console.log('Real-time contributions:', contributions);
+
+        res.json({
+            success: true,
+            contributions: contributions,
+            totalWords: totalWords,
+            lastUpdated: projectData.wordContributionsUpdatedAt || Date.now()
+        });
+
+    } catch (error) {
+        console.error('Error getting real-time contributions:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Calculate AI contributions from final report content
+router.post('/:id/word-contributions/calculate-ai', verifyFirebaseToken, async (req, res) => {
+    try {
+        const { id: projectId } = req.params;
+        const { content } = req.body;
+        const userId = req.user.uid;
+
+        console.log('Calculating AI contributions from final report content');
+
+        // Ensure project exists
+        await ensureProjectExists(projectId, userId);
+
+        // Get current project data
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
+        if (!projectData) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        const reportContent = content || '';
+        
+        // Initialize word contributions
+        let wordContributions = projectData.wordContributions || {
+            user: { words: 0, percentage: 0 }
+        };
+        
+        // Ensure all current AI teammates are initialized
+        const currentAgents = ['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'];
+        currentAgents.forEach(agentId => {
+            if (!wordContributions[agentId]) {
+                wordContributions[agentId] = { words: 0, percentage: 0 };
+            }
+        });
+
+        // Extract AI contributions from report content
+        const aiContributions = {};
+        
+        // Look for AI contribution patterns in the content
+        // Pattern 1: [AgentName] content
+        const agentPattern = /\[(Brown|Elza|Kati|Steve|Sam|Rasoa|Rakoto)\]([^[]*?)(?=\[|$)/g;
+        let match;
+        
+        while ((match = agentPattern.exec(reportContent)) !== null) {
+            const agentName = match[1].toLowerCase();
+            const content = match[2];
+            
+            // Remove HTML tags and calculate word count
+            const cleanContent = content.replace(/<[^>]*>/g, ' ').trim();
+            const wordCount = cleanContent.split(/\s+/).filter(word => word.length > 0).length;
+            
+            if (wordCount > 0) {
+                aiContributions[agentName] = (aiContributions[agentName] || 0) + wordCount;
+                console.log(`Found ${wordCount} words for ${agentName}: ${cleanContent.substring(0, 100)}...`);
+            }
+        }
+        
+        // Pattern 2: AI contribution headers
+        const headerPattern = /<div class="ai-contribution-header"[^>]*>.*?<span[^>]*>([^<]+)<\/span>.*?<\/div>([^<]*(?:<[^>]+>[^<]*)*?)(?=<div class="ai-contribution-header"|$)/gs;
+        let headerMatch;
+        
+        while ((headerMatch = headerPattern.exec(reportContent)) !== null) {
+            const agentName = headerMatch[1].toLowerCase();
+            const content = headerMatch[2];
+            
+            // Remove HTML tags and calculate word count
+            const cleanContent = content.replace(/<[^>]*>/g, ' ').trim();
+            const wordCount = cleanContent.split(/\s+/).filter(word => word.length > 0).length;
+            
+            if (wordCount > 0) {
+                aiContributions[agentName] = (aiContributions[agentName] || 0) + wordCount;
+                console.log(`Found ${wordCount} words for ${agentName} (header): ${cleanContent.substring(0, 100)}...`);
+            }
+        }
+
+        // Update word contributions with AI contributions
+        Object.keys(aiContributions).forEach(agentName => {
+            if (currentAgents.includes(agentName)) {
+                wordContributions[agentName].words = aiContributions[agentName];
+                console.log(`Updated ${agentName} word count: ${aiContributions[agentName]} words`);
+            }
+        });
+
+        // Recalculate total words and percentages
+        let totalWords = wordContributions.user.words;
+        currentAgents.forEach(agentId => {
+            totalWords += (wordContributions[agentId]?.words || 0);
+        });
+        
+        if (totalWords > 0) {
+            wordContributions.user.percentage = Math.round((wordContributions.user.words / totalWords) * 100 * 100) / 100;
+            currentAgents.forEach(agentId => {
+                if (wordContributions[agentId]) {
+                    wordContributions[agentId].percentage = Math.round((wordContributions[agentId].words / totalWords) * 100 * 100) / 100;
+                }
+            });
+        }
+
+        // Save updated word contributions
+        await updateDocument(COLLECTIONS.USER_PROJECTS, projectId, {
+            wordContributions: wordContributions,
+            wordContributionsUpdatedAt: Date.now()
+        });
+
+        console.log(`Updated AI contributions:`, aiContributions);
+        console.log(`Total words: ${totalWords}`);
+
+        res.json({ 
+            success: true, 
+            message: 'AI contributions calculated successfully',
+            aiContributions: aiContributions,
+            wordContributions: wordContributions,
+            totalWords: totalWords
+        });
+
+    } catch (error) {
+        console.error('Error calculating AI contributions:', error);
         res.status(500).json({ 
             success: false, 
             error: error.message 

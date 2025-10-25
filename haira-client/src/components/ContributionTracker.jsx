@@ -35,9 +35,9 @@ export default function ContributionTracker({ projectId, showContributions = tru
     }
   };
 
-  // Load word contributions from backend API
+  // Load real-time contributions from backend API
   useEffect(() => {
-    const loadWordContributions = async () => {
+    const loadRealTimeContributions = async () => {
       if (!projectId) return;
       try {
         setIsLoading(true);
@@ -48,49 +48,36 @@ export default function ContributionTracker({ projectId, showContributions = tru
           await calculateUserWordCount(editorContent);
         }
         
-        const response = await axios.get(`${backend_host}/api/project/${projectId}/word-contributions`, {
+        // Use the new real-time contributions endpoint
+        const response = await axios.get(`${backend_host}/api/project/${projectId}/contributions/realtime`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
         
         if (response.data.success) {
-          const wordContributions = response.data.wordContributions;
+          const contributionsData = response.data.contributions;
           
-          // Convert wordContributions to the format expected by the component
-          const contributions = [
-            {
-              name: "You",
-              percent: wordContributions.user.percentage,
-              role: "Student",
-              wordCount: wordContributions.user.words
-            }
-          ];
-          
-          // Add all AI teammates dynamically
-          const aiAgentIds = ['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'];
-          aiAgentIds.forEach(agentId => {
-            if (wordContributions[agentId] && AI_TEAMMATES[agentId]) {
-              contributions.push({
-                name: AI_TEAMMATES[agentId].name,
-                percent: wordContributions[agentId].percentage,
-                role: AI_TEAMMATES[agentId].role,
-                wordCount: wordContributions[agentId].words
-              });
-            }
-          });
+          // Convert the new format to the format expected by the component
+          const contributions = contributionsData.map(contributor => ({
+            name: contributor.name,
+            percent: contributor.percentage,
+            role: contributor.role,
+            wordCount: contributor.words,
+            color: contributor.color
+          }));
           
           setContributions(contributions);
           setTotalContribution(response.data.totalWords);
         }
       } catch (err) {
-        console.error("Error loading word contributions:", err);
+        console.error("Error loading real-time contributions:", err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadWordContributions();
+    loadRealTimeContributions();
   }, [projectId, editorContent]);
 
 
@@ -127,11 +114,18 @@ export default function ContributionTracker({ projectId, showContributions = tru
   };
 
   const getMemberColor = (member) => {
-    // Check if member matches any AI teammate by name
+    // Use the color from the new real-time data if available
+    if (member.color) {
+      return member.color;
+    }
+    
+    // Fallback to AI teammate color lookup
     const aiAgent = Object.values(AI_TEAMMATES).find(agent => agent.name === member.name);
     if (aiAgent) {
       return aiAgent.color;
     }
+    
+    // Final fallback to default colors
     return getContributionColor(contributions.indexOf(member));
   };
 
