@@ -36,20 +36,24 @@ router.post('/:id/kanban', verifyFirebaseToken, async (req, res) => {
     const { title, deliverables } = req.body;
     const userId = req.user.uid;
 
-    console.log('=====>');
-    console.log(deliverables);
+    console.log('[KanbanRoutes] POST /:id/kanban - Saving tasks');
+    console.log('[KanbanRoutes] Project ID:', id);
+    console.log('[KanbanRoutes] Title:', title);
+    console.log('[KanbanRoutes] Deliverables:', JSON.stringify(deliverables, null, 2));
 
     try {
         console.log("From Kanban: Making sure the project exists...")
         await ensureProjectExists(id, userId);
         console.log("From Kanban: Store deliverables");
-        await addTasks(id, userId, title, 'todo', deliverables);
+        const savedTasks = await addTasks(id, userId, title, 'todo', deliverables);
+        console.log('[KanbanRoutes] Tasks saved successfully:', savedTasks.length, 'tasks');
 
         res.status(201).json({
             success: true,
             deliverables,
         });
     } catch (err) {
+        console.error('[KanbanRoutes] Error saving tasks:', err);
         res.status(500).json({ 
             success: false,
             error: err.message 

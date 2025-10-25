@@ -346,19 +346,34 @@ export async function updateUserProject(projectId, content, grade, status = "sub
 }
 
 export async function addTasks(projectId, userId, projectTitle, status, deliverables = []) {
+  console.log('[FirebaseService] addTasks called');
+  console.log('[FirebaseService] projectId:', projectId);
+  console.log('[FirebaseService] userId:', userId);
+  console.log('[FirebaseService] projectTitle:', projectTitle);
+  console.log('[FirebaseService] status:', status);
+  console.log('[FirebaseService] deliverables count:', deliverables.length);
+  console.log('[FirebaseService] deliverables:', JSON.stringify(deliverables, null, 2));
+  
   projectTitle = (projectTitle || '').trim();
   await ensureProjectExists(projectId);
 
   let completedAt = 0;
   if (status === 'done') completedAt = Date.now();
 
-  const promises = deliverables.map((item) => {
+  const promises = deliverables.map((item, index) => {
     // Frontend may send per-task assignee and priority; fallback to provided userId and MEDIUM
     const description = item?.deliverable ?? item?.description ?? '';
     const assignee = (item && item.assignedTo) ? String(item.assignedTo) : String(userId);
     const priority = (item && typeof item.priority === 'number')
       ? item.priority
       : Task.PRIORITY.MEDIUM.value;
+
+    console.log(`[FirebaseService] Creating task ${index + 1}:`, {
+      description,
+      assignee,
+      priority,
+      status
+    });
 
     let newDeliverable = new Task(
       projectTitle,
@@ -374,7 +389,9 @@ export async function addTasks(projectId, userId, projectTitle, status, delivera
     return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'tasks', newDeliverable);
   });
 
-  return await Promise.all(promises);
+  const results = await Promise.all(promises);
+  console.log('[FirebaseService] All tasks saved, count:', results.length);
+  return results;
 }
 
 export async function updateTask(projectId, id, title, status, userId, description, priority) {
@@ -585,7 +602,7 @@ export async function getProjectWithTasks(projectId, userId) {
     return null;
   }
   
-  // Get tasks subcollection - filter by assignedTo field matching the user ID
+  // Get tasks subcollection - include ALL tasks (both user and AI-assigned)
   const tasksRef = projectRef.collection('tasks');
   const tasksSnapshot = await tasksRef.get();
   
@@ -596,26 +613,21 @@ export async function getProjectWithTasks(projectId, userId) {
       ...doc.data()
     };
     
-    // Only include tasks assigned to the current user
-    const assignedTo = taskData.assignedTo || taskData.assignee;
-    if (assignedTo === userId) {
-      tasks.push(taskData);
-      
-      // Log each filtered task for debugging
-      console.log(`[FirebaseService] User task ${doc.id}:`, {
-        title: taskData.title || taskData.text || 'No title',
-        description: taskData.description || 'No description',
-        status: taskData.status || 'no status',
-        assignedTo: taskData.assignedTo || taskData.assignee || 'unassigned',
-        id: doc.id
-      });
-    } else {
-      console.log(`[FirebaseService] Skipping task ${doc.id} - assigned to ${assignedTo}, not ${userId}`);
-    }
+    // Include all tasks for the project (both user-assigned and AI-assigned)
+    tasks.push(taskData);
+    
+    // Log each task for debugging
+    console.log(`[FirebaseService] Task ${doc.id}:`, {
+      title: taskData.title || taskData.text || 'No title',
+      description: taskData.description || 'No description',
+      status: taskData.status || 'no status',
+      assignedTo: taskData.assignedTo || taskData.assignee || 'unassigned',
+      id: doc.id
+    });
   });
   
-  console.log(`[FirebaseService] Found project ${projectId} with ${tasks.length} user-assigned tasks`);
-  console.log(`[FirebaseService] User tasks:`, JSON.stringify(tasks, null, 2));
+  console.log(`[FirebaseService] Found project ${projectId} with ${tasks.length} total tasks`);
+  console.log(`[FirebaseService] All tasks:`, JSON.stringify(tasks, null, 2));
   
   // Fetch teammates from subcollection (source of truth)
   const teammatesRef = projectRef.collection('teammates');

@@ -109,6 +109,9 @@ function Kanban() {
           priority: task.priority || 1
         }));
         
+        console.log('[Kanban] Saving tasks:', tasksToSave);
+        console.log('[Kanban] Project title:', projectData.title);
+        
         const response = await axios.post(
           `${backend_host}/api/project/${id}/kanban`,
           {
