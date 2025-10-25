@@ -46,40 +46,43 @@
         box-shadow: 1px 1px 0px;
     }
 
-    /* Kanban button - blue */
+    /* Kanban button - teal */
     .nav-btn-kanban {
-        background: #91a4d3;
-        border-color: #5f6a8a;
-        box-shadow: 3px 3px 0px #5f6a8a;
+        background: #408F8C;
+        border-color: #2b5e5c;
+        box-shadow: 3px 3px 0px #2b5e5c;
+        color: #fff;
     }
 
     .nav-btn-kanban:hover {
-        background: #8093c2;
-        box-shadow: 1px 1px 0px #5f6a8a;
+        background: #367a78;
+        box-shadow: 1px 1px 0px #2b5e5c;
     }
 
     /* Chat button - red */
     .nav-btn-chat {
-        background: #d39191;
-        border-color: #8a5f5f;
-        box-shadow: 3px 3px 0px #8a5f5f;
+        background: #B4565A;
+        border-color: #7a2d32;
+        box-shadow: 3px 3px 0px #7a2d32;
+        color: #fff;
     }
 
     .nav-btn-chat:hover {
-        background: #c28080;
-        box-shadow: 1px 1px 0px #8a5f5f;
+        background: #9f4b4f;
+        box-shadow: 1px 1px 0px #7a2d32;
     }
 
-    /* Submission button - yellow */
+    /* Submission button - green */
     .nav-btn-submission {
-        background: #d3c091;
-        border-color: #8a805f;
-        box-shadow: 3px 3px 0px #8a805f;
+        background: #93C263;
+        border-color: #5f7e45;
+        box-shadow: 3px 3px 0px #5f7e45;
+        color: #fff;
     }
 
     .nav-btn-submission:hover {
-        background: #c2b080;
-        box-shadow: 1px 1px 0px #8a805f;
+        background: #7fb052;
+        box-shadow: 1px 1px 0px #5f7e45;
     }
 
 .title-toolbar {
@@ -139,12 +142,32 @@
     flex-direction: column;
     width: 300px;
     height: calc(100vh - 180px); /* Adjusted to match new editor padding */
-    background: #1e293b;
-    border-left: 1px solid #334155;
+    background: #ffffff; /* dominant white */
+    border: 1px solid rgba(64, 143, 140, 0.25);
     border-radius: 12px;
     padding: 12px; /* Reduced from 20px to give more space for content */
     margin: 1rem 0 1rem 0; /* Consistent margins with main editor */
     overflow: hidden;
+}
+
+/* Generate button styling in side panel */
+.generate-btn {
+    padding: 0.8rem 1rem;
+    border-radius: 10px;
+    font-weight: 700;
+    border: 3px solid #2b5e5c;
+    background: #408F8C;
+    color: #fff;
+    box-shadow: 3px 3px 0px #2b5e5c;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.generate-btn:hover:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0px #2b5e5c;
+}
+.generate-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .priority-low {

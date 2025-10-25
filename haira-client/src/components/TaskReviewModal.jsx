@@ -1,4 +1,14 @@
 import { useState } from 'react';
+// Avatars for assignee preview
+import AlexAvatar from '../images/Alex.png';
+import BrownAvatar from '../images/Brown.png';
+import ElzaAvatar from '../images/Elza.png';
+import KatiAvatar from '../images/Kati.png';
+import SteveAvatar from '../images/Steve.png';
+import SamAvatar from '../images/Sam.png';
+import RasoaAvatar from '../images/Rasoa.png';
+import RakotoAvatar from '../images/Rakoto.png';
+import YouAvatar from '../images/You.png';
 import '../styles/TaskReviewModal.css';
 
 function TaskReviewModal({ tasks, teammates, onSave, onCancel }) {
@@ -11,6 +21,26 @@ function TaskReviewModal({ tasks, teammates, onSave, onCancel }) {
   const [error, setError] = useState('');
 
   const currentTask = editedTasks[currentIndex];
+
+  const avatarMap = {
+    alex: AlexAvatar,
+    brown: BrownAvatar,
+    elza: ElzaAvatar,
+    kati: KatiAvatar,
+    steve: SteveAvatar,
+    sam: SamAvatar,
+    rasoa: RasoaAvatar,
+    rakoto: RakotoAvatar,
+  };
+
+  const getAvatarForAssignee = (assigneeIdOrName) => {
+    if (!assigneeIdOrName) return YouAvatar;
+    const lookup = String(assigneeIdOrName).toLowerCase();
+    const mate = teammates.find(t => String(t.id || t.name).toLowerCase() === lookup);
+    if (mate?.type === 'human') return YouAvatar;
+    if (avatarMap[lookup]) return avatarMap[lookup];
+    return SteveAvatar;
+  };
 
   const handleTaskChange = (field, value) => {
     const updated = [...editedTasks];
@@ -70,16 +100,23 @@ function TaskReviewModal({ tasks, teammates, onSave, onCancel }) {
 
             <div className="form-group">
               <label>Assign To</label>
-              <select
-                value={currentTask.assignedTo}
-                onChange={(e) => handleTaskChange('assignedTo', e.target.value)}
-              >
-                {teammates.map((teammate) => (
-                  <option key={teammate.id || teammate.name} value={teammate.id || teammate.name}>
-                    {teammate.type === 'human' ? '👤' : '🤖'} {teammate.name} - {teammate.role}
-                  </option>
-                ))}
-              </select>
+              <div className="assign-row">
+                <img
+                  src={getAvatarForAssignee(currentTask.assignedTo)}
+                  alt="assignee avatar"
+                  className="assign-avatar"
+                />
+                <select
+                  value={currentTask.assignedTo}
+                  onChange={(e) => handleTaskChange('assignedTo', e.target.value)}
+                >
+                  {teammates.map((teammate) => (
+                    <option key={teammate.id || teammate.name} value={teammate.id || teammate.name}>
+                      {teammate.type === 'human' ? '👤' : '🤖'} {teammate.name} - {teammate.role}
+                    </option>
+                  ))}
+                </select>
+              </div>
               {error && (
                 <p className="error-text" style={{ color: '#B00020', marginTop: '6px' }}>
                   {error}

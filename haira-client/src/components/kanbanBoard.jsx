@@ -291,6 +291,10 @@ export default function KanbanBoard({ id }) {
 
                         {editingTask && editingTask.id === task.id && (
                           <div className="absolute top-full left-0 mt-2 p-2 w-64 bg-white border rounded shadow z-10" style={{ width: '100%' }}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <img src={getAIAvatar(editingTask.assignee)} alt="assignee" className="team-avatar" />
+                              <span className="text-sm text-gray-600">Assignee</span>
+                            </div>
                             <input
                               type="text"
                               className="w-full border p-1 rounded mb-2"

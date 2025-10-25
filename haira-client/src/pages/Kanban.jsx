@@ -14,13 +14,12 @@ function Kanban() {
     const { id } = useParams();
     const { currentUser } = useAuth();
     const navigate = useNavigate();
-    const [title, setTitle] = useState("");
+  // Project title is read-only; use from projectData
     const [projectData, setProjectData] = useState(null);
     const [deliverables, setDeliverables] = useState([]);
     const [message, setMessage] = useState("Loading project data...");
     const [loading, setLoading] = useState(false);
     const [kanbanBoardKey, setKanbanBoardKey] = useState(0);
-    const [notif, setNotif] = useState([]);
     const [teammates, setTeammates] = useState([]);
     const [showReviewModal, setShowReviewModal] = useState(false);
     const auth = getAuth();
@@ -49,7 +48,6 @@ function Kanban() {
 
           if (response.data.project) {
               setProjectData(response.data.project);
-              setTitle(response.data.project.title || "");
               setMessage(response.data.message || "Project loaded");
               
               // Set teammates from project data
@@ -65,12 +63,14 @@ function Kanban() {
         }
       };
       fetchProjectData();
-    }, [id, navigate, notif, auth]);
+    }, [id, navigate, auth]);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!title.trim())
-            return alert("Please provide a project title first");
+  const handleGenerate = async () => {
+    const projTitle = projectData?.title || "";
+    if (!projTitle.trim()) {
+      alert("Project title is missing. Please reload the page.");
+      return;
+    }
 
         setLoading(true);
         try {
@@ -79,7 +79,7 @@ function Kanban() {
             const response = await axios.post(
                 `${backend_host}/api/project/kanban/generate`,
                 {
-                    title: title,
+          title: projTitle,
                 },
                 {
                     headers: {
@@ -90,7 +90,6 @@ function Kanban() {
 
             setDeliverables(response.data.deliverables);
             setShowReviewModal(true); // Show modal instead of just displaying deliverables
-            setTitle("");
         } catch (err) {
             console.error("Could not get deliverables:", err);
             alert("Could not get deliverables");
@@ -137,54 +136,10 @@ function Kanban() {
       }
     };
 
-    const handlePushNotifs = async (e) => {
-      try {
-        const token = await auth.currentUser.getIdToken();
-        const response = await axios.post(
-          `${backend_host}/api/notification`,
-          { type: 1, message: 'Hello from your product manager', },
-          { headers: { 'Authorization': `Bearer ${token}` } }
-        );
-        console.log(response.data);
-        if (response.data)
-          alert('Sent some notifications');
-      } catch (error) {
-        const msg = 'data could not be stored to database';
-        console.log(msg);
-        alert(msg);
-      }
-    };
-
-    const checkNotifications = async () => {
-      const token = await auth.currentUser.getIdToken();
-      const response = await axios.get(`${backend_host}/api/notification`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.data.notifications)
-        setNotif(response.data.notifications);
-      else
-        setNotif([]);
-    };
-
-    const handleLoadNotifications = async (e) => {
-      const token = await auth.currentUser.getIdToken();
-      const response = await axios.post(`${backend_host}/api/notification/${id}/load`,
-        {},
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-      console.log(response.data);
-    };
-
     return (
       <div className="page-content">
           <div className="page-header-with-nav">
-            <h1 className="title-toolbar text-2xl font-bold mb-4">Kanban Board</h1>
+           
             <div className="page-navigation-buttons">
               <button 
                 onClick={() => navigate(`/project/${id}/chat`)}
@@ -207,29 +162,20 @@ function Kanban() {
           <KanbanBoard id={id} key={kanbanBoardKey}/>
 
           {/* Right side: Project Info */}
-          <div className="page-side-block-col w-96 rounded-2xl shadow-xl mt-12 p-6 border border-purple-200 flex flex-col gap-4">
+            <div className="page-side-block-col w-96 rounded-2xl shadow-xl mt-12 p-6 border flex flex-col gap-4">
             <div className="text-center">
-              <h2 className="text-xl font-bold text-purple-600 mb-2">Project ID: <span className="text-[#B4565A]">{id}</span></h2>
+              <h2 className="text-xl font-bold text-[#408F8C] mb-1">Project</h2>
+              <p className="text-lg font-semibold mb-2">{projectData?.title || '—'}</p>
               <p className="text-gray-500 text-sm">{message}</p>
             </div>
-
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3 mt-4">
-              <input
-                type="text"
-                placeholder="Your project title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="p-3 rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-pink-300 placeholder-pink-300"
-              />
+            <div className="flex flex-col gap-3 mt-4">
               <button
-                type="submit"
+                onClick={handleGenerate}
                 disabled={loading}
-                className="bg-pink-400 hover:bg-pink-500 text-black font-semibold py-2 rounded-xl shadow-md disabled:opacity-50 transition-colors">
-                {loading ? "Waiting..." : "Ask for deliverables"}
+                className="generate-btn">
+                {loading ? "Generating…" : "Generate Tasks"}
               </button>
-            </form>
-            <button onClick={handlePushNotifs}>Push Notif</button>
-            <button onClick={handleLoadNotifications}>Load Notif</button>
+            </div>
           </div>
         </div>
         
