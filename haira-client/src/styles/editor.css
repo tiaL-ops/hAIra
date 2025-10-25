@@ -2996,3 +2996,105 @@ span[data-ai-type="ai_helper"] {
     min-width: 28px;
   }
 }
+
+/* Pending Tasks Panel */
+.pending-tasks-panel {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 1.2rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow);
+  border: 2px solid var(--color-teal);
+}
+
+.pending-tasks-panel h3 {
+  margin: 0 0 1rem 0;
+  color: var(--color-teal);
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-family: "Jersey 10", sans-serif;
+}
+
+.pending-tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pending-task-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.pending-task-item.clickable:hover {
+  background: linear-gradient(135deg, #f0f9f8 0%, #e6f7f5 100%);
+  border-color: var(--color-teal);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(64, 143, 140, 0.15);
+}
+
+.pending-task-item.clickable:active {
+  transform: translateX(2px);
+  box-shadow: 0 2px 6px rgba(64, 143, 140, 0.1);
+}
+
+.task-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.task-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-assignee {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 0.2rem;
+  font-family: "Jersey 10", sans-serif;
+}
+
+.task-description {
+  font-size: 0.9rem;
+  color: var(--color-text-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-action {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-teal);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  opacity: 0;
+}
+
+.pending-task-item.clickable:hover .task-action {
+  opacity: 1;
+  transform: scale(1.1);
+}
