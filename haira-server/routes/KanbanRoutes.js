@@ -216,22 +216,48 @@ router.post("/:id/sync-tasks", verifyFirebaseToken, async (req, res) => {
         const existingTasks = projectData.tasks || [];
         
         console.log('[KanbanRoutes] Existing tasks:', existingTasks.length);
+        console.log('[KanbanRoutes] Existing tasks details:', JSON.stringify(existingTasks.map(t => ({
+            id: t.id,
+            description: t.description,
+            assignedTo: t.assignedTo,
+            status: t.status
+        })), null, 2));
+        console.log('[KanbanRoutes] Incoming tasks:', JSON.stringify(tasks, null, 2));
         
         // Find which tasks need to be created and which need to be updated
         const newTasks = [];
         const updatedTasks = [];
         
         for (const task of tasks) {
-            // Check if task already exists (by description and assignedTo)
-            const existingTask = existingTasks.find(t => 
-                t.description?.toLowerCase().trim() === task.description?.toLowerCase().trim() &&
-                t.assignedTo === task.assignedTo
-            );
+            // If client provided an explicit task id, prefer matching by id (robust)
+            let existingTask = null;
+            if (task.id) {
+                existingTask = existingTasks.find(t => t.id === task.id);
+            }
+
+            // Fallback: match by description and assignedTo
+            if (!existingTask) {
+                existingTask = existingTasks.find(t => 
+                    (t.description || '').toLowerCase().trim() === (task.description || '').toLowerCase().trim() &&
+                    t.assignedTo === task.assignedTo
+                );
+            }
+            
+            console.log('[KanbanRoutes] Processing task:', {
+                incomingDesc: task.description,
+                incomingAssignedTo: task.assignedTo,
+                targetStatus: status,
+                foundExisting: !!existingTask,
+                existingId: existingTask?.id,
+                existingStatus: existingTask?.status,
+                existingAssignedTo: existingTask?.assignedTo,
+                willUpdate: existingTask && existingTask.status !== status
+            });
             
             if (existingTask) {
                 // Task exists - update to provided status if different
                 if (existingTask.status !== status) {
-                    console.log('[KanbanRoutes] Updating task status:', existingTask.id, 'to', status);
+                    console.log('[KanbanRoutes] ✅ UPDATING task', existingTask.id, 'from', existingTask.status, '→', status);
                     await updateTask(
                         id, 
                         existingTask.id, 
@@ -242,10 +268,12 @@ router.post("/:id/sync-tasks", verifyFirebaseToken, async (req, res) => {
                         existingTask.priority || 1
                     );
                     updatedTasks.push(existingTask.id);
+                } else {
+                    console.log('[KanbanRoutes] ⏭️ Task already has status:', status);
                 }
             } else {
                 // Task doesn't exist - create it with provided status
-                console.log('[KanbanRoutes] Creating new task with status:', status, 'for', task.description);
+                console.log('[KanbanRoutes] ➕ CREATING new task with status:', status);
                 newTasks.push({
                     deliverable: task.description,
                     assignedTo: task.assignedTo,

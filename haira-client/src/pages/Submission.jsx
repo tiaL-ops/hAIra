@@ -661,8 +661,8 @@ function Submission() {
   }
 
   // Handle AI task assignment
-  async function handleAssignAITask(aiType, taskType, sectionName) {
-    console.log('handleAssignAITask called:', { aiType, taskType, sectionName });
+  async function handleAssignAITask(aiType, taskType, sectionName, isExistingTask = false, existingTaskId = null) {
+    console.log('handleAssignAITask called:', { aiType, taskType, sectionName, isExistingTask, existingTaskId });
   
     try {
       // Debug: Log the aiType and available keys
@@ -686,17 +686,12 @@ function Submission() {
         taskDescription = sectionName ? `suggest improvements for ${sectionName}` : 'suggest improvements';
       }
       
-      // Create task in Kanban immediately when assigned (status: 'todo')
-      if (taskDescription) {
-        console.log('[handleAssignAITask] Creating Kanban task:', {
-          description: taskDescription,
-          assignedTo: aiType
-        });
-        
-        await syncTasksToKanban([{
-          description: taskDescription,
-          assignedTo: aiType
-        }], false, 'todo'); // Create as "todo"
+      // Only create task if NOT clicking an existing pending task
+      if (taskDescription && !isExistingTask) {
+        console.log('[handleAssignAITask] Creating NEW task in Kanban');
+        await syncTasksToKanban([{ description: taskDescription, assignedTo: aiType }], false, 'todo'); // Create as "todo"
+      } else if (isExistingTask) {
+        console.log('[handleAssignAITask] Task already exists - will just update to done after execution');
       }
   
       // Execute the AI task
@@ -716,14 +711,14 @@ function Submission() {
       
       // Update task to "done" in Kanban after completion
       if (taskDescription) {
-        console.log('[handleAssignAITask] Updating Kanban task to done');
-        await syncTasksToKanban([{
-          description: taskDescription,
-          assignedTo: aiType
-        }], false, 'done'); // Update to "done"
+        console.log('[handleAssignAITask] Updating task to done');
+        // If we have the existing task id, send it so server updates by id (more reliable)
+        const payloadTask = existingTaskId ? { id: existingTaskId, description: taskDescription, assignedTo: aiType } : { description: taskDescription, assignedTo: aiType };
+        await syncTasksToKanban([ payloadTask ], false, 'done'); // Update to "done"
         
-        // Refresh pending tasks list
-        await fetchPendingTasks();
+        // Refresh pending tasks list to remove completed task
+        const token = await getIdTokenSafely();
+        await fetchPendingTasks(token);
       }
     } catch (error) {
       console.error('AI task assignment failed:', error);
@@ -741,8 +736,9 @@ function Submission() {
       return null;
     }
     
-    console.log('[syncTasks] Syncing tasks with status:', status);
-    console.log('[syncTasks] Tasks:', tasks);
+    console.log('[syncTasks] ===== SYNC CALL =====');
+    console.log('[syncTasks] Status:', status);
+    console.log('[syncTasks] Tasks:', JSON.stringify(tasks, null, 2));
     
     try {
       const token = await getIdTokenSafely();
@@ -759,10 +755,11 @@ function Submission() {
         }
       );
       
-      console.log('[syncTasks] Response:', response.data);
+      console.log('[syncTasks] ✅ Response:', response.data);
+      console.log('[syncTasks] ===== END SYNC =====');
       return response.data;
     } catch (err) {
-      console.error('[syncTasks] Error:', err.response?.data || err.message);
+      console.error('[syncTasks] ❌ Error:', err.response?.data || err.message);
       throw err;
     }
   }
@@ -931,8 +928,9 @@ function Submission() {
                     key={task.id} 
                     className="pending-task-item clickable"
                     onClick={() => {
-                      // Auto-assign the task by calling handleAssignAITask
-                      handleAssignAITask(task.assignedTo, taskType, sectionName);
+                      // Pass true as 4th param to indicate this is an existing task
+                      // and pass the task id so backend can update by id
+                      handleAssignAITask(task.assignedTo, taskType, sectionName, true, task.id);
                     }}
                     title={`Click to start: ${taskDesc}`}
                   >
