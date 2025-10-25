@@ -13,7 +13,9 @@ export const USER_SCHEMA = {
   name: String,           // User's display name
   email: String,          // User's email address
   avatarUrl: String,      // Profile picture (base64 or URL)
-  
+  notifications: Array,     // Notifications of the format: { type: Number, message: String }
+                            // Type 1: task reminder
+
   // --- State ---
   activeProjectId: String, // Reference to user's current active project
   

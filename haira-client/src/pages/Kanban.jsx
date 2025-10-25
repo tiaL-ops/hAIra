@@ -119,6 +119,39 @@ function Kanban() {
       }
     };
 
+    const handleGetNotifs = async (e) => {
+      try {
+        const token = await auth.currentUser.getIdToken();
+        const response = await axios.get(`${backend_host}/api/notification`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        console.log(response.data);
+        if (response.data)
+          alert('Found some notifications');
+      } catch (error) {
+        const msg = 'data could not be stored to database';
+        console.log(msg);
+        alert(msg);
+      }
+    };
+    const handlePushNotifs = async (e) => {
+      try {
+        const token = await auth.currentUser.getIdToken();
+        const response = await axios.post(
+          `${backend_host}/api/notification`,
+          { type: 1, message: 'Hello from your product manager', },
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        console.log(response.data);
+        if (response.data)
+          alert('Sent some notifications');
+      } catch (error) {
+        const msg = 'data could not be stored to database';
+        console.log(msg);
+        alert(msg);
+      }
+    };
+
     return (
       <div className="page-content">
         <h1 className="title-toolbar text-2xl font-bold mb-4">Kanban Board</h1>
@@ -148,6 +181,8 @@ function Kanban() {
                 {loading ? "Waiting..." : "Ask for deliverables"}
               </button>
             </form>
+            <button onClick={handleGetNotifs}>Get Notifs</button>
+            <button onClick={handlePushNotifs}>Push Notif</button>
 
             {deliverables.length > 0 && (
               <div className="mt-6">

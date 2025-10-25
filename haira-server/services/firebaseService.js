@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import Chat from '../models/ChatModels.js';
 import Task from '../models/KanbanModels.js';
 import { COLLECTIONS, CHAT_SCHEMA, CHAT_MESSAGE_SCHEMA } from '../schema/database.js';
+import { userInfo } from 'os';
 
 dotenv.config();
 
@@ -406,6 +407,38 @@ export async function getUserProjects(userId) {
   
   console.log(`[FirebaseService] Total projects found: ${projects.length}`);
   return projects;
+}
+
+export async function getNotifications(userId) {
+  // Dummy notifications for now
+  const dummyNotif = [
+    { type: 1, message: 'The deadline is close' },
+    { type: 1, message: 'Keep at it, you doing great' },
+  ];
+
+  const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
+  const userDoc = await userRef.get();
+  if (!userDoc.exists)
+    return null;
+
+  const notifRef = userRef.collection('notifications');
+  const notifSnapshot = await notifRef.get();
+  let notif = [];
+  notifSnapshot.forEach((doc) => {
+    notif.push(doc.data());
+  });
+
+  if (!notif)
+    return dummyNotif;
+
+  console.log('notifications: fetched user notifications');
+
+  return notif;
+}
+
+export async function pushNotification(userId, type, message) {
+  const notif = { type: type, message: message };
+  return addSubdocument(COLLECTIONS.USERS, userId, 'notifications', notif);
 }
 
 // Get project with tasks

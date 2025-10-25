@@ -10,6 +10,7 @@ import projectRoutes from './routes/ProjectRoutes.js';
 import chatRoutes from './routes/ChatRoutes.js';
 import submissionRoutes from './routes/SubmissionRoutes.js';
 import kanbanRoutes from './routes/KanbanRoutes.js';
+import notifRoutes from './routes/NofiticationRoutes.js';
 
 const app = express();
 const port = 3002;
@@ -39,6 +40,7 @@ app.use('/api/project', projectRoutes);
 app.use('/api/project', chatRoutes);
 app.use('/api/project', submissionRoutes);
 app.use('/api/project', kanbanRoutes);
+app.use('/api', notifRoutes);
 
 app.listen(port, () => {
   console.log(`🔌 Server is running on http://localhost:${port}`);
