@@ -560,12 +560,28 @@ export async function getProjectWithTasks(projectId, userId) {
   console.log(`[FirebaseService] Found project ${projectId} with ${tasks.length} tasks`);
   console.log(`[FirebaseService] All tasks:`, JSON.stringify(tasks, null, 2));
   
+  // Get teammates from subcollection
+  const teammatesRef = projectRef.collection('teammates');
+  const teammatesSnapshot = await teammatesRef.get();
+  
+  const teammates = [];
+  teammatesSnapshot.forEach(doc => {
+    teammates.push({
+      id: doc.id,
+      ...doc.data()
+    });
+    console.log(`[FirebaseService] Teammate ${doc.id}:`, doc.data());
+  });
+  
+  console.log(`[FirebaseService] Found ${teammates.length} teammates`);
+  
   return {
     project: {
       id: projectId,
       ...projectData
     },
-    tasks: tasks
+    tasks: tasks,
+    teammates: teammates
   };
 }
 
@@ -976,6 +992,56 @@ export async function updateTemplateUsage(templateId, userId) {
     console.log(`[FirebaseService] Updated template usage: ${usageCount + 1} total uses`);
   } catch (error) {
     console.error('[FirebaseService] Error updating template usage:', error);
+    throw error;
+  }
+}
+
+// Teammate management functions
+export async function addTeammate(projectId, teammateData) {
+  try {
+    console.log(`[FirebaseService] Adding teammate to project ${projectId}:`, teammateData);
+    return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'teammates', {
+      ...teammateData,
+      createdAt: Date.now()
+    });
+  } catch (error) {
+    console.error('[FirebaseService] Error adding teammate:', error);
+    throw error;
+  }
+}
+
+export async function updateTeammate(projectId, teammateId, updateData) {
+  try {
+    console.log(`[FirebaseService] Updating teammate ${teammateId} in project ${projectId}:`, updateData);
+    const teammateRef = db.collection(COLLECTIONS.USER_PROJECTS)
+      .doc(projectId)
+      .collection('teammates')
+      .doc(teammateId);
+      
+    await teammateRef.update({
+      ...updateData,
+      updatedAt: Date.now()
+    });
+    
+    return { id: teammateId, ...updateData };
+  } catch (error) {
+    console.error('[FirebaseService] Error updating teammate:', error);
+    throw error;
+  }
+}
+
+export async function deleteTeammate(projectId, teammateId) {
+  try {
+    console.log(`[FirebaseService] Deleting teammate ${teammateId} from project ${projectId}`);
+    const teammateRef = db.collection(COLLECTIONS.USER_PROJECTS)
+      .doc(projectId)
+      .collection('teammates')
+      .doc(teammateId);
+      
+    await teammateRef.delete();
+    return { id: teammateId };
+  } catch (error) {
+    console.error('[FirebaseService] Error deleting teammate:', error);
     throw error;
   }
 }
