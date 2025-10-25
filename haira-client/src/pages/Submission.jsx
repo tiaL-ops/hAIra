@@ -638,7 +638,16 @@ function Submission() {
     console.log('handleAssignAITask called:', { aiType, taskType, sectionName });
   
     try {
-      const aiTeammate = AI_TEAMMATES[aiType] || AI_TEAMMATES.rasoa;
+      // Debug: Log the aiType and available keys
+      console.log('🔍 Debug aiType:', aiType);
+      console.log('🔍 Debug AI_TEAMMATES keys:', Object.keys(AI_TEAMMATES));
+      console.log('🔍 Debug AI_TEAMMATES[aiType]:', AI_TEAMMATES[aiType]);
+      
+      const aiTeammate = {
+        ...(AI_TEAMMATES[aiType] || AI_TEAMMATES.rasoa),
+        id: aiType // Ensure id is preserved
+      };
+      console.log('🔍 Debug selected aiTeammate:', aiTeammate);
   
       if (taskType === 'write_section') {
         await write(aiTeammate, sectionName, reportContent, projectData?.title);

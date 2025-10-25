@@ -261,6 +261,11 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
         return newMessages;
       });
       
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        setTaskCompletionMessages(prev => prev.filter(msg => msg.id !== completionMessage.id));
+      }, 5000);
+      
       return result;
       
     } catch (error) {
@@ -284,6 +289,11 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
         timestamp: Date.now()
       };
       setTaskCompletionMessages(prev => [...prev, completionMessage]);
+      
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        setTaskCompletionMessages(prev => prev.filter(msg => msg.id !== completionMessage.id));
+      }, 5000);
       
       return fallbackResult;
     } finally {
@@ -368,6 +378,11 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       };
       setTaskCompletionMessages(prev => [...prev, completionMessage]);
       
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        setTaskCompletionMessages(prev => prev.filter(msg => msg.id !== completionMessage.id));
+      }, 5000);
+      
       return result;
       
     } catch (error) {
@@ -391,6 +406,11 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
         timestamp: Date.now()
       };
       setTaskCompletionMessages(prev => [...prev, completionMessage]);
+      
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        setTaskCompletionMessages(prev => prev.filter(msg => msg.id !== completionMessage.id));
+      }, 5000);
       
       return fallbackResult;
     } finally {
@@ -474,6 +494,11 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       };
       setTaskCompletionMessages(prev => [...prev, completionMessage]);
       
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        setTaskCompletionMessages(prev => prev.filter(msg => msg.id !== completionMessage.id));
+      }, 5000);
+      
       return result;
       
     } catch (error) {
@@ -497,6 +522,11 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
         timestamp: Date.now()
       };
       setTaskCompletionMessages(prev => [...prev, completionMessage]);
+      
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        setTaskCompletionMessages(prev => prev.filter(msg => msg.id !== completionMessage.id));
+      }, 5000);
       
       return fallbackResult;
     } finally {

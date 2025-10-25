@@ -103,15 +103,19 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
     ? teamMembers
         .filter(member => member.type === 'ai')
         .map(member => ({
-          ...member,
-          ...getAITeammate(member.id)
+          ...getAITeammate(member.id),
+          id: member.id, // Ensure id is preserved
+          type: 'ai'
         }))
     : [
-        // Default AI teammates for testing
-        { id: 'rasoa', type: 'ai', ...AI_TEAMMATES.rasoa },
+        // Default AI teammates for testing - include all available teammates
         { id: 'brown', type: 'ai', ...AI_TEAMMATES.brown },
-        { id: 'elza', type: 'ai', ...AI_TEAMMATES.elza }
+        { id: 'elza', type: 'ai', ...AI_TEAMMATES.elza },
       ];
+
+  // Debug: Log the AI teammates being created
+  console.log('🔍 TeamPanel: aiTeammates created:', aiTeammates);
+  console.log('🔍 TeamPanel: AI_TEAMMATES keys:', Object.keys(AI_TEAMMATES));
 
   return (
     <div className="team-panel">
@@ -121,7 +125,7 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
           <h3>Assign tasks to teammates</h3>
           {teamMembers.length === 0 && (
             <p style={{ fontSize: '12px', color: '#666', margin: '5px 0 0 0' }}>
-              🧪 Default AI teammates for testing (Chrome Writer API first, then OpenAI fallback)
+              🧪 Default AI teammates for testing
             </p>
           )}
         </div>
