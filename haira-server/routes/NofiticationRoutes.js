@@ -4,7 +4,6 @@ import { getNotifications, pushNotification, clearNotifications } from '../servi
 
 const router = express.Router();
 
-// Get project data with tasks
 router.get('/notification', verifyFirebaseToken, async (req, res) => {
     try {
         const userId = req.user.uid;
