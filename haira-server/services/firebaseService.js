@@ -437,6 +437,39 @@ export async function getNotifications(userId) {
   return notif;
 }
 
+export async function getLateTasks(id, userId) {
+  // TODO:
+  // . search condition should be done on the DB level
+  // . only look for projects that have not yet been archived
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+  const oneHourAgo = new Date(Date.now() - (60 * 60 * 1000));
+
+  const userProjectsSnapshot = await db.collection('userProjects')
+    .where('userId', '==', userId)
+    .get();
+  const lateTasks = [];
+
+  for (const projectDoc of userProjectsSnapshot.docs) {
+    const tasksSnapshot = await projectDoc.ref.collection('tasks')
+      // TODO
+      // .where('createdAt', '<=', oneHourAgo)
+      .where('status', '!=', 'done')
+      .get();
+    
+    tasksSnapshot.forEach(taskDoc => {
+      lateTasks.push({
+        userId: taskDoc.id,
+        projectId: projectDoc.id,
+        ...taskDoc.data(),
+      });
+    });
+  }
+
+  return lateTasks;
+}
+
 export async function pushNotification(userId, type, message) {
   const notif = {
     type: type,

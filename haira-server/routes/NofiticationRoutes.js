@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
-import { getNotifications, pushNotification, clearNotifications } from '../services/firebaseService.js';
+import { getNotifications, pushNotification, clearNotifications, getLateTasks } from '../services/firebaseService.js';
 
 const router = express.Router();
 
@@ -52,6 +52,28 @@ router.delete('/notification', verifyFirebaseToken, async (req, res) => {
         res.status(500).json({
             success: false,
             error: error.message
+        });
+    }
+});
+
+router.post('/notification/:id/load', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.uid;
+
+    try {
+        const lateTasks = await getLateTasks(id, userId);
+        console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@');
+        console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@');
+        console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@');
+        console.log(lateTasks);
+        res.status(201).json({
+            success: true,
+            data: lateTasks,
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            success: false,
+            error: error.message 
         });
     }
 });

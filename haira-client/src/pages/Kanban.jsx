@@ -150,6 +150,19 @@ function Kanban() {
         setNotif([]);
     };
 
+    const handleLoadNotifications = async (e) => {
+      const token = await auth.currentUser.getIdToken();
+      const response = await axios.post(`${backend_host}/api/notification/${id}/load`,
+        {},
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      console.log(response.data);
+    };
+
     return (
       <div className="page-content">
         <h1 className="title-toolbar text-2xl font-bold mb-4">Kanban Board</h1>
@@ -180,6 +193,7 @@ function Kanban() {
               </button>
             </form>
             <button onClick={handlePushNotifs}>Push Notif</button>
+            <button onClick={handleLoadNotifications}>Load Notif</button>
 
             {deliverables.length > 0 && (
               <div className="mt-6">
