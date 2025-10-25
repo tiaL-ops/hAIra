@@ -19,6 +19,7 @@ function Kanban() {
     const [message, setMessage] = useState("Loading project data...");
     const [loading, setLoading] = useState(false);
     const [kanbanBoardKey, setKanbanBoardKey] = useState(0);
+    const [notif, setNotif] = useState([]);
     const auth = getAuth();
 
     const rerenderKanbanBoard = () => {
@@ -55,9 +56,18 @@ function Kanban() {
             setMessage("Error loading project data");
         }
       };
-
       fetchProjectData();
-    }, [id, navigate, auth]);
+
+      const interval = setInterval(() => {
+        checkNotifications();
+      }, 10000); // 60,000 ms = 1 minute
+
+      if (notif.length > 0) {
+        alert('found ' + notif?.length + ' notifications');
+      }
+
+      return () => clearInterval(interval);
+    }, [id, navigate, notif, auth]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -152,6 +162,28 @@ function Kanban() {
       }
     };
 
+    const checkNotifications = async () => {
+      const token = await auth.currentUser.getIdToken();
+      const response = await axios.get(`${backend_host}/api/notification`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.data.notifications)
+        setNotif(response.data.notifications);
+      else
+        setNotif([]);
+    };
+
+    const handleClearNotifications = async () => {
+      const token = await auth.currentUser.getIdToken();
+      await axios.delete(`${backend_host}/api/notification`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+    };
+
     return (
       <div className="page-content">
         <h1 className="title-toolbar text-2xl font-bold mb-4">Kanban Board</h1>
@@ -183,6 +215,7 @@ function Kanban() {
             </form>
             <button onClick={handleGetNotifs}>Get Notifs</button>
             <button onClick={handlePushNotifs}>Push Notif</button>
+            <button onClick={handleClearNotifications}>Clear Notif</button>
 
             {deliverables.length > 0 && (
               <div className="mt-6">

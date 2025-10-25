@@ -14,7 +14,7 @@ router.get('/:id/kanban', verifyFirebaseToken, async (req, res) => {
 
         // Get project and tasks data
         const projectData = await getProjectWithTasks(id, userId);
-        
+
         if (!projectData) {
             return res.status(404).json({ error: 'Project not found or access denied' });
         }

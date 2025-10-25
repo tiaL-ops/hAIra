@@ -1,4 +1,5 @@
 import admin from 'firebase-admin';
+import { deleteDoc } from 'firebase/firestore';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
@@ -439,6 +440,19 @@ export async function getNotifications(userId) {
 export async function pushNotification(userId, type, message) {
   const notif = { type: type, message: message };
   return addSubdocument(COLLECTIONS.USERS, userId, 'notifications', notif);
+}
+
+export async function clearNotifications(userId) {
+  const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
+  const userDoc = await userRef.get();
+  if (!userDoc.exists)
+    return null;
+
+  const notifRef = userRef.collection('notifications');
+  const notifSnapshot = await notifRef.get();
+  for (const doc of notifSnapshot.docs) {
+    await doc.ref.delete();
+  }
 }
 
 // Get project with tasks

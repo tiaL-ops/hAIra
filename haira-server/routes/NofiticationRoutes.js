@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
-import { getNotifications, pushNotification } from '../services/firebaseService.js';
+import { getNotifications, pushNotification, clearNotifications } from '../services/firebaseService.js';
 
 const router = express.Router();
 
@@ -36,6 +36,23 @@ router.post('/notification', verifyFirebaseToken, async (req, res) => {
         res.status(500).json({ 
             success: false,
             error: error.message 
+        });
+    }
+});
+
+// Clear all notifications
+router.delete('/notification', verifyFirebaseToken, async (req, res) => {
+    const userId = req.user.uid;
+
+    try {
+        const response = await clearNotifications(userId);
+        res.status(201).json({
+            success: true,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
         });
     }
 });
