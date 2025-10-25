@@ -18,12 +18,11 @@ import AIToolbar from "../components/TextEditor/AIToolbar";
 import EditorArea from "../components/TextEditor/EditorArea";
 import CommentSidebar from "../components/TextEditor/CommentSidebar";
 import EditorGuide from "../components/TextEditor/EditorGuide";
-import ProofreadSuggestion from "../components/ProofreadSuggestion";
 import TeamPanel from "../components/TeamPanel";
 import TaskCompletionFeedback from "../components/TaskCompletionFeedback";
 import SummarizePopup from "../components/SummarizePopup";
 import ProofreadPopup from "../components/ProofreadPopup";
-import { getChromeProofreadSuggestions, getChromeSummary } from "../utils/chromeAPI";
+import { getChromeProofreadSuggestions, getChromeSummary, getChromeWriter } from "../utils/chromeAPI";
 import { useAITeam } from "../hooks/useAITeam";
 import { AI_TEAMMATES } from "../../../haira-server/config/aiAgents.js";
 import "../styles/editor.css";
@@ -65,6 +64,11 @@ function Submission() {
   const [proofreadError, setProofreadError] = useState(null);
   const editorRef = useRef(null);
   
+  // Debug states
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [debugLogs, setDebugLogs] = useState([]);
+  const [testTeammate, setTestTeammate] = useState('rasoa'); // Default test teammate
+  
   // Data states
   const [proofreadData, setProofreadData] = useState(null);
   const [summarizeData, setSummarizeData] = useState(null);
@@ -78,6 +82,98 @@ function Submission() {
     }
     setSelectionRange(null);
     setSelectedText("");
+  };
+  
+  // Debug logging function
+  const addDebugLog = (message, type = 'info') => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = {
+      id: Date.now() + Math.random(),
+      timestamp,
+      message,
+      type
+    };
+    setDebugLogs(prev => [logEntry, ...prev].slice(0, 50)); // Keep last 50 logs
+    console.log(`[DEBUG ${timestamp}] ${message}`);
+  };
+  
+  // Enhanced debug logging for API calls
+  const logApiCall = (endpoint, data, type = 'request') => {
+    if (type === 'request') {
+      addDebugLog(`🚀 API Request: ${endpoint}`, 'info');
+      addDebugLog(`📤 Data: ${JSON.stringify(data, null, 2)}`, 'info');
+    } else if (type === 'response') {
+      addDebugLog(`✅ API Response: ${JSON.stringify(data, null, 2)}`, 'success');
+    } else if (type === 'error') {
+      addDebugLog(`❌ API Error: ${data}`, 'error');
+    }
+  };
+  
+  // Test functions for debugging
+  const testWriteSuggestion = async () => {
+    addDebugLog('🧪 Testing Write Suggestion API...', 'info');
+    addDebugLog('🔧 AI Service: Chrome Writer API first, then OpenAI fallback', 'info');
+    try {
+      const aiTeammate = AI_TEAMMATES[testTeammate];
+      if (!aiTeammate) {
+        addDebugLog(`❌ Error: Teammate '${testTeammate}' not found`, 'error');
+        return;
+      }
+      
+      // Add id property to the teammate object for API compatibility
+      const teammateWithId = { ...aiTeammate, id: testTeammate };
+      
+      addDebugLog(`👤 Using teammate: ${teammateWithId.name} (${teammateWithId.role})`, 'info');
+      addDebugLog(`⚙️ Teammate config: tone=${teammateWithId.tone}, length=${teammateWithId.length}`, 'info');
+      addDebugLog(`🆔 Teammate ID: ${teammateWithId.id}`, 'info');
+      
+      const testContent = "Write a brief introduction about the importance of research methodology in academic projects.";
+      addDebugLog(`📝 Test content: "${testContent}"`, 'info');
+      
+      logApiCall('/api/project/ai/write', { aiType: teammateWithId.id, sectionName: 'introduction', currentContent: testContent });
+      
+      await write(teammateWithId, 'introduction', testContent);
+      addDebugLog('✅ Write suggestion test completed successfully!', 'success');
+    } catch (error) {
+      addDebugLog(`❌ Write suggestion test failed: ${error.message}`, 'error');
+      logApiCall('', error.message, 'error');
+      console.error('Write test error:', error);
+    }
+  };
+  
+  const testReview = async () => {
+    addDebugLog('🧪 Testing Review API...', 'info');
+    addDebugLog('🔧 AI Service: Server-side OpenAI (GPT-4o-mini) - NOT Chrome API', 'info');
+    try {
+      const aiTeammate = AI_TEAMMATES[testTeammate];
+      if (!aiTeammate) {
+        addDebugLog(`❌ Error: Teammate '${testTeammate}' not found`, 'error');
+        return;
+      }
+      
+      // Add id property to the teammate object for API compatibility
+      const teammateWithId = { ...aiTeammate, id: testTeammate };
+      
+      addDebugLog(`👤 Using teammate: ${teammateWithId.name} (${teammateWithId.role})`, 'info');
+      addDebugLog(`🆔 Teammate ID: ${teammateWithId.id}`, 'info');
+      
+      const testContent = "This is a sample research paper that needs review. The methodology section could be improved and the conclusion needs more evidence.";
+      addDebugLog(`📝 Test content: "${testContent}"`, 'info');
+      
+      logApiCall('/api/project/ai/review', { aiType: teammateWithId.id, currentContent: testContent });
+      
+      await review(teammateWithId, testContent);
+      addDebugLog('✅ Review test completed successfully!', 'success');
+    } catch (error) {
+      addDebugLog(`❌ Review test failed: ${error.message}`, 'error');
+      logApiCall('', error.message, 'error');
+      console.error('Review test error:', error);
+    }
+  };
+  
+  const clearDebugLogs = () => {
+    setDebugLogs([]);
+    addDebugLog('Debug logs cleared', 'info');
   };
   
   // Team collaboration state
@@ -99,7 +195,9 @@ function Submission() {
 
   // AI Team hook
   const { 
-    performAITask, 
+    write, 
+    review, 
+    suggest,
     isLoading: aiTaskLoading, 
     loadingAIs,
     taskCompletionMessages, 
@@ -538,8 +636,32 @@ function Submission() {
   // Handle AI task assignment
   async function handleAssignAITask(aiType, taskType, sectionName) {
     console.log('handleAssignAITask called:', { aiType, taskType, sectionName });
+  
     try {
-      await performAITask(aiType, taskType, sectionName, reportContent);
+      // Debug: Log the aiType and available keys
+      console.log('🔍 Debug aiType:', aiType);
+      console.log('🔍 Debug AI_TEAMMATES keys:', Object.keys(AI_TEAMMATES));
+      console.log('🔍 Debug AI_TEAMMATES[aiType]:', AI_TEAMMATES[aiType]);
+      
+      const aiTeammate = {
+        ...(AI_TEAMMATES[aiType] || AI_TEAMMATES.rasoa),
+        id: aiType // Ensure id is preserved
+      };
+      console.log('🔍 Debug selected aiTeammate:', aiTeammate);
+  
+      if (taskType === 'write_section') {
+        await write(aiTeammate, sectionName, reportContent, projectData?.title);
+      } else if (taskType === 'review' || taskType === 'review_content') {
+        await review(aiTeammate, reportContent);
+      } else if (taskType === 'suggest' || taskType === 'suggest_improvements') {
+        await suggest(aiTeammate, reportContent);
+      } else {
+        console.warn(`Unknown taskType: ${taskType}`);
+        setAiFeedback(`⚠️ Unknown AI task: ${taskType}`);
+        return;
+      }
+  
+      setAiFeedback(`✅ ${aiTeammate.name} completed ${taskType.replace('_', ' ')} task`);
     } catch (error) {
       console.error('AI task assignment failed:', error);
       setAiFeedback(`❌ AI task failed: ${error.message}`);
@@ -671,7 +793,6 @@ function Submission() {
             }
           }}
         />
-
 
       </div>
 

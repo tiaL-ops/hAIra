@@ -109,6 +109,9 @@ function Kanban() {
           priority: task.priority || 1
         }));
         
+        console.log('[Kanban] Saving tasks:', tasksToSave);
+        console.log('[Kanban] Project title:', projectData.title);
+        
         const response = await axios.post(
           `${backend_host}/api/project/${id}/kanban`,
           {
@@ -164,8 +167,7 @@ function Kanban() {
           {/* Right side: Project Info */}
             <div className="page-side-block-col w-96 rounded-2xl shadow-xl mt-12 p-6 border flex flex-col gap-4">
             <div className="text-center">
-              <h2 className="text-xl font-bold text-[#408F8C] mb-1">Project</h2>
-              <p className="text-lg font-semibold mb-2">{projectData?.title || '—'}</p>
+              {/* Removed duplicate title to avoid showing above Generate Tasks */}
               <p className="text-gray-500 text-sm">{message}</p>
             </div>
             <div className="flex flex-col gap-3 mt-4">

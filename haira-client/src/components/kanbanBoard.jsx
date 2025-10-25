@@ -55,6 +55,7 @@ export default function KanbanBoard({ id }) {
   const [editingTask, setEditingTask] = useState(null);
   const [priority, setPriority] = useState([]);
   const [teammates, setTeammates] = useState([]);
+  const [userProfile, setUserProfile] = useState(null);
   
   useEffect(() => {
     let isMounted = true;
@@ -66,7 +67,7 @@ export default function KanbanBoard({ id }) {
     const fetchData = async () => {
       try {
         const token = await auth.currentUser.getIdToken(true);
-        const kanbanData = await axios.get(`http://localhost:3002/api/project/${id}/kanban`, { headers: { Authorization: `Bearer ${token}` } });
+  const kanbanData = await axios.get(`http://localhost:3002/api/project/${id}/kanban`, { headers: { Authorization: `Bearer ${token}` } });
         const fetchedTasks = kanbanData.data.tasks;
         let data = {todo : [], inProgress : [], done : []};
         fetchedTasks.map((item) => {
@@ -83,6 +84,16 @@ export default function KanbanBoard({ id }) {
 
         const priorityData = await axios.get(`http://localhost:3002/api/project/tasks/priority`, { headers: { Authorization: `Bearer ${token}` } });
         setPriority(priorityData.data.priority);
+
+        // Fetch user profile for human avatar image
+        try {
+          const profileResp = await axios.get(`http://localhost:3002/api/profile`, { headers: { Authorization: `Bearer ${token}` } });
+          if (profileResp?.data?.success && profileResp?.data?.user) {
+            setUserProfile(profileResp.data.user);
+          }
+        } catch (e) {
+          console.warn('Unable to load user profile avatar for Kanban human avatar:', e.message);
+        }
      }
       catch (err) {
         console.error('[Client] Error fetching data:', err);
@@ -200,7 +211,7 @@ export default function KanbanBoard({ id }) {
 
     // If this is the logged-in human or any human teammate, show You avatar
     const teammate = teammates.find(t => (t.name && t.name.toLowerCase() === lookup) || (t.id && String(t.id).toLowerCase() === lookup));
-    if (teammate && teammate.type === 'human') return YouAvatar;
+  if (teammate && teammate.type === 'human') return userProfile?.avatarUrl || YouAvatar;
 
     // Try id/name mapping for AI
     if (avatarMap[lookup]) return avatarMap[lookup];
@@ -318,7 +329,7 @@ export default function KanbanBoard({ id }) {
                             >
                               {teammates.map((teammate) => (
                                 <option key={teammate.id || teammate.name} value={teammate.id || teammate.name}>
-                                  {teammate.type === 'human' ? '👤' : '🤖'} {teammate.name} - {teammate.role}
+                                  {teammate.name} - {teammate.role}
                                 </option>
                               ))}
                             </select>
@@ -365,7 +376,7 @@ export default function KanbanBoard({ id }) {
                 {provided.placeholder}
 
                 <button
-                  className="mt-2 w-full bg-gray-200 text-gray-800 rounded-md py-1 hover:bg-gray-300"
+                  className="mt-2 w-full bg-[#408F8C] text-white rounded-md py-2 hover:brightness-95 border border-[#2b5e5c] shadow"
                   onClick={() => handleAddTask(col.id)}
                 >
                   + Add Task

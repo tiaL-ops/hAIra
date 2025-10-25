@@ -220,6 +220,49 @@ export async function getSubdocuments(parentCollection, parentId, subcollection,
   return querySubcollection(parentCollection, parentId, subcollection, { filters, orderBy });
 }
 
+// Get chat messages filtered by user ID (senderId)
+export async function getChatMessagesByUser(parentCollection, parentId, subcollection, userId, orderByField = 'timestamp') {
+  console.log(`[FirebaseService] Getting chat messages for user ${userId} from ${parentCollection}/${parentId}/${subcollection}`);
+  
+  try {
+    let ref = db.collection(parentCollection).doc(parentId).collection(subcollection);
+    
+    // Order by timestamp
+    if (orderByField) {
+      ref = ref.orderBy(orderByField, 'desc');
+    }
+    
+    const snapshot = await ref.get();
+    const allMessages = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    
+    // Filter messages by senderId matching the user ID
+    const userMessages = allMessages.filter(msg => {
+      const senderId = msg.senderId;
+      const isUserMessage = senderId === userId;
+      
+      if (isUserMessage) {
+        console.log(`[FirebaseService] User message ${msg.id}:`, {
+          senderId: msg.senderId,
+          senderName: msg.senderName,
+          text: (msg.text || '').substring(0, 100) + '...',
+          timestamp: new Date(msg.timestamp).toLocaleString()
+        });
+      } else {
+        console.log(`[FirebaseService] Skipping message ${msg.id} - senderId: ${senderId}, not ${userId}`);
+      }
+      
+      return isUserMessage;
+    });
+    
+    console.log(`[FirebaseService] Found ${userMessages.length} user messages out of ${allMessages.length} total messages`);
+    return userMessages;
+    
+  } catch (error) {
+    console.error(`[FirebaseService] Error getting chat messages for user:`, error);
+    throw error;
+  }
+}
+
 
 // Chat-specific wrappers
 // Support both legacy mode and new schema with subcollections
@@ -303,19 +346,34 @@ export async function updateUserProject(projectId, content, grade, status = "sub
 }
 
 export async function addTasks(projectId, userId, projectTitle, status, deliverables = []) {
+  console.log('[FirebaseService] addTasks called');
+  console.log('[FirebaseService] projectId:', projectId);
+  console.log('[FirebaseService] userId:', userId);
+  console.log('[FirebaseService] projectTitle:', projectTitle);
+  console.log('[FirebaseService] status:', status);
+  console.log('[FirebaseService] deliverables count:', deliverables.length);
+  console.log('[FirebaseService] deliverables:', JSON.stringify(deliverables, null, 2));
+  
   projectTitle = (projectTitle || '').trim();
   await ensureProjectExists(projectId);
 
   let completedAt = 0;
   if (status === 'done') completedAt = Date.now();
 
-  const promises = deliverables.map((item) => {
+  const promises = deliverables.map((item, index) => {
     // Frontend may send per-task assignee and priority; fallback to provided userId and MEDIUM
     const description = item?.deliverable ?? item?.description ?? '';
     const assignee = (item && item.assignedTo) ? String(item.assignedTo) : String(userId);
     const priority = (item && typeof item.priority === 'number')
       ? item.priority
       : Task.PRIORITY.MEDIUM.value;
+
+    console.log(`[FirebaseService] Creating task ${index + 1}:`, {
+      description,
+      assignee,
+      priority,
+      status
+    });
 
     let newDeliverable = new Task(
       projectTitle,
@@ -331,7 +389,9 @@ export async function addTasks(projectId, userId, projectTitle, status, delivera
     return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'tasks', newDeliverable);
   });
 
-  return await Promise.all(promises);
+  const results = await Promise.all(promises);
+  console.log('[FirebaseService] All tasks saved, count:', results.length);
+  return results;
 }
 
 export async function updateTask(projectId, id, title, status, userId, description, priority) {
@@ -542,7 +602,7 @@ export async function getProjectWithTasks(projectId, userId) {
     return null;
   }
   
-  // Get tasks subcollection
+  // Get tasks subcollection - include ALL tasks (both user and AI-assigned)
   const tasksRef = projectRef.collection('tasks');
   const tasksSnapshot = await tasksRef.get();
   
@@ -552,6 +612,8 @@ export async function getProjectWithTasks(projectId, userId) {
       id: doc.id,
       ...doc.data()
     };
+    
+    // Include all tasks for the project (both user-assigned and AI-assigned)
     tasks.push(taskData);
     
     // Log each task for debugging
@@ -564,7 +626,7 @@ export async function getProjectWithTasks(projectId, userId) {
     });
   });
   
-  console.log(`[FirebaseService] Found project ${projectId} with ${tasks.length} tasks`);
+  console.log(`[FirebaseService] Found project ${projectId} with ${tasks.length} total tasks`);
   console.log(`[FirebaseService] All tasks:`, JSON.stringify(tasks, null, 2));
   
   // Fetch teammates from subcollection (source of truth)

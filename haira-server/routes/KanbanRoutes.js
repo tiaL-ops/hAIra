@@ -36,20 +36,24 @@ router.post('/:id/kanban', verifyFirebaseToken, async (req, res) => {
     const { title, deliverables } = req.body;
     const userId = req.user.uid;
 
-    console.log('=====>');
-    console.log(deliverables);
+    console.log('[KanbanRoutes] POST /:id/kanban - Saving tasks');
+    console.log('[KanbanRoutes] Project ID:', id);
+    console.log('[KanbanRoutes] Title:', title);
+    console.log('[KanbanRoutes] Deliverables:', JSON.stringify(deliverables, null, 2));
 
     try {
         console.log("From Kanban: Making sure the project exists...")
         await ensureProjectExists(id, userId);
         console.log("From Kanban: Store deliverables");
-        await addTasks(id, userId, title, 'todo', deliverables);
+        const savedTasks = await addTasks(id, userId, title, 'todo', deliverables);
+        console.log('[KanbanRoutes] Tasks saved successfully:', savedTasks.length, 'tasks');
 
         res.status(201).json({
             success: true,
             deliverables,
         });
     } catch (err) {
+        console.error('[KanbanRoutes] Error saving tasks:', err);
         res.status(500).json({ 
             success: false,
             error: err.message 
@@ -65,13 +69,29 @@ router.post('/kanban/generate', verifyFirebaseToken, async (req, res) => {
         return res.status(400).json({ error: 'Title is required' });
     }
 
-    const SYSTEM_INSTRUCTION = `You are a project manager.
-Given a project title, suggest 3-5 deliverables. Keep it brief.
-Respond ONLY in JSON with this format:
+    const SYSTEM_INSTRUCTION = `You are an expert project manager.
+Your task is to generate exactly 4 key deliverables for a project, given its title.
+
+**Project Context:**
+The main goal of the project is to produce a short essay. The deliverables should reflect the main steps to create this essay, such as research, brainstorming, outlining, and drafting.
+
+**Input:**
+The user will provide a project title.
+
+**Output Constraints:**
+1.  Respond ONLY with a valid JSON array.
+2.  The array must contain exactly 4 objects.
+3.  Each object must have a single key named "deliverable".
+4.  The "deliverable" value must be a brief string describing the task output.
+5.  DO NOT include any introductory text, explanations, or markdown (like \`\`\`json) before or after the JSON payload.
+
+**Example Format:**
 [
-    { "deliverable": String },
+    { "deliverable": "Initial Research and Brainstorming Notes" },
+    { "deliverable": "Detailed Essay Outline" },
+    { "deliverable": "First Draft of the Essay" },
+    { "deliverable": "Final Proofread Essay" }
 ]
-Do not include anything else.
 `;
 
     try {

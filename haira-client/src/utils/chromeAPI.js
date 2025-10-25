@@ -32,6 +32,13 @@ export async function checkChromeAIAvailability() {
       availability.summarizer = summarizerAvailable === 'available';
       availability.summarizerStatus = summarizerAvailable;
     }
+
+     // Check Writer API availability  
+     if (typeof window.Writer !== 'undefined') {
+        const writerAvailable = await window.Writer.availability();
+        availability.Writer = writerAvailable === 'available';
+        availability.writerStatus = writerAvailable;
+      }
   } catch (error) {
     availability.error = error.message;
   }
@@ -39,58 +46,177 @@ export async function checkChromeAIAvailability() {
   return availability;
 }
 
+const getPromptBasedOnTaskType = (taskType, aiTeammate) => {
+    switch (taskType) {
+        case 'write_section':
+            return aiTeammate.writePrompt || aiTeammate.systemPrompt || '';
+        case 'review':
+            return aiTeammate.reviewPrompt || aiTeammate.systemPrompt || '';
+        case 'suggestion':
+            return aiTeammate.suggestPrompt || aiTeammate.systemPrompt || '';
+        case 'suggest':
+            return aiTeammate.suggestPrompt || aiTeammate.systemPrompt || '';
+    }
+  }
+
 /**
+ * Use Chrome's built-in Writer API with Gemini fallback
+ */
+export async function getChromeWriter(text, taskType, aiTeammate, fallbackCallback, section = null, projectTitle = null) {
+    console.log('🔧 getChromeWriter called with:', { text: text?.substring(0, 100) + '...', taskType, aiTeammate, hasFallback: !!fallbackCallback });
+    console.log('🔧 AI Service: Will use Chrome Writer API');
+    
+    try {
+        // Check if Writer API is available
+        if (typeof window.Writer === 'undefined') {
+            console.log('❌ Chrome Writer API not available - window.Writer is undefined');
+            throw new Error('Chrome Writer API not available');
+        }
+
+        console.log('✅ Chrome Writer API found, checking availability...');
+        const availability = await window.Writer.availability();
+        console.log('📊 Writer availability:', availability);
+        
+        if (availability === 'downloadable') {
+            // Model needs to be downloaded - use fallback
+            console.log('⏳ Chrome AI model downloading, using Gemini fallback...');
+            return await fallbackCallback();
+        }
+
+        if (availability !== 'available') {
+            console.log('❌ Writer API not available, status:', availability);
+            throw new Error('Writer API not available');
+        }
+        
+        console.log('✅ Writer API is available, creating writer with options...');
+        // Create writer with options
+        const writerOptions = {
+            tone: aiTeammate.tone || 'formal',
+            format: taskType === 'review' || taskType === 'suggestion' ? 'plain-text' : 'markdown',
+            length: taskType === 'review' || taskType === 'suggestion' ? 'short' : (aiTeammate.length || 'medium'),
+            expectedInputLanguages: ['en'],
+            expectedContextLanguages: ['en'],
+            outputLanguage: 'en',
+            sharedContext: aiTeammate.context || aiTeammate.systemPrompt
+        };
+        
+        console.log('⚙️ Writer options:', writerOptions);
+
+        let writer;
+        if (availability === 'available') {
+            // Writer API can be used immediately
+            console.log('🚀 Creating writer immediately...');
+            writer = await window.Writer.create(writerOptions);
+        } else {
+            // Writer can be used after model download
+            console.log('⏳ Creating writer with download monitoring...');
+            writer = await window.Writer.create({
+                ...writerOptions,
+                monitor(m) {
+                    m.addEventListener("downloadprogress", e => {
+                        console.log(`📥 Model download progress: ${e.loaded * 100}%`);
+                    });
+                }
+            });
+        }
+
+        console.log('✅ Writer created successfully, calling write method...');
+        console.log('📝 Writing with text:', text?.substring(0, 100) + '...');
+        
+        // get prompt based on task type
+        const prompt = getPromptBasedOnTaskType(taskType, aiTeammate);
+        
+        // Replace placeholders based on task type
+        let requestContent;
+        if (taskType === 'write_section' && section && projectTitle) {
+            requestContent = prompt
+                .replace('{section}', section)
+                .replace('{projectTitle}', projectTitle);
+        } else if (taskType === 'review' || taskType === 'suggestion') {
+            requestContent = prompt
+                .replace('{reportContent}', text || 'No content available');
+        } else {
+            requestContent = `${prompt}
+
+[CONTENT]
+${text}`;
+        }
+        // Use the writer to create content
+        const writerResult = await writer.write(requestContent, {
+            context: aiTeammate.context
+        });
+
+        console.log('✅ Writer result received:', writerResult?.substring(0, 100) + '...');
+
+        // Clean up
+        writer.destroy();
+        console.log('🧹 Writer destroyed');
+
+        return {
+            content: writerResult,
+            source: 'chrome-writer',
+            error: null
+        };
+    } catch (error) {
+        console.error('❌ Chrome Writer API error:', error);
+        console.log('🔄 Falling back to Gemini server-side...');
+        return await fallbackCallback();
+    }
+} 
+
+/**    
  * Use Chrome's built-in Proofreader API with Gemini fallback
  */
 export async function getChromeProofreadSuggestions(text, fallbackCallback) {
-  try {
-    // Check if Proofreader API is available
-    if (typeof window.Proofreader === 'undefined') {
-      throw new Error('Chrome Proofreader API not available');
-    }
-
-    const availability = await window.Proofreader.availability();
-    
-    if (availability === 'downloadable') {
-      // Model needs to be downloaded - use fallback
-      console.log('Chrome AI model downloading, using Gemini fallback...');
+    try {
+      // Check if Proofreader API is available
+      if (typeof window.Proofreader === 'undefined') {
+        throw new Error('Chrome Proofreader API not available');
+      }
+  
+      const availability = await window.Proofreader.availability();
+      
+      if (availability === 'downloadable') {
+        // Model needs to be downloaded - use fallback
+        console.log('Chrome AI model downloading, using Gemini fallback...');
+        return await fallbackCallback();
+      }
+  
+      if (availability !== 'available') {
+        throw new Error('Proofreader API not available');
+      }
+  
+      // Create proofreader instance
+      const proofreader = await window.Proofreader.create({
+        expectedInputLanguages: ['en'],
+        expectedOutputLanguages: ['en'],
+        monitor(m) {
+          m.addEventListener('downloadprogress', (e) => {
+            console.log(`Chrome AI Downloaded ${e.loaded * 100}%`);
+          });
+        }
+      });
+  
+      // Get proofreading results
+      const result = await proofreader.proofread(text);
+      console.log('result',result);
+      console.log('corrections',result.corrections);
+  
+      return {
+        corrected: result.correctedInput,
+        corrections: result.corrections,
+        hasErrors: result.corrections.length > 0,
+        errorCount: result.corrections.length,
+        source: 'chrome'
+      };
+  
+    } catch (error) {
+      console.error('Chrome Proofreader API error:', error);
+      console.log('Falling back to Gemini server-side...');
       return await fallbackCallback();
     }
-
-    if (availability !== 'available') {
-      throw new Error('Proofreader API not available');
-    }
-
-    // Create proofreader instance
-    const proofreader = await window.Proofreader.create({
-      expectedInputLanguages: ['en'],
-      expectedOutputLanguages: ['en'],
-      monitor(m) {
-        m.addEventListener('downloadprogress', (e) => {
-          console.log(`Chrome AI Downloaded ${e.loaded * 100}%`);
-        });
-      }
-    });
-
-    // Get proofreading results
-    const result = await proofreader.proofread(text);
-    console.log('result',result);
-    console.log('corrections',result.corrections);
-
-    return {
-      corrected: result.correctedInput,
-      corrections: result.corrections,
-      hasErrors: result.corrections.length > 0,
-      errorCount: result.corrections.length,
-      source: 'chrome'
-    };
-
-  } catch (error) {
-    console.error('Chrome Proofreader API error:', error);
-    console.log('Falling back to Gemini server-side...');
-    return await fallbackCallback();
-  }
 }
+
 
 /**
  * Use Chrome's built-in Summarizer API with Gemini fallback

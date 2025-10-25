@@ -24,6 +24,12 @@ const TaskAssignmentModal = ({
     e.preventDefault();
     if (!sectionName.trim() && selectedTaskType === 'write') return;
     
+    // Debug: Log the aiTeammate object and its id
+    console.log('🔍 TaskAssignmentModal: aiTeammate object:', aiTeammate);
+    console.log('🔍 TaskAssignmentModal: aiTeammate.id:', aiTeammate.id);
+    console.log('🔍 TaskAssignmentModal: selectedTaskType:', selectedTaskType);
+    console.log('🔍 TaskAssignmentModal: sectionName:', sectionName.trim());
+    
     onAssignTask(aiTeammate.id, selectedTaskType, sectionName.trim());
     setSectionName('');
     setSelectedTaskType('write');

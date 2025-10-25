@@ -13,6 +13,7 @@ import SteveAvatar from '../images/Steve.png';
 import SamAvatar from '../images/Sam.png';
 import RasoaAvatar from '../images/Rasoa.png';
 import RakotoAvatar from '../images/Rakoto.png';
+import YouAvatar from '../images/You.png';
 
 function Chat() {
   const { id } = useParams();
@@ -24,19 +25,15 @@ function Chat() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [activeAgents, setActiveAgents] = useState([]);
-  const [showSettings, setShowSettings] = useState(false);
-  const [activeHoursStart, setActiveHoursStart] = useState(9);
-  const [activeHoursEnd, setActiveHoursEnd] = useState(17);
   const [projectName, setProjectName] = useState('');
   const [quotaWarning, setQuotaWarning] = useState('');
   const [quotaExceeded, setQuotaExceeded] = useState(false);
   const [currentProjectDay, setCurrentProjectDay] = useState(1);
-  const [testProjectDay, setTestProjectDay] = useState(1);
   const [messagesUsed, setMessagesUsed] = useState(0);
   const [dailyLimit, setDailyLimit] = useState(7);
-  const [tasks, setTasks] = useState([]);
   const [showQuotaWarning, setShowQuotaWarning] = useState(false);
   const [teammates, setTeammates] = useState({});
+  const [userProfile, setUserProfile] = useState(null);
   const auth = getAuth();
   
   // Ref for auto-scrolling to the bottom
@@ -139,78 +136,8 @@ function Chat() {
       scrollToBottom();
     }
   }, [messagesContainerRef.current, messages.length]);
-  // active hours util - AI agents are always active until quota reached
-  const isActiveHours = () => {
-    // AI agents are always active until user reaches 7 messages per day
-    return !quotaExceeded;
-  };
-
-  // load saved hours
-  useEffect(() => {
-    const savedStart = localStorage.getItem('aiActiveHoursStart');
-    const savedEnd = localStorage.getItem('aiActiveHoursEnd');
-    if (savedStart) setActiveHoursStart(parseInt(savedStart));
-    if (savedEnd) setActiveHoursEnd(parseInt(savedEnd));
-  }, []);
-
-  const saveActiveHours = (start, end) => {
-    localStorage.setItem('aiActiveHoursStart', start);
-    localStorage.setItem('aiActiveHoursEnd', end);
-    setActiveHoursStart(start);
-    setActiveHoursEnd(end);
-  };
-
-  // Fetch tasks from Firestore
-  useEffect(() => {
-    const fetchTasks = async () => {
-      if (!id || !currentUser) return;
-      
-      try {
-        const token = await currentUser.getIdToken();
-        const response = await axios.get(`http://localhost:3002/api/project/${id}/kanban`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (response.data.success && response.data.tasks) {
-          console.log('Fetched tasks from Firestore:', response.data.tasks);
-          setTasks(response.data.tasks);
-        }
-      } catch (error) {
-        console.error('Error fetching tasks:', error);
-        // Fallback to localStorage if API fails
-        const savedTasks = localStorage.getItem(`tasks_${id}`);
-        if (savedTasks) {
-          console.log('Using localStorage fallback for tasks');
-          setTasks(JSON.parse(savedTasks));
-        }
-      }
-    };
-
-    fetchTasks();
-  }, [id, currentUser]);
-
-  // Function to refresh tasks from Firestore
-  const refreshTasks = async () => {
-    if (!id || !currentUser) return;
-    
-    try {
-      const token = await currentUser.getIdToken();
-      const response = await axios.get(`http://localhost:3002/api/project/${id}/kanban`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.data.success && response.data.tasks) {
-        console.log('Refreshed tasks from Firestore:', response.data.tasks);
-        setTasks(response.data.tasks);
-      }
-    } catch (error) {
-      console.error('Error refreshing tasks:', error);
-    }
-  };
+  // Agents are "active" unless quota has been exceeded
+  const isActiveHours = () => !quotaExceeded;
 
   // Tasks are now read-only summary display
 
@@ -227,9 +154,10 @@ function Chat() {
         setIsLoading(true);
         setStatusMessage('');
         const token = await auth.currentUser.getIdToken(true);
-        const [chatResp, projectResp] = await Promise.all([
+        const [chatResp, projectResp, profileResp] = await Promise.all([
           axios.get(`http://localhost:3002/api/project/${id}/chat`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`http://localhost:3002/api/project/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+          axios.get(`http://localhost:3002/api/project/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`http://localhost:3002/api/profile`, { headers: { Authorization: `Bearer ${token}` } })
         ]);
 
         if (isMounted) {
@@ -247,10 +175,7 @@ function Chat() {
             setTeammates(chatResp.data.teammates);
           }
           
-          // Refresh tasks after loading messages
-          setTimeout(() => {
-            refreshTasks();
-          }, 500);
+          // (Removed task summary refresh)
           
           // Get quota information
           if (chatResp.data.quotaExceeded) {
@@ -275,6 +200,11 @@ function Chat() {
           if (chatResp.data.currentProjectDay) {
             setCurrentProjectDay(chatResp.data.currentProjectDay);
           }
+
+          // Set user profile (for avatarUrl)
+          if (profileResp?.data?.success && profileResp?.data?.user) {
+            setUserProfile(profileResp.data.user);
+          }
         }
       } catch (err) {
         console.error('[Client] Error fetching data:', err);
@@ -297,11 +227,8 @@ function Chat() {
     setIsSending(true);
     try {
       const token = await auth.currentUser.getIdToken(true);
-      const response = await axios.post(`http://localhost:3002/api/project/${id}/chat`, {
-        content: newMessage,
-        activeHours: { start: activeHoursStart, end: activeHoursEnd },
-        tasks,
-        testProjectDay
+        const response = await axios.post(`http://localhost:3002/api/project/${id}/chat`, {
+        content: newMessage
       }, { headers: { Authorization: `Bearer ${token}` } });
 
       setStatusMessage(`✅ Message sent to team`);
@@ -341,10 +268,7 @@ function Chat() {
         setQuotaExceeded(response.data.quotaExceeded);
       }
 
-      // Refresh tasks after receiving new messages (AI agents might have created new tasks)
-      setTimeout(() => {
-        refreshTasks();
-      }, 1000);
+      // (Removed task summary refresh after sending)
 
       setNewMessage("");
       const clearTimeoutMs = response.data.quotaWarning || response.data.quotaExceeded ? 5000 : 3000;
@@ -399,10 +323,24 @@ function Chat() {
   };
   // sender info helper
   const getSenderInfo = (senderId, senderName) => {
+    // Current user (human): prefer profile avatarUrl, then teammates avatar, then fallback
     if (senderId === auth.currentUser?.uid || senderId === 'user') {
-      return { name: 'You', avatar: '👤', role: 'Team Member' };
+      const human = teammates[auth.currentUser?.uid]
+        || Object.values(teammates || {}).find(t => t.type === 'human');
+      const avatar = userProfile?.avatarUrl || human?.avatar || YouAvatar;
+      return {
+        name: human?.name || userProfile?.name || 'You',
+        avatar,
+        role: human?.role || 'Team Member'
+      };
     }
+    // Known AI agent info
     if (agentInfo[senderId]) return agentInfo[senderId];
+    // Fallback: try teammates map for avatar/name
+    const teammate = teammates[senderId];
+    if (teammate) {
+      return { name: teammate.name || senderName || 'Member', avatar: teammate.avatar || AlexAvatar, role: teammate.role || 'Member' };
+    }
     return { name: senderName || 'Unknown', avatar: '❓', role: 'Member' };
   };
 
@@ -410,23 +348,40 @@ function Chat() {
     <div className="chat-container">
       {/* LEFT SIDEBAR */}
       <div className="chat-sidebar">
-          {/* Navigation Buttons */}
-          <div className="sidebar-section page-navigation-buttons">
-            <button 
-              onClick={() => navigate(`/project/${id}/kanban`)}
-              className="nav-btn nav-btn-kanban"
-              title="Go to Kanban Board"
-            >
-              📋 Kanban
-            </button>
-            <button 
-              onClick={() => navigate(`/project/${id}/submission`)}
-              className="nav-btn nav-btn-submission"
-              title="Go to Submission"
-            >
-              📤 Submission
-            </button>
-          </div>
+          {/* Navigation Bar */}
+            <div className="sidebar-section page-navigation-buttons">
+              <div className="nav-bar">
+                <button 
+                  onClick={() => navigate(`/project/${id}/kanban`)}
+                  className="nav-tab nav-tab-kanban"
+                  title="Go to Kanban Board"
+                >
+                  📋 Kanban
+                </button>
+                <button 
+                  onClick={() => navigate(`/project/${id}/submission`)}
+                  className="nav-tab nav-tab-submission"
+                  title="Go to Submission"
+                >
+                  📤 Submission
+                </button>
+              </div>
+            </div>
+
+            {/* User profile card showing the same avatar as profile */}
+            <div className="sidebar-section">
+              <div className="user-profile-card">
+                <div className="profile-avatar-container">
+                  <Avatar avatar={userProfile?.avatarUrl || YouAvatar} alt={userProfile?.name || 'You'} size={48} />
+                </div>
+                <div className="profile-info">
+                  <div className="profile-name">{userProfile?.name || 'You'}</div>
+                  {userProfile?.email && (
+                    <div className="profile-stats"><span className="stat-item">{userProfile.email}</span></div>
+                  )}
+                </div>
+              </div>
+            </div>
         
         {/* Project Info */}
         <div className="sidebar-section">
@@ -471,71 +426,7 @@ function Chat() {
           </div>
         </div>
 
-        {/* Settings Panel */}
-        {showSettings && (
-          <div className="sidebar-section">
-            <div className="settings-panel">
-              <h3>⏰ AI Active Hours</h3>
-              <div className="time-settings">
-                <div className="time-input-group">
-                  <label>Start (UTC):</label>
-                  <select value={activeHoursStart} onChange={(e) => saveActiveHours(parseInt(e.target.value), activeHoursEnd)}>
-                    {Array.from({ length: 24 }, (_, i) => (
-                      <option key={i} value={i}>{i.toString().padStart(2, '0')}:00</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="time-input-group">
-                  <label>End (UTC):</label>
-                  <select value={activeHoursEnd} onChange={(e) => saveActiveHours(activeHoursStart, parseInt(e.target.value))}>
-                    {Array.from({ length: 24 }, (_, i) => (
-                      <option key={i} value={i}>{i.toString().padStart(2, '0')}:00</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Task Summary */}
-        <div className="sidebar-section">
-          <div className="task-section">
-            <h3>📋 Today's Tasks</h3>
-            <div className="task-summary">
-              {tasks.length === 0 ? (
-                <p className="no-tasks">No tasks yet</p>
-              ) : (
-                <div className="task-summary-list">
-                  {tasks.slice(0, 5).map(task => (
-                    <div key={task.id} className={`task-summary-item ${task.completed ? 'completed' : ''}`}>
-                      <span className="task-status">{task.completed ? '✅' : '⏳'}</span>
-                      <div className="task-content">
-                        <div className="task-title">{task.title || task.text || 'Untitled'}</div>
-                        {task.description && (
-                          <div className="task-description">{task.description}</div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {tasks.length > 5 && (
-                    <div className="task-more">+{tasks.length - 5} more tasks</div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Test Controls */}
-        <div className="sidebar-section">
-          <div className="test-controls">
-            <label>Test Day:</label>
-            <select value={testProjectDay} onChange={(e) => setTestProjectDay(parseInt(e.target.value))} className="day-selector">
-              {[1,2,3,4,5,6,7].map(d => (<option key={d} value={d}>Day {d}</option>))}
-            </select>
-          </div>
-        </div>
+        {/* (Removed Settings Panel, Today's Tasks, and Test Controls) */}
       </div>
 
       {/* RIGHT CHAT AREA */}
@@ -543,13 +434,6 @@ function Chat() {
         {/* Chat Header */}
         <div className="chat-header">
           <h1>💬 Chat</h1>
-          <button 
-            className="settings-button" 
-            onClick={() => setShowSettings(!showSettings)}
-            title="Settings"
-          >
-            ⚙️
-          </button>
         </div>
 
         {/* Status Messages */}
