@@ -648,8 +648,32 @@ function Submission() {
         id: aiType // Ensure id is preserved
       };
       console.log('🔍 Debug selected aiTeammate:', aiTeammate);
+      
+      // Create task description based on task type and section
+      let taskDescription = '';
+      if (taskType === 'write' || taskType === 'write_section') {
+        taskDescription = sectionName ? `write ${sectionName}` : 'write content';
+      } else if (taskType === 'review' || taskType === 'review_content') {
+        taskDescription = sectionName ? `review ${sectionName}` : 'review content';
+      } else if (taskType === 'suggest' || taskType === 'suggest_improvements') {
+        taskDescription = sectionName ? `suggest improvements for ${sectionName}` : 'suggest improvements';
+      }
+      
+      // Create task in Kanban immediately when assigned
+      if (taskDescription) {
+        console.log('[handleAssignAITask] Creating Kanban task:', {
+          description: taskDescription,
+          assignedTo: aiType
+        });
+        
+        await syncTasksToKanban([{
+          description: taskDescription,
+          assignedTo: aiType
+        }]);
+      }
   
-      if (taskType === 'write_section') {
+      // Execute the AI task
+      if (taskType === 'write' || taskType === 'write_section') {
         await write(aiTeammate, sectionName, reportContent, projectData?.title);
       } else if (taskType === 'review' || taskType === 'review_content') {
         await review(aiTeammate, reportContent);
@@ -662,9 +686,53 @@ function Submission() {
       }
   
       setAiFeedback(`✅ ${aiTeammate.name} completed ${taskType.replace('_', ' ')} task`);
+      
+      // Update task to "done" in Kanban after completion
+      if (taskDescription) {
+        console.log('[handleAssignAITask] Updating Kanban task to done');
+        await syncTasksToKanban([{
+          description: taskDescription,
+          assignedTo: aiType
+        }]);
+      }
     } catch (error) {
       console.error('AI task assignment failed:', error);
       setAiFeedback(`❌ AI task failed: ${error.message}`);
+    }
+  }
+
+  // Sync tasks to Kanban
+  async function syncTasksToKanban(tasks, showAlert = false) {
+    if (!tasks || tasks.length === 0) {
+      console.warn('[syncTasks] No tasks provided');
+      if (showAlert) {
+        alert("No tasks found to sync.");
+      }
+      return null;
+    }
+    
+    console.log('[syncTasks] Syncing tasks:', tasks);
+    
+    try {
+      const token = await getIdTokenSafely();
+      console.log('[syncTasks] Token obtained:', !!token);
+      
+      const response = await axios.post(
+        `${backend_host}/api/project/${id}/sync-tasks`,
+        { tasks },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          }
+        }
+      );
+      
+      console.log('[syncTasks] Response:', response.data);
+      return response.data;
+    } catch (err) {
+      console.error('[syncTasks] Error:', err.response?.data || err.message);
+      throw err;
     }
   }
 
@@ -683,6 +751,8 @@ function Submission() {
     setSubmitting(true);
     try {
       const token = await getIdTokenSafely();
+      
+      // Submit the report
       const response = await axios.post(`${backend_host}/api/project/${id}/submission`, 
         { content: reportContent },
         {
