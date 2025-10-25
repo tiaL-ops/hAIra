@@ -3,3 +3,6 @@ node_modules
 node_modules/
 haira-server/.env
 firestore.rules
+
+.env
+.env/.env
