@@ -13,8 +13,7 @@ export const USER_SCHEMA = {
   name: String,           // User's display name
   email: String,          // User's email address
   avatarUrl: String,      // Profile picture (base64 or URL)
-  notifications: Array,     // Notifications of the format: { type: Number, message: String }
-                            // Type 1: task reminder
+  notifications: Array,   // Notifications
 
   // --- State ---
   activeProjectId: String, // Reference to user's current active project
@@ -104,3 +103,10 @@ export const CHAT_SCHEMA = {
   timestamp: Number,  // Message timestamp
   systemPrompt: String // System prompt used for AI messages (only stored with AI messages)
 };
+
+// Subcollection of users
+export const NOTIFICATIONS_SCHEMA = {
+  type: Number,         // Type 1: task deadline
+  message: String,
+  sentAt: Date,
+}

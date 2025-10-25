@@ -438,7 +438,11 @@ export async function getNotifications(userId) {
 }
 
 export async function pushNotification(userId, type, message) {
-  const notif = { type: type, message: message };
+  const notif = {
+    type: type,
+    message: message,
+    sentAt: Date.now(),
+  };
   return addSubdocument(COLLECTIONS.USERS, userId, 'notifications', notif);
 }
 
