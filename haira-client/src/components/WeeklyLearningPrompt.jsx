@@ -3,7 +3,8 @@ import { getAuth } from 'firebase/auth';
 import axios from 'axios';
 import '../styles/WeeklyLearningPrompt.css';
 
-const backend_host = "http://localhost:3002";
+// Prefer environment override, fallback to localhost for dev
+const backend_host = import.meta?.env?.VITE_BACKEND_HOST || "http://localhost:3002";
 
 export default function WeeklyLearningPrompt({ 
   onTopicSelected, 
@@ -21,14 +22,12 @@ export default function WeeklyLearningPrompt({
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const auth = getAuth();
 
-  const backend_host = "http://localhost:3002";
-
   // Fetch learning topics from server
   useEffect(() => {
     const fetchTopics = async () => {
       try {
         console.log('[WeeklyLearningPrompt] Fetching topics...');
-        const token = await auth.currentUser.getIdToken();
+        const token = await auth.currentUser?.getIdToken?.();
         console.log('[WeeklyLearningPrompt] Token obtained:', token ? 'Yes' : 'No');
         
         const response = await axios.get(`${backend_host}/api/project/topics`, {
@@ -72,7 +71,7 @@ export default function WeeklyLearningPrompt({
     
     setLoadingTemplates(true);
     try {
-      const token = await auth.currentUser.getIdToken();
+      const token = await auth.currentUser?.getIdToken?.();
       const response = await axios.get(`${backend_host}/api/project/templates/${selectedTopic}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -100,7 +99,7 @@ export default function WeeklyLearningPrompt({
     setError('');
 
     try {
-      const token = await auth.currentUser.getIdToken();
+      const token = await auth.currentUser?.getIdToken?.();
       const response = await axios.post(`${backend_host}/api/project/generate-project`, {
         topic: selectedTopic,
         action: 'generate_new'
@@ -136,7 +135,7 @@ export default function WeeklyLearningPrompt({
     setError('');
 
     try {
-      const token = await auth.currentUser.getIdToken();
+      const token = await auth.currentUser?.getIdToken?.();
       const response = await axios.post(`${backend_host}/api/project/generate-project`, {
         topic: selectedTopic,
         action: 'use_template',
