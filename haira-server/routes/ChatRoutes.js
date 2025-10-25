@@ -643,6 +643,30 @@ router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
 
     await batch.commit();
 
+    // Update the project's team array to reflect teammates
+    const teamArray = [
+      {
+        id: userId,
+        name: projectDoc.data().userName || 'You',
+        role: 'Project Owner',
+        type: 'human'
+      },
+      ...agentsToCreate.map(agentId => {
+        const agent = AI_AGENTS[agentId];
+        return {
+          id: agentId,
+          name: agent.name,
+          role: agent.role,
+          type: 'ai'
+        };
+      })
+    ];
+
+    await db.collection('userProjects').doc(projectId).update({
+      team: teamArray,
+      teamUpdatedAt: FieldValue.serverTimestamp()
+    });
+
     res.json({
       success: true,
       message: 'Teammates initialized successfully',

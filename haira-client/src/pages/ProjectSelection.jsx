@@ -4,6 +4,7 @@ import { getAuth } from 'firebase/auth';
 import WeeklyLearningPrompt from '../components/WeeklyLearningPrompt';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ProjectViewModal from '../components/ProjectViewModal';
+import ProjectWelcome from '../components/ProjectWelcome';
 import '../styles/ProjectSelection.css';
 import axios from 'axios';
 
@@ -22,6 +23,8 @@ export default function ProjectSelection() {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [modalProjects, setModalProjects] = useState([]);
   const [modalTitle, setModalTitle] = useState('');
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [newProject, setNewProject] = useState(null);
   const navigate = useNavigate();
   const auth = getAuth();
 
@@ -71,7 +74,7 @@ export default function ProjectSelection() {
 
 
   // Open an existing project
-  const handleOpenProject = async (projectId, destination) => {
+  const handleOpenProject = async (projectId, destination, project) => {
     try {
       const token = await auth.currentUser.getIdToken();
       
@@ -154,10 +157,25 @@ export default function ProjectSelection() {
     setModalTitle('');
   };
 
-  // Handle AI project creation
+  // Handle AI project creation - show welcome modal first
   const handleTopicSelected = (projectId, project) => {
-    // Navigate to the new project
-    navigate(`/project/${projectId}/kanban`);
+    // Store the new project data
+    setNewProject({
+      id: projectId,
+      title: project.title,
+      description: project.description
+    });
+    // Show welcome modal
+    setShowWelcome(true);
+  };
+
+  // Handle continue from welcome modal to teammate selection
+  const handleContinueFromWelcome = () => {
+    setShowWelcome(false);
+    if (newProject) {
+      // Navigate to classroom to choose teammates
+      navigate(`/project/${newProject.id}/classroom`);
+    }
   };
 
   // Handle continue current project
@@ -222,43 +240,54 @@ export default function ProjectSelection() {
             </div>
             
             <div className="projects-grid-large">
-              {projects.map((project) => (
-                <div key={project.id} className="project-card-large">
-                  <h2 className="project-card-title-large">
-                    {project.title}
-                  </h2>
-                  <p className="project-card-status-large">
-                    Status: <span className="status-badge">{project.status}</span>
-                  </p>
-                  <div className="project-actions-large">
-                    <button 
-                      onClick={() => handleOpenProject(project.id, 'classroom')}
-                      className="btn-action-large btn-primary-large"
-                      title="Choose or activate AI teammates"
-                    >
-                      Choose Teammates
-                    </button>
-                    <button 
-                      onClick={() => handleOpenProject(project.id, 'kanban')}
-                      className="btn-action-large btn-kanban-large"
-                    >
-                      Kanban Board
-                    </button>
-                    <button 
-                      onClick={() => handleOpenProject(project.id, 'chat')}
-                      className="btn-action-large btn-chat-large"
-                    >
-                      Team Chat
-                    </button>
-                    <button 
-                      onClick={() => handleOpenProject(project.id, 'submission')}
-                      className="btn-action-large btn-secondary-large"
-                    >
-                      Submission
-                    </button>
+              {projects.map((project) => {
+                const hasTeammates = project?.team && project.team.length > 0;
+                
+                return (
+                  <div key={project.id} className="project-card-large">
+                    <h2 className="project-card-title-large">
+                      {project.title}
+                    </h2>
+                    <p className="project-card-status-large">
+                      Status: <span className="status-badge">{project.status}</span>
+                    </p>
+                    
+                    {/* Display Teammates */}
+                    {hasTeammates ? (
+                      <div className="teammates-display">
+                        <h3 className="teammates-title">👥 Team Members:</h3>
+                        <div className="teammates-list">
+                          {project.team.map((member, index) => (
+                            <div key={index} className="teammate-item">
+                              <span className="teammate-icon">
+                                {member.type === 'human' ? '👤' : '🤖'}
+                              </span>
+                              <div className="teammate-info">
+                                <span className="teammate-name">{member.name}</span>
+                                <span className="teammate-role">{member.role}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="warning-banner">
+                        ⚠️ Please choose teammates first!
+                      </div>
+                    )}
+                    
+                    <div className="project-actions-large">
+                      <button 
+                        onClick={() => handleOpenProject(project.id, 'classroom', project)}
+                        className="btn-action-large btn-primary-large"
+                        title="Choose or manage AI teammates"
+                      >
+                        {hasTeammates ? '⚙️ Change Teammates' : '⚡ Choose Teammates'}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ) : (
@@ -311,6 +340,14 @@ export default function ProjectSelection() {
           onOpenProject={handleOpenProject}
           onArchiveProject={handleArchiveProject}
         />
+
+        {/* Project Welcome Modal */}
+        {showWelcome && newProject && (
+          <ProjectWelcome
+            project={newProject}
+            onContinue={handleContinueFromWelcome}
+          />
+        )}
 
         {/* Confirmation Modal */}
         <ConfirmationModal
