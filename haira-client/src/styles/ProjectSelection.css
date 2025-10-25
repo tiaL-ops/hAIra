@@ -1,7 +1,11 @@
+
+
 .projects-wrapper {
   padding-top: 80px; /* Add space below the top navigation bar */
   min-height: 100vh;
-  background-color: black;
+  /* Light purple-to-green gradient from image vibes */
+  background: linear-gradient(135deg, #E6E0F8, #D9F7E0);
+  overflow-x: hidden; /* Prevent horizontal scroll from shadows */
 }
 
 .projects-container {
@@ -17,18 +21,197 @@
 }
 
 .projects-title {
-  font-size: 2.5rem;
+  font-size: 1.4rem; /* Smallers */
   font-weight: bold;
-  color: #408F8C; /* Teal from palette */
-  margin-bottom: 0.5rem;
-  font-family: 'Arial', sans-serif;
+  color: #FF6B9A; /* Pixelverse Pink */
+  margin-bottom: 1rem;
+  font-family: 'Jersey 10', sans-serif; /* Same font as Chat.css */
+  text-shadow: 2px 2px 0px #5D2A42; /* Smaller shadow */
 }
 
 .projects-subtitle {
-  font-size: 1.1rem;
-  color: #e0e0e0; /* Light gray for contrast on black */
+  font-size: 1.1rem; /* Smaller like Chat.css */
+  color: #4a4a4a; /* Dark text for light bg */
   margin: 0;
-  font-family: 'Arial', sans-serif;
+  font-family: 'Jersey 10', sans-serif; /* Same font as Chat.css */
+}
+
+/* Main Projects Section */
+.main-projects-section {
+  margin-bottom: 4rem;
+}
+
+/* Large Project Grid */
+.projects-grid-large {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 2.5rem; /* Increased gap for shadow */
+  margin: 2rem 0;
+}
+
+/* Large Project Cards */
+.project-card-large {
+  background: #a293c9; /* Pixelverse Purple */
+  border: 4px solid #7a6a9e; /* Darker Purple Border */
+  border-radius: 12px;
+  padding: 2rem;
+  transition: all 0.1s ease-in-out;
+  box-shadow: 6px 6px 0px #5D4A8C; /* 2D Pixel Shadow */
+}
+
+.project-card-large:hover {
+  /* "Press" effect */
+  transform: translate(2px, 2px);
+  box-shadow: 4px 4px 0px #5D4A8C;
+}
+
+.project-card-title-large {
+  font-size: 16px; /* Smaller like Chat.css */
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-family: 'Jersey 10', sans-serif; /* Same font as Chat.css */
+  text-shadow: 1px 1px 0px #a89cc9;
+}
+
+.project-card-status-large {
+  font-size: 14px; /* Smaller like Chat.css */
+  color: #f0f0f0;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-family: 'Jersey 10', sans-serif; /* Same font as Chat.css */
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  background: #91d3c0; /* Pixelverse Teal */
+  color: #333; /* Dark text on light badge */
+  border-radius: 6px;
+  font-size: 12px; /* Smaller like Chat.css */
+  font-weight: 600;
+  font-family: 'Jersey 10', sans-serif; /* Same font as Chat.css */
+  border: 2px solid #5a8a80;
+  text-transform: capitalize;
+}
+
+.project-actions-large {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Base Pixel Button Style */
+.btn-action-large {
+  padding: 0.8rem 1.2rem;
+  border-radius: 8px;
+  font-size: 14px; /* Smaller like Chat.css */
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.1s ease-in-out;
+  text-align: center;
+  font-family: 'Jersey 10', sans-serif; /* Same font as Chat.css */
+  color: #333;
+  text-transform: uppercase;
+}
+
+/* "Press" effect for all large buttons */
+.btn-action-large:hover:not(:disabled) {
+  transform: translate(2px, 2px);
+}
+
+/* Green Button (Teammates) */
+.btn-primary-large {
+  background: #a4d391; /* Pixelverse Green */
+  border: 3px solid #6a8a5f;
+  box-shadow: 4px 4px 0px #6a8a5f;
+}
+.btn-primary-large:hover:not(:disabled) {
+  background: #93c280;
+  box-shadow: 2px 2px 0px #6a8a5f;
+}
+
+/* Blue Button (Kanban) */
+.btn-kanban-large {
+  background: #91a4d3; /* Pixelverse Blue */
+  border: 3px solid #5f6a8a;
+  box-shadow: 4px 4px 0px #5f6a8a;
+}
+.btn-kanban-large:hover:not(:disabled) {
+  background: #8093c2;
+  box-shadow: 2px 2px 0px #5f6a8a;
+}
+
+/* Red Button (Chat) */
+.btn-chat-large {
+  background: #d39191; /* Pixelverse Red */
+  border: 3px solid #8a5f5f;
+  box-shadow: 4px 4px 0px #8a5f5f;
+}
+.btn-chat-large:hover:not(:disabled) {
+  background: #c28080;
+  box-shadow: 2px 2px 0px #8a5f5f;
+}
+
+/* Yellow Button (Submission) */
+.btn-secondary-large {
+  background: #d3c091; /* Pixelverse Yellow/Treasure */
+  border: 3px solid #8a805f;
+  box-shadow: 4px 4px 0px #8a805f;
+}
+.btn-secondary-large:hover:not(:disabled) {
+  background: #c2b080;
+  box-shadow: 2px 2px 0px #8a805f;
+}
+
+/* Empty State Large */
+.empty-state-large {
+  text-align: center;
+  padding: 4rem 2rem;
+  margin-bottom: 3rem;
+  background: rgba(255, 255, 255, 0.6);
+  border: 4px solid #7a6a9e;
+  border-radius: 12px;
+}
+
+.empty-state-title {
+  font-size: 1.4rem; /* Smaller like Chat.css */
+  color: #FF6B9A; /* Pink */
+  margin-bottom: 1rem;
+  font-weight: bold;
+  font-family: 'Jersey 10', sans-serif; /* Same font as Chat.css */
+  text-shadow: 1px 1px 0px #5D2A42;
+}
+
+.empty-state-text-large {
+  font-size: 1.1rem; /* Smaller like Chat.css */
+  color: #4a4a4a; /* Dark text */
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0 auto;
+  font-family: 'Jersey 10', sans-serif; /* Same font as Chat.css */
+}
+
+/* New Project Header */
+.new-project-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 2rem 0;
+  border-top: 4px dashed #7a6a9e; /* Dashed like a retro map */
+}
+
+.new-project-header h2 {
+  font-size: 1.4rem; /* Smaller like Chat.css */
+  color: #5D4A8C; /* Dark Purple */
+  margin-bottom: 0.5rem;
+  font-family: 'Jersey 10', sans-serif; /* Same font as Chat.css */
+}
+
+.new-project-header p {
+  font-size: 1.1rem; /* Smaller like Chat.css */
+  color: #4a4a4a;
+  font-family: 'Jersey 10', sans-serif; /* Same font as Chat.css */
 }
 
 .weekly-prompt-section {
@@ -38,7 +221,7 @@
 /* Project View Buttons */
 .project-view-buttons {
   display: flex;
-  gap: 0.8rem;
+  gap: 1.5rem; /* More gap for shadows */
   justify-content: center;
   margin: 1.5rem 0;
   flex-wrap: wrap;
@@ -46,108 +229,131 @@
 
 .view-btn {
   padding: 0.8rem 1.5rem;
-  border: 2px solid #20b2aa;
-  border-radius: 12px;
-  background: white;
-  color: #20b2aa;
-  font-size: 0.9rem;
+  border: 3px solid #555;
+  border-radius: 8px;
+  background: #f0f0f0;
+  color: #333;
+  font-size: 14px; /* Smaller like Chat.css */
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  min-width: 160px;
+  transition: all 0.1s ease-in-out;
+  min-width: 200px;
   text-align: center;
+  font-family: 'Jersey 10', sans-serif; /* Same font as Chat.css */
+  box-shadow: 4px 4px 0px #555;
+  text-transform: uppercase;
 }
 
 .view-btn:hover:not(:disabled) {
-  background: #20b2aa;
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(32, 178, 170, 0.3);
+  background: #ddd;
+  color: #000;
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px #555;
 }
 
 .view-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.7;
   cursor: not-allowed;
-  background: #f3f4f6;
-  border-color: #d1d5db;
-  color: #9ca3af;
+  background: #aaa;
+  border-color: #777;
+  color: #555;
+  box-shadow: none; /* No shadow when disabled */
 }
 
+/* --- Color Overrides for View Buttons --- */
 .active-btn {
-  border-color: #20b2aa;
-  color: #20b2aa;
+  background: #a4d391; /* Green */
+  border-color: #6a8a5f;
+  box-shadow: 4px 4px 0px #6a8a5f;
+  color: #333;
+}
+.active-btn:hover:not(:disabled) {
+  background: #8ecf75;
+  color: #333;
+  box-shadow: 2px 2px 0px #6a8a5f;
 }
 
-.inactive-btn {
-  border-color: #9169C0;
-  color: #9169C0;
+.inactive-btn { /* Style from old CSS, just in case */
+  background: #91a4d3; /* Blue */
+  border-color: #5f6a8a;
+  box-shadow: 4px 4px 0px #5f6a8a;
+  color: #333;
 }
-
 .inactive-btn:hover:not(:disabled) {
-  background: #9169C0;
-  color: white;
+  background: #7c94cf;
+  color: #333;
+  box-shadow: 2px 2px 0px #5f6a8a;
 }
 
 .archived-btn {
-  border-color: #b4565a;
-  color: #b4565a;
+  background: #d39191; /* Red */
+  border-color: #8a5f5f;
+  box-shadow: 4px 4px 0px #8a5f5f;
+  color: #333;
 }
-
 .archived-btn:hover:not(:disabled) {
-  background: #b4565a;
-  color: white;
+  background: #cf7c7c;
+  color: #333;
+  box-shadow: 2px 2px 0px #8a5f5f;
 }
 
-/* Project Grid and Cards */
+
+/* --- [START] Re-theme of unused classes (for completeness) --- */
+/* These classes were in your original file but not in the React component. */
+/* I've re-themed them just in case you use them elsewhere. */
+
 .projects-section {
   margin-bottom: 2rem;
 }
 
 .section-title {
-  font-size: 1.5rem;
+  font-size: 1.4rem; /* Smaller like Chat.css */
   font-weight: bold;
   margin-bottom: 1rem;
-  color: #333;
+  color: #5D4A8C;
+  font-family: 'Jersey 10', sans-serif; /* Same font as Chat.css */
 }
 
 .projects-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
 .project-card {
   color: white; /* Text color to white */
-  border: 2px solid rgba(255, 255, 255, 0.2); /* Lighter border for dark background */
+  border: 3px solid #7a6a9e;
   border-radius: 12px;
   padding: 1.5rem;
-  /* 2D gaming style box shadow */
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), 0 0 0 4px rgba(255, 255, 255, 0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 4px 4px 0px #5D4A8C;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .project-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.6), 0 0 0 6px rgba(255, 255, 255, 0.2);
+  transform: translate(1px, 1px);
+  box-shadow: 3px 3px 0px #5D4A8C;
 }
 
 .project-card-title {
-  font-size: 1.2rem;
+  font-size: 14px; /* Smaller like Chat.css */
   font-weight: bold;
   color: white;
   margin-bottom: 0.5rem;
+  font-family: 'Jersey 10', sans-serif; /* Same font as Chat.css */
 }
 
 .project-card-status {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.9);
   margin-bottom: 0.5rem;
-  font-size: 0.9rem;
+  font-size: 12px; /* Smaller like Chat.css */
+  font-family: 'Jersey 10', sans-serif; /* Same font as Chat.css */
 }
 
 .project-deadline {
-  color: #666;
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 1rem;
-  font-size: 0.9rem;
+  font-size: 12px; /* Smaller like Chat.css */
+  font-family: 'Jersey 10', sans-serif; /* Same font as Chat.css */
 }
 
 .project-actions {
@@ -158,168 +364,131 @@
 
 .btn-action {
   padding: 0.5rem 1rem;
-  border: none;
+  border: 2px solid #333;
   border-radius: 6px;
-  font-size: 0.9rem;
+  font-size: 12px; /* Smaller like Chat.css */
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.1s;
   flex: 1;
   min-width: 120px;
+  font-family: 'Jersey 10', sans-serif; /* Same font as Chat.css */
+  box-shadow: 2px 2px 0px #333;
+  color: #333;
+}
+
+.btn-action:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #333;
 }
 
 .btn-kanban {
-  background-color: #20b2aa; /* Teal */
-  color: white;
+  background-color: #91a4d3; /* Blue */
 }
-
-.btn-kanban:hover {
-  background-color: #1a9b94;
-}
-
 .btn-chat {
-  background-color: #9169C0; /* Purple */
-  color: white;
+  background-color: #d39191; /* Red */
 }
-
-.btn-chat:hover {
-  background-color: #764ba2;
-}
-
 .btn-archive {
-  background-color: #b4565a; /* Red */
-  color: white;
+  background-color: #b4565a; /* Dark Red */
 }
-
-.btn-archive:hover {
-  background-color: #91434a;
-}
-
 .btn-continue {
-  background-color: #93c263; /* Green */
-  color: white;
+  background-color: #a4d391; /* Green */
 }
-
-.btn-continue:hover {
-  background-color: #53a48a;
-}
-
 .btn-view {
-  background-color: #6b7280; /* Gray */
-  color: white;
-}
-
-.btn-view:hover {
-  background-color: #4b5563;
+  background-color: #aaa; /* Gray */
 }
 
 /* Status colors */
-.archived-status {
-  color: white; /* White text on colored background */
-}
-
-.inactive-status {
-  color: white; /* White text on colored background */
+.archived-status, .inactive-status {
+  color: white;
 }
 
 /* Project card status backgrounds */
 .project-card.active {
-  background-color: #408F8C; /* Teal from palette */
+  background-color: #a491d3; /* Purple */
+  border-color: #7a6a9e;
+  box-shadow: 4px 4px 0px #5D4A8C;
 }
-
 .project-card.inactive {
-  background-color: #9169C0; /* Purple from palette */
+  background-color: #91a4d3; /* Blue */
+  border-color: #5f6a8a;
+  box-shadow: 4px 4px 0px #5f6a8a;
 }
-
 .project-card.archived {
-  background-color: #B4565A; /* Red/Brown from palette */
-}
-
-/* Archived projects styling */
-.archived-card {
-  opacity: 0.8;
-  border-color: #d1d5db;
-}
-
-.archived-date {
-  color: #666;
-  font-size: 0.9rem;
-  margin-bottom: 1rem;
+  background-color: #d39191; /* Red */
+  border-color: #8a5f5f;
+  box-shadow: 4px 4px 0px #8a5f5f;
 }
 
 .project-limits {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background: #E6E0F8; /* Light purple */
+  border: 2px solid #7a6a9e;
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1rem;
   text-align: center;
-  color: #6c757d;
-  font-family: 'Jersey 10', sans-serif;
-  font-size: 14px;
+  color: #333;
+  font-family: "Jersey 10", cursive;
+  font-size: 12px;
 }
 
 .ai-project-section {
   margin: 2rem 0;
   text-align: center;
   padding: 2rem;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: rgba(255, 255, 255, 0.6);
   border-radius: 12px;
-  border: 2px solid #dee2e6;
+  border: 2px solid #7a6a9e;
 }
 
 .create-project-title {
-  font-family: 'Jersey 10', sans-serif;
-  font-size: 1.8rem;
-  color: #333;
+  font-family: "Jersey 10", cursive;
+  font-size: 16px;
+  color: #5D4A8C;
   margin-bottom: 0.5rem;
 }
 
 .ai-project-description {
-  color: #6c757d;
+  color: #4a4a4a;
   margin-bottom: 1.5rem;
-  font-size: 1.1rem;
+  font-size: 14px;
+  font-family: "Jersey 10", cursive;
 }
 
 .limit-message {
-  color: #dc3545;
-  font-size: 0.9rem;
+  color: #d33444;
+  font-size: 12px;
   margin-top: 1rem;
-  font-style: italic;
+  font-family: "Jersey 10", cursive;
 }
 
-.btn-ai-generate {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
+.btn-ai-generate, .btn-start-ai {
+  background: #FF6B9A; /* Pink */
+  border: 3px solid #5D2A42;
   color: white;
   padding: 1rem 2rem;
-  border-radius: 12px;
-  font-size: 1.1rem;
+  border-radius: 8px;
+  font-size: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.1s ease;
   font-weight: 500;
-  font-family: 'Jersey 10', sans-serif;
+  font-family: "Jersey 10", cursive;
+  box-shadow: 4px 4px 0px #5D2A42;
+  text-shadow: 2px 2px 0px #5D2A42;
 }
 
-.btn-ai-generate:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+.btn-ai-generate:hover:not(:disabled),
+.btn-start-ai:hover:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px #5D2A42;
 }
 
 .btn-ai-generate:disabled {
-  opacity: 0.6;
+  opacity: 0.7;
   cursor: not-allowed;
-}
-
-.projects-section {
-  margin-bottom: 2rem;
-}
-
-.section-title {
-  font-family: 'Jersey 10', sans-serif;
-  font-size: 24px;
-  color: #333;
-  margin-bottom: 1rem;
+  background: #aaa;
+  border-color: #777;
+  box-shadow: none;
 }
 
 .section-header {
@@ -330,93 +499,70 @@
 }
 
 .btn-toggle-archived {
-  background: #6c757d;
-  border: none;
+  background: #aaa;
+  border: 2px solid #555;
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 0.9rem;
-  font-family: 'Jersey 10', sans-serif;
+  font-size: 12px;
+  font-family: "Jersey 10", cursive;
+  box-shadow: 2px 2px 0px #555;
 }
 
 .btn-toggle-archived:hover {
-  background: #5a6268;
+  background: #999;
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #555;
 }
 
 .archived-projects {
-  opacity: 0.7;
-}
-
-.archived-card {
-  background: #e9ecef;
-  border: 1px solid #dee2e6;
-}
-
-.archived-status {
-  color: #6c757d;
-  font-style: italic;
+  opacity: 0.8;
 }
 
 .archived-date {
-  font-size: 0.9rem;
-  color: #6c757d;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 1rem;
-  font-family: 'Jersey 10', sans-serif;
+  font-family: "Jersey 10", cursive;
 }
 
-.btn-archive {
-  background: #dc3545;
-  color: white;
-}
+/* --- [END] Re-theme of unused classes --- */
 
-.btn-archive:hover {
-  background: #c82333;
-}
-
-.btn-view {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-view:hover {
-  background: #5a6268;
-}
-
-.project-deadline {
-  font-size: 0.9rem;
-  color: #6c757d;
-  margin-bottom: 1rem;
-  font-family: 'Jersey 10', sans-serif;
-}
-
-.btn-start-ai {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-  color: white;
-  padding: 1rem 2rem;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
-  font-family: 'Jersey 10', sans-serif;
-}
-
-.btn-start-ai:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-}
 
 /* Responsive design */
 @media (max-width: 768px) {
+  .projects-title {
+    font-size: 2rem;
+  }
+  .projects-subtitle {
+    font-size: 1.3rem;
+  }
+  
   .section-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
   
-  .projects-grid {
+  .projects-grid, .projects-grid-large {
     grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .project-card-large {
+     padding: 1.5rem;
+  }
+  
+  .project-actions-large {
+    grid-template-columns: 1fr; /* Stack buttons on small screens */
+  }
+  
+  .empty-state-title {
+    font-size: 1.5rem;
+  }
+  
+  .empty-state-text-large {
+    font-size: 1.2rem;
   }
 }

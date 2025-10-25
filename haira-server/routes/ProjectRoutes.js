@@ -24,11 +24,15 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
     const {includeArchived} = req.query;
     
     const projects = await getUserProjectsWithTemplates(userId);
+    
+    console.log(`[ProjectRoutes] Raw projects for user ${userId}:`);
+    projects.forEach(p => {
+      console.log(`  - ${p.id}: isActive=${p.isActive}, status=${p.status}, archivedAt=${p.archivedAt}`);
+    });
 
-    //separate active, inactive, and archived projects
-    const activeProjects = projects.filter(project => project.isActive === true);
-    const inactiveProjects = projects.filter(project => project.status === 'inactive' && project.isActive === false);
-    const archivedProjects = projects.filter(project => project.status === 'archived');
+    //separate active and archived projects only
+    let activeProjects = projects.filter(project => !project.archivedAt);
+    const archivedProjects = projects.filter(project => project.archivedAt);
 
     //create project limits
     const canCreate = await canCreateNewProject(userId);
@@ -38,7 +42,6 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
       success: true,
       projects: includeArchived ? projects : activeProjects,
       activeProjects: activeProjects,
-      inactiveProjects: inactiveProjects,
       archivedProjects: archivedProjects,
       canCreateNew: canCreate,
       activeProject: activeProject,
@@ -384,4 +387,57 @@ router.get('/templates/:topic', verifyFirebaseToken, async (req, res) => {
   }
 });
 // Export the router so we can use it in index.js
+// Manual migration route to fix existing projects without isActive field
+router.post('/fix-projects', verifyFirebaseToken, async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const projects = await getUserProjects(userId);
+    
+    console.log(`[ProjectRoutes] Found ${projects.length} projects for user ${userId}`);
+    
+    const projectsWithoutIsActive = projects.filter(p => p.isActive === undefined && !p.archivedAt);
+    console.log(`[ProjectRoutes] Found ${projectsWithoutIsActive.length} projects without isActive field`);
+    
+    if (projectsWithoutIsActive.length === 0) {
+      return res.json({ 
+        success: true, 
+        message: 'All projects already have isActive field',
+        fixed: 0
+      });
+    }
+    
+    // Make the most recent project active, others inactive
+    const sortedProjects = projectsWithoutIsActive.sort((a, b) => (b.startDate || 0) - (a.startDate || 0));
+    
+    let fixed = 0;
+    for (let i = 0; i < sortedProjects.length; i++) {
+      const project = sortedProjects[i];
+      const isActive = i === 0; // First (most recent) is active
+      
+      await updateDocument(COLLECTIONS.USER_PROJECTS, project.id, {
+        isActive: isActive,
+        status: isActive ? 'active' : 'inactive'
+      });
+      
+      if (isActive) {
+        await updateUserActiveProject(userId, project.id);
+      }
+      
+      fixed++;
+      console.log(`[ProjectRoutes] Fixed project ${project.id} - isActive: ${isActive}`);
+    }
+    
+    res.json({
+      success: true,
+      message: `Fixed ${fixed} projects`,
+      fixed: fixed,
+      activeProject: sortedProjects[0].id
+    });
+    
+  } catch (error) {
+    console.error('Error fixing projects:', error);
+    res.status(500).json({ error: 'Failed to fix projects' });
+  }
+});
+
 export default router;

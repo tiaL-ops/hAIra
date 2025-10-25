@@ -13,7 +13,6 @@ export default function ProjectSelection() {
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState([]);
   const [activeProjects, setActiveProjects] = useState([]);
-  const [inactiveProjects, setInactiveProjects] = useState([]);
   const [archivedProjects, setArchivedProjects] = useState([]);
   const [error, setError] = useState('');
   const [showArchived, setShowArchived] = useState(false);
@@ -50,16 +49,9 @@ export default function ProjectSelection() {
         const data = response.data;
         setProjects(data.projects || []);
         setActiveProjects(response.data.activeProjects || []);
-        setInactiveProjects(response.data.inactiveProjects || []);
         setArchivedProjects(response.data.archivedProjects || []);
         
-        // Debug logging for archived projects
-        console.log('Archived projects data:', response.data.archivedProjects);
-        if (response.data.archivedProjects && response.data.archivedProjects.length > 0) {
-          response.data.archivedProjects.forEach(project => {
-            console.log(`Archived project: ${project.title}, archivedAt: ${project.archivedAt}, type: ${typeof project.archivedAt}`);
-          });
-        }
+
         setProjectLimits({
           ...response.data.projectLimits,
           canCreateNew: response.data.canCreateNew
@@ -127,6 +119,12 @@ export default function ProjectSelection() {
       } else {
         throw new Error('Failed to archive project');
       }
+
+      const data = await response.json();
+      
+  // After creating a project, take the user to Classroom to choose teammates
+  navigate(`/project/${data.projectId}/classroom`);
+      
     } catch (err) {
       console.error('Error archiving project:', err);
       setError('Failed to archive project. Please try again.');
@@ -167,24 +165,27 @@ export default function ProjectSelection() {
     navigate(`/project/${currentProject.id}/kanban`);
   };
 
-  // Handle continue inactive project (make it active)
-  const handleContinueInactiveProject = async (projectId) => {
+
+
+  // Fix projects without isActive field
+  const handleFixProjects = async () => {
     try {
       const token = await auth.currentUser.getIdToken();
       
-      // Make the inactive project active
-      await axios.post(`${backend_host}/api/project/${projectId}/activate`, {
-      }, {
+      const response = await axios.post(`${backend_host}/api/project/fix-projects`, {}, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       
-      // Refresh projects to show updated state
+      console.log('Fix projects response:', response.data);
+      alert(`Fixed ${response.data.fixed} projects! Most recent project is now active.`);
+      
+      // Refresh the page to show fixed projects
       window.location.reload();
     } catch (err) {
-      console.error('Error activating project:', err);
-      setError('Failed to activate project. Please try again.');
+      console.error('Error fixing projects:', err);
+      alert('Failed to fix projects. Please try again.');
     }
   };
 
@@ -212,10 +213,69 @@ export default function ProjectSelection() {
           </div>
         )}
 
+        {/* Main Projects Display - Show prominently first */}
+        {projects.length > 0 ? (
+          <div className="main-projects-section">
+            <div className="projects-header">
+              <h1 className="projects-title">Your Projects</h1>
+              <p className="projects-subtitle">Continue working on your existing projects or create a new one</p>
+            </div>
+            
+            <div className="projects-grid-large">
+              {projects.map((project) => (
+                <div key={project.id} className="project-card-large">
+                  <h2 className="project-card-title-large">
+                    {project.title}
+                  </h2>
+                  <p className="project-card-status-large">
+                    Status: <span className="status-badge">{project.status}</span>
+                  </p>
+                  <div className="project-actions-large">
+                    <button 
+                      onClick={() => handleOpenProject(project.id, 'classroom')}
+                      className="btn-action-large btn-primary-large"
+                      title="Choose or activate AI teammates"
+                    >
+                      Choose Teammates
+                    </button>
+                    <button 
+                      onClick={() => handleOpenProject(project.id, 'kanban')}
+                      className="btn-action-large btn-kanban-large"
+                    >
+                      Kanban Board
+                    </button>
+                    <button 
+                      onClick={() => handleOpenProject(project.id, 'chat')}
+                      className="btn-action-large btn-chat-large"
+                    >
+                      Team Chat
+                    </button>
+                    <button 
+                      onClick={() => handleOpenProject(project.id, 'submission')}
+                      className="btn-action-large btn-secondary-large"
+                    >
+                      Submission
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="empty-state-large">
+            <h2 className="empty-state-title">Welcome to hAIra!</h2>
+            <p className="empty-state-text-large">
+              You don't have any projects yet. Create your first project below to get started with AI-powered learning!
+            </p>
+          </div>
+        )}
 
-
-        {/* Weekly Learning Prompt - Main Interface */}
+        {/* Weekly Learning Prompt - Secondary Interface for new projects */}
         <div className="weekly-prompt-section">
+          <div className="new-project-header">
+            <h2>Create New Project</h2>
+            <p>Start a new learning journey with AI teammates</p>
+          </div>
           <WeeklyLearningPrompt
             onTopicSelected={handleTopicSelected}
             onContinueProject={handleContinueProject}
@@ -224,22 +284,14 @@ export default function ProjectSelection() {
           />
         </div>
 
-        {/* Project View Buttons */}
+        {/* Project View Buttons - For managing different project states */}
         <div className="project-view-buttons">
           <button 
             className="view-btn active-btn"
             onClick={() => showProjectView(activeProjects, 'Active Projects')}
             disabled={activeProjects.length === 0}
           >
-            📋 Active Projects ({activeProjects.length})
-          </button>
-          
-          <button 
-            className="view-btn inactive-btn"
-            onClick={() => showProjectView(inactiveProjects, 'Inactive Projects')}
-            disabled={inactiveProjects.length === 0}
-          >
-            ⏸️ Inactive Projects ({inactiveProjects.length})
+            Active Projects ({activeProjects.length})
           </button>
           
           <button 
@@ -247,10 +299,9 @@ export default function ProjectSelection() {
             onClick={() => showProjectView(archivedProjects, 'Archived Projects')}
             disabled={archivedProjects.length === 0}
           >
-            📦 Archived Projects ({archivedProjects.length})
+            Archived Projects ({archivedProjects.length})
           </button>
         </div>
-
         {/* Project View Modal */}
         <ProjectViewModal
           isOpen={showProjectModal}
@@ -259,7 +310,6 @@ export default function ProjectSelection() {
           onClose={closeProjectModal}
           onOpenProject={handleOpenProject}
           onArchiveProject={handleArchiveProject}
-          onContinueProject={handleContinueInactiveProject}
         />
 
         {/* Confirmation Modal */}

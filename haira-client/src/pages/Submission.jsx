@@ -4,6 +4,15 @@ import { getAuth } from "firebase/auth";
 import { useAuth } from '../App';
 import axios from 'axios';
 
+// Import agent avatars
+import BrownAvatar from '../images/Brown.png';
+import ElzaAvatar from '../images/Elza.png';
+import KatiAvatar from '../images/Kati.png';
+import SteveAvatar from '../images/Steve.png';
+import SamAvatar from '../images/Sam.png';
+import RasoaAvatar from '../images/Rasoa.png';
+import RakotoAvatar from '../images/Rakoto.png';
+
 // -- NEW --
 import AIToolbar from "../components/TextEditor/AIToolbar";
 import EditorArea from "../components/TextEditor/EditorArea";
@@ -15,7 +24,7 @@ import SummarizePopup from "../components/SummarizePopup";
 import ProofreadPopup from "../components/ProofreadPopup";
 import { getChromeProofreadSuggestions, getChromeSummary, getChromeWriter } from "../utils/chromeAPI";
 import { useAITeam } from "../hooks/useAITeam";
-import { AI_TEAMMATES } from "../../../haira-server/config/aiReportAgents.js";
+import { AI_TEAMMATES } from "../../../haira-server/config/aiAgents.js";
 import "../styles/editor.css";
 import "../styles/global.css";
 import "../styles/TeamPanel.css";
@@ -121,93 +130,18 @@ function Submission() {
         setMessage(data.message || `Submission Page Loaded!`);
         setProjectData(data.project);
         
-        // Setup team context
+        // Setup team context from teammates subcollection
+        const teammates = data.teammates || {};
         const team = data.project?.team || [];
-        const hasAITeammates = team.some(member => member.type === 'ai');
-        const hasOldAITeammates = team.some(member => member.id === 'manager-ai' || member.id === 'lazy-ai');
         
-        console.log('Team setup:', { team, hasAITeammates, hasOldAITeammates });
+        // Filter AI teammates
+        const aiTeammates = team.filter(member => member.type === 'ai');
         
-        if (!hasAITeammates || hasOldAITeammates) {
-          // Add or update AI teammates using centralized configuration
-          const defaultAITeammates = [
-            {
-              ...AI_TEAMMATES.MANAGER,
-              name: `${AI_TEAMMATES.MANAGER.name} (Project Manager)`,
-              isActive: true,
-              type: 'ai'
-            },
-            {
-              ...AI_TEAMMATES.LAZY,
-              name: `${AI_TEAMMATES.LAZY.name} (Helper)`,
-              isActive: true,
-              type: 'ai'
-            }
-          ];
-          
-          // Filter out old AI teammates and keep human teammates
-          const filteredTeam = team.filter(member => member.type !== 'ai' && !['manager-ai', 'lazy-ai'].includes(member.id));
-          const updatedTeam = [...filteredTeam, ...defaultAITeammates];
-          
-          console.log('Setting updated team:', updatedTeam);
-          setTeamContext(updatedTeam);
-          
-          // Update team in backend
-          try {
-            await axios.post(`${backend_host}/api/project/${id}/team`, 
-              { team: updatedTeam },
-              {
-                headers: {
-                  'Authorization': `Bearer ${token}`
-                }
-              }
-            );
-          } catch (err) {
-            console.log('Team update failed, continuing with local state:', err);
-          }
-        } else {
-          // We have existing AI teammates with correct IDs, but update their persona/config
-          const updatedTeam = team.map(member => {
-            if (member.type === 'ai') {
-              // Update AI teammates with latest persona configurations from centralized config
-              if (member.id === 'ai_manager') {
-                return {
-                  ...member,
-                  ...AI_TEAMMATES.MANAGER,
-                  name: `${AI_TEAMMATES.MANAGER.name} (Project Manager)`,
-                  personality: 'organized, deadline-focused, detail-oriented',
-                  isActive: true
-                };
-              } else if (member.id === 'ai_helper') {
-                return {
-                  ...member,
-                  ...AI_TEAMMATES.LAZY,
-                  name: `${AI_TEAMMATES.LAZY.name} (Helper)`,
-                  personality: 'lazy, creative, finds shortcuts',
-                  isActive: true
-                };
-              }
-            }
-            return member;
-          });
-          
-          console.log('Updating existing AI teammates:', updatedTeam);
-          setTeamContext(updatedTeam);
-          
-          // Update team in backend with updated persona
-          try {
-            await axios.post(`${backend_host}/api/project/${id}/team`, 
-              { team: updatedTeam },
-              {
-                headers: {
-                  'Authorization': `Bearer ${token}`
-                }
-              }
-            );
-          } catch (err) {
-            console.log('Team update failed, continuing with local state:', err);
-          }
-        }
+        console.log('📥 Teammates loaded from backend:', teammates);
+        console.log('🤖 AI teammates:', aiTeammates);
+        
+        // Set team context with the actual teammates
+        setTeamContext(team);
         
         // Load draft content if available
         if (data.project?.draftReport?.content) {

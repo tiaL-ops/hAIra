@@ -1,0 +1,311 @@
+/* ClassroomPixel.css */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* Main container is now full-screen and uses flex */
+.classroom-container-pixel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100vh;
+    padding: 30px;
+    box-sizing: border-box; /* Important for full-screen padding */
+    text-align: center;
+    font-family: 'Press Start 2P', cursive;
+    background-color: #fdfcf6;
+}
+
+/* Wrapper to center content and push button down */
+.classroom-content-wrapper {
+    flex-grow: 1; /* Pushes button to the bottom */
+    max-width: 900px; /* Keeps content from being too wide */
+    width: 100%;
+    margin: 0 auto 20px auto; /* Centers horizontally */
+}
+
+.classroom-header-pixel h1 {
+    font-size: 1.5rem;
+    color: #333;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+}
+
+.classroom-header-pixel p {
+    font-size: 0.7rem;
+    color: #666;
+    line-height: 1.4;
+    margin-bottom: 15px;
+}
+
+/* Top preview area */
+.character-preview-area {
+    background: #fff;
+    border: 4px solid #444;
+    border-radius: 8px;
+    padding: 25px;
+    margin-top: 20px;
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.teammate-avatar-pixel {
+    width: 180px;
+    height: 180px;
+    margin: 0 auto 15px auto;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 6px solid #444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f0f0f0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.teammate-avatar-pixel:hover {
+    transform: scale(1.02);
+}
+
+.teammate-avatar-pixel img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    image-rendering: pixelated; 
+}
+
+.teammate-info-pixel h3 {
+    font-size: 1.5rem;
+    margin: 10px 0;
+}
+
+.teammate-info-pixel .role {
+    font-size: 0.8rem;
+    color: #777;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.teammate-info-pixel .personality {
+    font-size: 0.75rem;
+    color: #555;
+    line-height: 1.7;
+    min-height: 60px;
+}
+
+.select-button-pixel {
+    background-color: #8bc34a; /* Green */
+    border: 3px solid #444;
+    color: #fff;
+    padding: 15px 25px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin: 15px auto 0 auto;
+    width: 80%;
+    box-shadow: 5px 5px 0px #444;
+    transition: all 0.1s ease;
+    text-align: center;
+    display: block;
+}
+
+.select-button-pixel:active {
+    transform: translate(5px, 5px);
+    box-shadow: none;
+}
+
+.select-button-pixel.selected {
+    background-color: #ff9800; /* Orange */
+}
+
+/* Bottom roster area */
+.character-roster-area {
+    margin-top: 30px;
+    padding: 20px;
+    background: #eee;
+    border: 4px solid #444;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.roster-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 5px solid #aaa;
+    background-color: #fff;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+.roster-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    image-rendering: pixelated;
+}
+
+.roster-avatar:hover {
+    transform: scale(1.1);
+}
+
+.roster-avatar.active {
+    border-color: #2196F3; /* Blue highlight */
+    transform: scale(1.15);
+    box-shadow: 0 0 15px #2196F3;
+}
+
+.roster-avatar .selected-check {
+    display: none;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 30px;
+    height: 30px;
+    background: #8bc34a;
+    color: white;
+    font-family: sans-serif;
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 50%;
+    border: 3px solid #444;
+    line-height: 27px;
+}
+
+.roster-avatar.selected .selected-check {
+    display: block;
+}
+
+/* Activate button (at bottom of screen) */
+.activate-button-pixel {
+    padding: 15px 30px; /* Smaller padding */
+    font-size: 1rem;      /* Smaller font */
+    font-family: 'Press Start 2P', cursive;
+    color: white;
+    background-color: #2196F3;
+    border: 4px solid #444;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 6px 6px 0px #444;
+    transition: all 0.1s ease;
+    
+    /* Centering and max-width */
+    max-width: 900px; 
+    width: 100%;
+    margin: 0 auto; /* Centers the button */
+}
+
+.activate-button-pixel:active:not(:disabled) {
+    transform: translate(6px, 6px);
+    box-shadow: none;
+}
+
+/* Create Project Button */
+.create-project-button {
+    padding: 20px 40px;
+    font-size: 1rem;
+    font-family: 'Press Start 2P', cursive;
+    color: white;
+    background-color: #FF69B4;
+    border: 4px solid #444;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 6px 6px 0px #444;
+    transition: all 0.1s ease;
+    max-width: 400px;
+    width: 100%;
+    margin: 30px auto;
+    display: block;
+}
+
+.create-project-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 8px 8px 0px #444;
+}
+
+.create-project-button:active {
+    transform: translate(6px, 6px);
+    box-shadow: none;
+}
+
+.activate-button-pixel:disabled {
+    background-color: #ccc;
+    color: #888;
+    cursor: not-allowed;
+    box-shadow: 6px 6px 0px #999;
+}
+
+/* Activated View (after selection) */
+.activated-section-pixel {
+    margin-top: 30px;
+    max-width: 900px;
+    margin: 30px auto;
+}
+
+.activated-section-pixel h2 {
+    font-size: 1.5rem;
+}
+
+.activated-grid-pixel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.activated-card-pixel {
+    padding: 20px;
+    border: 3px solid #444;
+    border-radius: 8px;
+    background-color: #ffffff;
+}
+
+.activated-card-pixel .teammate-avatar-pixel {
+    width: 80px;
+    height: 80px;
+}
+
+.activated-card-pixel h3 {
+    font-size: 1rem;
+    margin-top: 10px;
+}
+
+.activated-card-pixel .role {
+    font-size: 0.7rem;
+    color: #777;
+    margin-top: 5px;
+}
+
+.activated-nav-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 30px;
+    flex-wrap: wrap;
+}
+
+.nav-link-button {
+    padding: 10px 15px;
+    font-size: 0.7rem;
+    font-family: 'Press Start 2P', cursive;
+    color: #fff;
+    border: 3px solid #444;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 3px 3px 0px #444;
+    transition: all 0.1s ease;
+}
+
+.nav-link-button:active {
+    transform: translate(3px, 3px);
+    box-shadow: none;
+}

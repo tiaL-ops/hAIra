@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { getAuth } from 'firebase/auth';
 import axios from 'axios';
-import { AI_TEAMMATES } from '../../../haira-server/config/aiReportAgents.js';
+import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
 import AlexAvatar from '../images/Alex.png';
 import SamAvatar from '../images/Sam.png';
 import { getChromeWriter } from '../utils/chromeAPI.js';
@@ -77,33 +77,44 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     if (!editorRef.current) return;
 
     const editor = editorRef.current;
-    const colors = {
-      ai_manager: AI_TEAMMATES.MANAGER.color,
-      ai_helper: AI_TEAMMATES.LAZY.color
-    };
-
-    // Get AI teammate info
-    const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.MANAGER : AI_TEAMMATES.LAZY;
+    
+    // Get AI teammate info - supports new 5-agent team and legacy IDs
+    let aiTeammate;
+    
+    // Check if it's one of the agents
+    if (AI_TEAMMATES[aiType]) {
+      aiTeammate = AI_TEAMMATES[aiType];
+    } 
+    // Legacy mapping for old IDs
+    else if (aiType === 'ai_manager') {
+      aiTeammate = AI_TEAMMATES.rasoa;
+    } else if (aiType === 'ai_helper') {
+      aiTeammate = AI_TEAMMATES.rakoto;
+    } else {
+      // Default to rasoa if unknown
+      aiTeammate = AI_TEAMMATES.rasoa;
+    }
+    
     const aiName = aiTeammate.name;
     const aiRole = aiTeammate.role;
     const aiColor = aiTeammate.color;
-    const aiAvatar = aiType === 'ai_manager' ? AlexAvatar : SamAvatar;
+    const aiAvatar = aiTeammate.emoji; // Use emoji instead of images
 
     // Calculate word count for contribution tracking
     const wordCount = text.trim().split(/\s+/).filter(word => word.length > 0).length;
 
-    // Use red for review tasks, otherwise use default colors
-    const color = (taskType === 'review') ? '#DC2626' : (colors[aiType] || '#000000');
+    // Use red for review tasks, otherwise use agent's color
+    const color = (taskType === 'review') ? '#DC2626' : aiColor;
     
     // Move cursor to end of document
     const docSize = editor.state.doc.content.size;
     editor.commands.setTextSelection({ from: docSize, to: docSize });
     
-    // Create avatar HTML element
+    // Create avatar HTML element with emoji
     const avatarHtml = `
       <div class="ai-contribution-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 8px; background: linear-gradient(135deg, ${aiColor}20 0%, ${aiColor}10 100%); border-radius: 8px; border-left: 3px solid ${aiColor};">
-        <div class="ai-contribution-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, ${aiColor} 0%, ${aiColor}CC 100%); display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.3);">
-          <img src="${aiAvatar}" alt="${aiName}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+        <div class="ai-contribution-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, ${aiColor} 0%, ${aiColor}CC 100%); display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.3); font-size: 18px;">
+          ${aiAvatar}
         </div>
         <div class="ai-contribution-info" style="display: flex; flex-direction: column; gap: 2px;">
           <span style="font-weight: 600; color: ${aiColor}; font-size: 0.9rem;">${aiName}</span>
@@ -133,8 +144,8 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     } else if (taskType === 'suggest') {
       editor.commands.setHighlight({ color: '#FFF7ED' }); // Light orange highlight
     } else {
-      // For write tasks, use light blue/green highlight
-      const highlightColor = aiType === 'ai_manager' ? '#EFF6FF' : '#F0F9FF';
+      // For write tasks, use agent's color with transparency
+      const highlightColor = aiColor + '20';
       editor.commands.setHighlight({ color: highlightColor });
     }
 
@@ -171,27 +182,32 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     const editor = editorRef.current;
     const { from, to } = editor.state.selection;
     
-    const colors = {
-      ai_manager: AI_TEAMMATES.MANAGER.color,
-      ai_helper: AI_TEAMMATES.LAZY.color
-    };
+    // Get AI teammate for color
+    let aiTeammate;
+    if (AI_TEAMMATES[aiType]) {
+      aiTeammate = AI_TEAMMATES[aiType];
+    } else if (aiType === 'ai_manager') {
+      aiTeammate = AI_TEAMMATES.rasoa;
+    } else if (aiType === 'ai_helper') {
+      aiTeammate = AI_TEAMMATES.rakoto;
+    } else {
+      aiTeammate = AI_TEAMMATES.rasoa;
+    }
     
-    const backgrounds = {
-      ai_manager: '#EFF6FF',
-      ai_helper: '#F0F9FF'
-    };
+    const aiColor = aiTeammate.color;
+    const highlightColor = aiColor + '20'; // Add transparency
     
-    // Use red for review tasks, orange for suggest, otherwise use default colors
-    let color, highlightColor;
+    // Use red for review tasks, orange for suggest, otherwise use agent color
+    let color, backgroundColor;
     if (taskType === 'review') {
       color = '#DC2626';
-      highlightColor = '#FEF2F2';
+      backgroundColor = '#FEF2F2';
     } else if (taskType === 'suggest') {
       color = '#EA580C';
-      highlightColor = '#FFF7ED';
+      backgroundColor = '#FFF7ED';
     } else {
-      color = colors[aiType] || '#000000';
-      highlightColor = backgrounds[aiType] || '#F9FAFB';
+      color = aiColor;
+      backgroundColor = highlightColor;
     }
     
     // If no selection, insert at current cursor position
@@ -203,7 +219,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       const newPos = cursorPos + text.length + 50; // Approximate position after insertion
       editor.commands.setTextSelection({ from: cursorPos, to: newPos });
       editor.commands.setColor(color);
-      editor.commands.setHighlight({ color: highlightColor });
+      editor.commands.setHighlight({ color: backgroundColor });
     } else {
       // If there's a selection, wrap it with the comment
       const selectedText = editor.state.doc.textBetween(from, to);
@@ -214,7 +230,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       // Apply color and highlight to the wrapped text
       editor.commands.setTextSelection({ from, to: to + 50 }); // Approximate new position
       editor.commands.setColor(color);
-      editor.commands.setHighlight({ color: highlightColor });
+      editor.commands.setHighlight({ color: backgroundColor });
     }
   }, [editorRef]);
 
@@ -241,6 +257,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
           requestData = { aiType, sectionName, currentContent };
           break;
         case 'review':
+        case 'review_content':
           endpoint = `${backend_host}/api/project/${projectId}/ai/review`;
           requestData = { aiType, currentContent };
           break;
@@ -318,6 +335,17 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       } else if (taskType === 'review') {
         // For review tasks, convert markdown to plain text and add as a comment in the sidebar
         if (onAddComment) {
+          // Get AI teammate info
+          let aiTeammate;
+          if (AI_TEAMMATES[aiType]) {
+            aiTeammate = AI_TEAMMATES[aiType];
+          } else if (aiType === 'ai_manager') {
+            aiTeammate = AI_TEAMMATES.rasoa;
+          } else if (aiType === 'ai_helper') {
+            aiTeammate = AI_TEAMMATES.rakoto;
+          } else {
+            aiTeammate = AI_TEAMMATES.rasoa; // default
+          }
           const aiName = `${aiTeammate.name} (${aiTeammate.role})`;
           const plainTextResponse = convertMarkdownToPlainText(aiResponse);
           const commentText = `Review by ${aiName}:\n${plainTextResponse}`;
@@ -326,6 +354,17 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       } else if (taskType === 'suggest_improvements') {
         // For suggestion tasks, convert markdown to plain text and add as a comment in the sidebar
         if (onAddComment) {
+          // Get AI teammate info
+          let aiTeammate;
+          if (AI_TEAMMATES[aiType]) {
+            aiTeammate = AI_TEAMMATES[aiType];
+          } else if (aiType === 'ai_manager') {
+            aiTeammate = AI_TEAMMATES.rasoa;
+          } else if (aiType === 'ai_helper') {
+            aiTeammate = AI_TEAMMATES.rakoto;
+          } else {
+            aiTeammate = AI_TEAMMATES.rasoa; // default
+          }
           const aiName = `${aiTeammate.name} (${aiTeammate.role})`;
           const plainTextResponse = convertMarkdownToPlainText(aiResponse);
           const commentText = `Suggestion by ${aiName}:\n${plainTextResponse}`;
