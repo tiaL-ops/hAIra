@@ -84,6 +84,70 @@
   border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
+/* Navigation buttons in sidebar */
+.sidebar-section.page-navigation-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+/* Navigation button base style */
+.nav-btn {
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.1s ease-in-out;
+  text-align: center;
+  font-family: 'Jersey 10', sans-serif;
+  color: #333;
+  border: 3px solid;
+  box-shadow: 3px 3px 0px;
+}
+
+.nav-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px;
+}
+
+/* Kanban button - blue */
+.nav-btn-kanban {
+  background: #91a4d3;
+  border-color: #5f6a8a;
+  box-shadow: 3px 3px 0px #5f6a8a;
+}
+
+.nav-btn-kanban:hover {
+  background: #8093c2;
+  box-shadow: 1px 1px 0px #5f6a8a;
+}
+
+/* Chat button - red */
+.nav-btn-chat {
+  background: #d39191;
+  border-color: #8a5f5f;
+  box-shadow: 3px 3px 0px #8a5f5f;
+}
+
+.nav-btn-chat:hover {
+  background: #c28080;
+  box-shadow: 1px 1px 0px #8a5f5f;
+}
+
+/* Submission button - yellow */
+.nav-btn-submission {
+  background: #d3c091;
+  border-color: #8a805f;
+  box-shadow: 3px 3px 0px #8a805f;
+}
+
+.nav-btn-submission:hover {
+  background: #c2b080;
+  box-shadow: 1px 1px 0px #8a805f;
+}
+
 .sidebar-section h3 {
   color: var(--accent-green);
   font-size: 1.4rem;

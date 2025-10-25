@@ -4,8 +4,19 @@ import { getAuth } from 'firebase/auth';
 import WeeklyLearningPrompt from '../components/WeeklyLearningPrompt';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ProjectViewModal from '../components/ProjectViewModal';
+import ProjectWelcome from '../components/ProjectWelcome';
 import '../styles/ProjectSelection.css';
 import axios from 'axios';
+// Avatars
+import AlexAvatar from '../images/Alex.png';
+import BrownAvatar from '../images/Brown.png';
+import ElzaAvatar from '../images/Elza.png';
+import KatiAvatar from '../images/Kati.png';
+import SteveAvatar from '../images/Steve.png';
+import SamAvatar from '../images/Sam.png';
+import RasoaAvatar from '../images/Rasoa.png';
+import RakotoAvatar from '../images/Rakoto.png';
+import YouAvatar from '../images/You.png';
 
 const backend_host = "http://localhost:3002";
 
@@ -22,6 +33,8 @@ export default function ProjectSelection() {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [modalProjects, setModalProjects] = useState([]);
   const [modalTitle, setModalTitle] = useState('');
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [newProject, setNewProject] = useState(null);
   const navigate = useNavigate();
   const auth = getAuth();
 
@@ -71,7 +84,7 @@ export default function ProjectSelection() {
 
 
   // Open an existing project
-  const handleOpenProject = async (projectId, destination) => {
+  const handleOpenProject = async (projectId, destination, project) => {
     try {
       const token = await auth.currentUser.getIdToken();
       
@@ -140,6 +153,25 @@ export default function ProjectSelection() {
     setProjectToArchive(null);
   };
 
+  // Resolve avatar for a teammate
+  const avatarMap = {
+    alex: AlexAvatar,
+    brown: BrownAvatar,
+    elza: ElzaAvatar,
+    kati: KatiAvatar,
+    steve: SteveAvatar,
+    sam: SamAvatar,
+    rasoa: RasoaAvatar,
+    rakoto: RakotoAvatar,
+  };
+
+  const getTeammateAvatar = (member) => {
+    if (!member) return YouAvatar;
+    if (member.type === 'human') return YouAvatar;
+    const key = (member.id || member.name || '').toString().toLowerCase();
+    return avatarMap[key] || SteveAvatar;
+  };
+
   // Show project modal
   const showProjectView = (projects, title) => {
     setModalProjects(projects);
@@ -154,10 +186,25 @@ export default function ProjectSelection() {
     setModalTitle('');
   };
 
-  // Handle AI project creation
+  // Handle AI project creation - show welcome modal first
   const handleTopicSelected = (projectId, project) => {
-    // Navigate to the new project
-    navigate(`/project/${projectId}/kanban`);
+    // Store the new project data
+    setNewProject({
+      id: projectId,
+      title: project.title,
+      description: project.description
+    });
+    // Show welcome modal
+    setShowWelcome(true);
+  };
+
+  // Handle continue from welcome modal to teammate selection
+  const handleContinueFromWelcome = () => {
+    setShowWelcome(false);
+    if (newProject) {
+      // Navigate to classroom to choose teammates
+      navigate(`/project/${newProject.id}/classroom`);
+    }
   };
 
   // Handle continue current project
@@ -222,43 +269,81 @@ export default function ProjectSelection() {
             </div>
             
             <div className="projects-grid-large">
-              {projects.map((project) => (
-                <div key={project.id} className="project-card-large">
-                  <h2 className="project-card-title-large">
-                    {project.title}
-                  </h2>
-                  <p className="project-card-status-large">
-                    Status: <span className="status-badge">{project.status}</span>
-                  </p>
-                  <div className="project-actions-large">
-                    <button 
-                      onClick={() => handleOpenProject(project.id, 'classroom')}
-                      className="btn-action-large btn-primary-large"
-                      title="Choose or activate AI teammates"
-                    >
-                      Choose Teammates
-                    </button>
-                    <button 
-                      onClick={() => handleOpenProject(project.id, 'kanban')}
-                      className="btn-action-large btn-kanban-large"
-                    >
-                      Kanban Board
-                    </button>
-                    <button 
-                      onClick={() => handleOpenProject(project.id, 'chat')}
-                      className="btn-action-large btn-chat-large"
-                    >
-                      Team Chat
-                    </button>
-                    <button 
-                      onClick={() => handleOpenProject(project.id, 'submission')}
-                      className="btn-action-large btn-secondary-large"
-                    >
-                      Submission
-                    </button>
+              {projects.map((project) => {
+                // Check if teammates exist - must have AI teammates (more than just the owner)
+                // Owner is always added by default, so we need more than 1 team member
+                const hasTeammates = Array.isArray(project?.team) && project.team.length > 1;
+                
+                return (
+                  <div key={project.id} className="project-card-large">
+                    <h2 className="project-card-title-large">
+                      {project.title}
+                    </h2>
+                    <p className="project-card-status-large">
+                      Status: <span className="status-badge">{project.status}</span>
+                    </p>
+                    
+                    {/* Display Teammates */}
+                    {hasTeammates ? (
+                      <div className="teammates-display">
+                        <h3 className="teammates-title">👥 Team Members:</h3>
+                        <div className="teammates-list">
+                          {project.team.map((member, index) => (
+                            <div key={index} className="teammate-item">
+                              <img className="teammate-avatar" src={getTeammateAvatar(member)} alt={member.name} />
+                              <div className="teammate-info">
+                                <span className="teammate-name">{member.name}</span>
+                                <span className="teammate-role">{member.role}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="warning-banner">
+                        ⚠️ Please choose teammates first!
+                      </div>
+                    )}
+                    
+                    {/* Show navigation buttons if teammates are chosen, otherwise show choose teammates button */}
+                    <div className="project-actions-large">
+                      {hasTeammates ? (
+                        <>
+                          <button 
+                            onClick={() => handleOpenProject(project.id, 'kanban', project)}
+                            className="btn-action-large btn-kanban"
+                            title="Manage tasks and workflow"
+                          >
+                            📋 Kanban Board
+                          </button>
+                          <button 
+                            onClick={() => handleOpenProject(project.id, 'chat', project)}
+                            className="btn-action-large btn-chat"
+                            title="Chat with your AI teammates"
+                          >
+                            💬 Chat
+                          </button>
+                          <button 
+                            onClick={() => handleOpenProject(project.id, 'submission', project)}
+                            className="btn-action-large btn-submission"
+                            title="Submit your project"
+                          >
+                            📤 Submission
+                          </button>
+                        </>
+                      ) : (
+                        <button 
+                          onClick={() => handleOpenProject(project.id, 'classroom', project)}
+                          className="btn-action-large btn-primary-large"
+                          title="Choose your AI teammates"
+                        >
+                          ⚡ Choose Teammates
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ) : (
@@ -311,6 +396,14 @@ export default function ProjectSelection() {
           onOpenProject={handleOpenProject}
           onArchiveProject={handleArchiveProject}
         />
+
+        {/* Project Welcome Modal */}
+        {showWelcome && newProject && (
+          <ProjectWelcome
+            project={newProject}
+            onContinue={handleContinueFromWelcome}
+          />
+        )}
 
         {/* Confirmation Modal */}
         <ConfirmationModal
