@@ -399,15 +399,31 @@ export async function updateTask(projectId, id, title, status, userId, descripti
   let completedAt = 0;
   if (status === 'done')
     completedAt = Date.now();
+  
+  // Don't overwrite assignedTo - preserve AI assignments (sam, rasoa, etc.)
   const data = {
-    title : title,
-    assignedTo : userId,
-    status : status,
-    description : description,
-    completedAt : completedAt,
-    priority : priority
+    title: title,
+    status: status,
+    description: description,
+    completedAt: completedAt,
+    priority: priority
+  };
+
+  // Debug: log update intent so we can trace when updates are attempted
+  try {
+    console.log('[FirebaseService] updateTask called for project:', projectId, 'taskId:', id);
+    console.log('[FirebaseService] updateTask payload:', JSON.stringify(data, null, 2));
+  } catch (e) {
+    // ignore stringify errors
   }
-  return await setDocument(collectionName, id, data);
+
+  const result = await setDocument(collectionName, id, data);
+
+  try {
+    console.log('[FirebaseService] updateTask completed for task:', id, 'result id:', result?.id || 'n/a');
+  } catch (e) {}
+
+  return result;
 }
 
 export async function deleteTask(projectId, taskId) {
