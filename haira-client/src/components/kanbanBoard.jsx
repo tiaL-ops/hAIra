@@ -44,7 +44,7 @@ export default function KanbanBoard({ id }) {
   const [tasks, setTasks] = useState(initialData);
   const [editingTask, setEditingTask] = useState(null);
   const [priority, setPriority] = useState([]);
-  const [assignees, setAssignees] = useState([currentUser.name]);
+  const [teammates, setTeammates] = useState([]);
   
   useEffect(() => {
     let isMounted = true;
@@ -65,11 +65,11 @@ export default function KanbanBoard({ id }) {
         });
         setTasks(data);
         
-        let team = kanbanData.data.team;
-        // default value for team
-        if (!team)
-          team = ['You', 'Alex', 'Sam', 'Rakoto', 'Rasoa' ];
-        setAssignees(team);
+        // Get teammates from project data
+        let team = kanbanData.data.project?.team || [];
+        // Filter to get names for the dropdown
+        const teammateNames = team.map(t => t.name);
+        setTeammates(team);
 
         const priorityData = await axios.get(`http://localhost:3002/api/project/tasks/priority`, { headers: { Authorization: `Bearer ${token}` } });
         setPriority(priorityData.data.priority);
@@ -88,7 +88,7 @@ export default function KanbanBoard({ id }) {
     const newTask = {
       id: uuidv4(),
       name: "New task",
-      assignee: assignees[0],
+      assignee: teammates.length > 0 ? teammates[0].name : "Unassigned",
     };
     const token = await auth.currentUser.getIdToken(true);
     const data = { title : id, taskUserId : newTask.assignee , status : column, description : newTask.name };
@@ -173,11 +173,14 @@ export default function KanbanBoard({ id }) {
   };
 
   const getAIAvatar = (name) => {
-    // Avatar of the connected user
-    if (name === assignees[0])
+    // Avatar of the connected user (first teammate if human)
+    const firstTeammate = teammates.length > 0 ? teammates[0].name : null;
+    if (name === firstTeammate)
       return '/src/images/You.png';
 
-    if (assignees.includes(name))
+    // Check if name exists in teammates
+    const teammateNames = teammates.map(t => t.name);
+    if (teammateNames.includes(name))
       return '/src/images/' + name + '.png';
 
     return '';
@@ -227,14 +230,22 @@ export default function KanbanBoard({ id }) {
                               <h4>{task.name}</h4>
                               <span className="ai-role">{task.assignee}</span>
                             </div>
-                            <button
-                              onClick={() =>
-                                setEditingTask({ ...task, column: col.id })
-                              }
-                              className="text-sm text-blue-500 hover:underline opacity-0 group-hover:opacity-100 transition"
-                            >
-                              Edit
-                            </button>
+                            {/* Disable edit button for tasks in "done" column */}
+                            {col.id !== 'done' && (
+                              <button
+                                onClick={() =>
+                                  setEditingTask({ ...task, column: col.id })
+                                }
+                                className="text-sm text-blue-500 hover:underline opacity-0 group-hover:opacity-100 transition"
+                              >
+                                Edit
+                              </button>
+                            )}
+                            {col.id === 'done' && (
+                              <span className="text-sm text-gray-400 opacity-50">
+                                ✓ Done
+                              </span>
+                            )}
                           </div>
                           {/* <div>
                             <div className="font-medium">{task.name}</div>
@@ -268,9 +279,9 @@ export default function KanbanBoard({ id }) {
                                 })
                               }
                             >
-                              {assignees.map((a) => (
-                                <option key={a} value={a}>
-                                  {a}
+                              {teammates.map((teammate) => (
+                                <option key={teammate.id || teammate.name} value={teammate.name}>
+                                  {teammate.type === 'human' ? '👤' : '🤖'} {teammate.name} - {teammate.role}
                                 </option>
                               ))}
                             </select>

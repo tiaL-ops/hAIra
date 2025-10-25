@@ -4,6 +4,7 @@ import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 import { useAuth } from '../App';
 import KanbanBoard from "../components/kanbanBoard";
+import TaskReviewModal from "../components/TaskReviewModal";
 import '../styles/Chat.css';
 import '../styles/Kanban.css';
 
@@ -20,6 +21,8 @@ function Kanban() {
     const [loading, setLoading] = useState(false);
     const [kanbanBoardKey, setKanbanBoardKey] = useState(0);
     const [notif, setNotif] = useState([]);
+    const [teammates, setTeammates] = useState([]);
+    const [showReviewModal, setShowReviewModal] = useState(false);
     const auth = getAuth();
 
     const rerenderKanbanBoard = () => {
@@ -48,6 +51,11 @@ function Kanban() {
               setProjectData(response.data.project);
               setTitle(response.data.project.title || "");
               setMessage(response.data.message || "Project loaded");
+              
+              // Set teammates from project data
+              if (response.data.project.team && response.data.project.team.length > 0) {
+                setTeammates(response.data.project.team);
+              }
           } else {
               setMessage("Project data not found");
           }
@@ -81,6 +89,7 @@ function Kanban() {
             );
 
             setDeliverables(response.data.deliverables);
+            setShowReviewModal(true); // Show modal instead of just displaying deliverables
             setTitle("");
         } catch (err) {
             console.error("Could not get deliverables:", err);
@@ -90,14 +99,22 @@ function Kanban() {
         }
     };
 
-    const handleSaveTasks = async (e) => {
+    const handleSaveTasks = async (editedTasks) => {
       try {
         const token = await auth.currentUser.getIdToken();
+        
+        // Transform edited tasks to match backend format
+        const tasksToSave = editedTasks.map(task => ({
+          deliverable: task.deliverable || task.description,
+          assignedTo: task.assignedTo,
+          priority: task.priority || 1
+        }));
+        
         const response = await axios.post(
           `${backend_host}/api/project/${id}/kanban`,
           {
-            title: title,
-            deliverables: deliverables
+            title: projectData.title,
+            deliverables: tasksToSave
           },
           {
               headers: {
@@ -109,9 +126,10 @@ function Kanban() {
         if (!response.data.success)
           throw new Error('data could not be stored to database')
 
-        rerenderKanbanBoard();
+        setShowReviewModal(false);
         setDeliverables([]);
-        alert('Now go to work');
+        rerenderKanbanBoard();
+        alert('Tasks saved successfully!');
       } catch (error) {
         const msg = 'data could not be stored to database';
         console.log(msg);
@@ -212,24 +230,21 @@ function Kanban() {
             </form>
             <button onClick={handlePushNotifs}>Push Notif</button>
             <button onClick={handleLoadNotifications}>Load Notif</button>
-
-            {deliverables.length > 0 && (
-              <div className="mt-6">
-                <h3 className="text-purple-600 font-semibold mb-2">Your Deliverables</h3>
-                <ul className="space-y-2">
-                  {deliverables.map((item, index) => (
-                    <li
-                      key={index}
-                      className="bg-pink-50 border border-pink-200 rounded-lg p-2 shadow-sm text-gray-700">
-                      {item.deliverable}
-                    </li>
-                  ))}
-                </ul>
-                <button onClick={handleSaveTasks}>Good to go?</button>
-              </div>
-            )}
           </div>
         </div>
+        
+        {/* Task Review Modal */}
+        {showReviewModal && deliverables.length > 0 && (
+          <TaskReviewModal
+            tasks={deliverables}
+            teammates={teammates}
+            onSave={handleSaveTasks}
+            onCancel={() => {
+              setShowReviewModal(false);
+              setDeliverables([]);
+            }}
+          />
+        )}
       </div>
     
     );
