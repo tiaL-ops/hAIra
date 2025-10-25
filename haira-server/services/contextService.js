@@ -363,18 +363,32 @@ export function buildEnhancedPrompt(agentId, context, userMessage) {
   
   const teammateList = context.teammates.map(t => `${t.name} (${t.role})`).join(', ');
   
-  // Build natural task awareness (only if there are tasks)
-  let taskContext = '';
+  // Build MY assigned tasks section - this is the PRIMARY focus
+  let myTasksSection = '';
+  if (context.myTasks && context.myTasks.length > 0) {
+    myTasksSection = `\n🎯 YOUR ASSIGNED TASKS:\n`;
+    context.myTasks.forEach((task, idx) => {
+      const statusEmoji = task.status === 'done' ? '✅' : task.status === 'inprogress' ? '🔄' : '📝';
+      const priority = task.priority ? ` [Priority: ${task.priority}]` : '';
+      myTasksSection += `${idx + 1}. ${statusEmoji} ${task.description || task.title} (${task.status})${priority}\n`;
+    });
+    myTasksSection += `\n`;
+  } else {
+    myTasksSection = `\n🎯 YOUR ASSIGNED TASKS: None currently assigned\n\n`;
+  }
+  
+  // Build overall project status (secondary context)
+  let projectStatusSection = '';
   if (context.allTasks.length > 0) {
     const todoTasks = context.allTasks.filter(t => t.status === 'todo');
     const inProgressTasks = context.allTasks.filter(t => t.status === 'inprogress');
     const completedTasks = context.allTasks.filter(t => t.status === 'done');
     
-    taskContext = `\n📊 Project Status (Day ${context.currentDay}/7):\n`;
-    if (completedTasks.length > 0) taskContext += `✅ ${completedTasks.length} completed | `;
-    if (inProgressTasks.length > 0) taskContext += `🔄 ${inProgressTasks.length} in progress | `;
-    if (todoTasks.length > 0) taskContext += `📝 ${todoTasks.length} to do`;
-    taskContext += `\n\n`;
+    projectStatusSection = `📊 Overall Project Status (Day ${context.currentDay}/7):\n`;
+    if (completedTasks.length > 0) projectStatusSection += `✅ ${completedTasks.length} completed | `;
+    if (inProgressTasks.length > 0) projectStatusSection += `🔄 ${inProgressTasks.length} in progress | `;
+    if (todoTasks.length > 0) projectStatusSection += `📝 ${todoTasks.length} to do`;
+    projectStatusSection += `\n\n`;
   }
   
   // Add previous days' context naturally
@@ -404,19 +418,39 @@ export function buildEnhancedPrompt(agentId, context, userMessage) {
     }
   }
   
-  return `
-${agent.systemPrompt}
+  // TASK-FOCUSED SYSTEM PROMPT - Your identity comes from your tasks
+  const taskFocusedPrompt = `You are ${context.agentName}, an AI teammate on "${context.projectName}".
 
-You are ${context.agentName}, ${context.agentRole} for project "${context.projectName}".
-Team: ${teammateList}
+YOUR KNOWLEDGE AND CAPABILITIES come from YOUR ASSIGNED TASKS:
+- Everything you know about is based on what tasks you're working on
+- Your expertise is defined by your current assignments, not by a fixed role
+- If you're assigned database tasks, you know about databases for THIS task
+- If you're assigned design tasks, you know about design for THIS task
+- When you have no tasks assigned, you're available to help with anything the team needs
+
+CORE PRINCIPLES:
+1. Your current tasks define what you're focused on and knowledgeable about
+2. Answer questions based on the context of YOUR assigned work
+3. You're a helpful teammate who adapts to project needs
+4. Be concise (2-3 sentences), practical, and collaborative
+
+When responding:
+- Reference your tasks when they're relevant to the question
+- Don't pretend to have expertise outside your assigned tasks
+- If asked about something unrelated to your tasks, offer to help or suggest who might know better`;
+  
+  return `
+${taskFocusedPrompt}
+
+Team Members: ${teammateList}
 ${context.alexAvailable ? '' : '(Alex is only available on Days 1, 3, 6)'}
-${taskContext}${previousDaysSection}${insightsSection}
+${myTasksSection}${projectStatusSection}${previousDaysSection}${insightsSection}
 Recent conversation:
 ${context.conversationSummary}
 
 User just said: "${userMessage}"
 
-Respond naturally (2-3 sentences). Reference tasks or previous discussions ONLY when relevant to the current message. Don't always mention tasks unless the user asks about them.
+Your response should be informed by your assigned tasks above. If the question relates to your tasks, draw on that context. If it doesn't relate to your tasks, be honest about that and offer general help instead.
 `;
 }
 
