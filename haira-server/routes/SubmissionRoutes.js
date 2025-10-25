@@ -123,7 +123,17 @@ function cleanContentForReview(htmlContent) {
 
 // Generate AI-specific completion messages
 async function generateCompletionMessage(aiType, taskType) {
-    const aiTeammate = aiType === 'ai_manager' ? AI_TEAMMATES.alex_report : AI_TEAMMATES.sam;
+    // Get the correct AI teammate
+    let aiTeammate;
+    if (['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'].includes(aiType)) {
+        aiTeammate = AI_TEAMMATES[aiType];
+    } else if (aiType === 'ai_manager') {
+        aiTeammate = AI_TEAMMATES.rasoa; // Legacy ai_manager maps to rasoa
+    } else if (aiType === 'ai_helper') {
+        aiTeammate = AI_TEAMMATES.rakoto; // Legacy ai_helper maps to rakoto
+    } else {
+        aiTeammate = AI_TEAMMATES.rasoa; // Default fallback
+    }
     
     const completionPrompts = {
         write: `Generate a short, casual completion message (1-2 sentences max) for when you finish writing a section. Be true to your personality: ${aiTeammate.personality}. Make it sound natural and in character.`,
@@ -134,8 +144,15 @@ async function generateCompletionMessage(aiType, taskType) {
     const prompt = completionPrompts[taskType] || completionPrompts.write;
     
     try {
-        // const response = await generateAIContribution(prompt, aiTeammate.config, aiTeammate.prompt);
-        const aiResponse = await callOpenAIContribution(prompt, aiTeammate.config, aiTeammate.prompt)
+        // Create proper config object from teammate properties
+        const config = {
+            max_tokens: aiTeammate.maxTokens || 500,
+            temperature: aiTeammate.temperature || 0.7
+        };
+        
+        const systemInstruction = `You are ${aiTeammate.name}, ${aiTeammate.role}. ${aiTeammate.personality}`;
+        
+        const aiResponse = await callOpenAIContribution(prompt, config, systemInstruction);
         return cleanAIResponse(aiResponse);
     } catch (error) {
         console.error('Error generating completion message:', error);
@@ -673,13 +690,103 @@ Do not include anything else.
 
 
 
+// Track AI word contribution
+async function trackAIWordContribution(projectId, aiType, wordCount, taskType) {
+    try {
+        console.log(`Tracking ${wordCount} words for ${aiType} (${taskType})`);
+        
+        // Get current project data
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
+        if (!projectData) {
+            console.error('Project not found for word tracking');
+            return;
+        }
+
+        // Initialize wordContributions if it doesn't exist
+        let wordContributions = projectData.wordContributions || {
+            user: { words: 0, percentage: 100 }
+        };
+        
+        // Get project teammates to determine which AI agents are participating
+        const projectTeammates = projectData.team || [];
+        const participatingAgents = projectTeammates
+            .filter(teammate => teammate.type === 'ai')
+            .map(teammate => teammate.id || teammate.name?.toLowerCase())
+            .filter(agentId => agentId);
+
+        // Ensure participating AI agents are initialized
+        participatingAgents.forEach(agentId => {
+            if (!wordContributions[agentId]) {
+                wordContributions[agentId] = { words: 0, percentage: 0 };
+            }
+        });
+
+        // Map legacy agent IDs to new ones
+        const agentMapping = {
+            'ai_manager': 'rasoa',  // Legacy ai_manager maps to rasoa
+            'ai_helper': 'rakoto'    // Legacy ai_helper maps to rakoto
+        };
+
+        // Update the specific AI agent's word count
+        let targetAgent = aiType;
+        
+        // Check if this is a legacy ID that needs mapping
+        if (agentMapping[aiType]) {
+            targetAgent = agentMapping[aiType];
+        }
+        
+        // Only track if this agent is participating in the project
+        if (participatingAgents.includes(targetAgent)) {
+            wordContributions[targetAgent].words += wordCount;
+            console.log(`Updated ${targetAgent} word count: +${wordCount} words (total: ${wordContributions[targetAgent].words})`);
+        } else {
+            console.log(`Skipping ${targetAgent} - not participating in this project`);
+        }
+
+        // Calculate total words and percentages
+        let totalWords = wordContributions.user.words;
+        participatingAgents.forEach(agentId => {
+            totalWords += (wordContributions[agentId]?.words || 0);
+        });
+        
+        if (totalWords > 0) {
+            wordContributions.user.percentage = Math.round((wordContributions.user.words / totalWords) * 100 * 100) / 100;
+            participatingAgents.forEach(agentId => {
+                if (wordContributions[agentId]) {
+                    wordContributions[agentId].percentage = Math.round((wordContributions[agentId].words / totalWords) * 100 * 100) / 100;
+                }
+            });
+        } else {
+            // Default to 100% human if no content yet
+            wordContributions.user.percentage = 100;
+            participatingAgents.forEach(agentId => {
+                if (wordContributions[agentId]) {
+                    wordContributions[agentId].percentage = 0;
+                }
+            });
+        }
+
+        // Save updated word contributions
+        await updateDocument(COLLECTIONS.USER_PROJECTS, projectId, {
+            wordContributions: wordContributions,
+            wordContributionsUpdatedAt: Date.now()
+        });
+
+        console.log(`Updated word contributions for ${targetAgent}: ${wordContributions[targetAgent].words} words (${wordContributions[targetAgent].percentage}%)`);
+        
+    } catch (error) {
+        console.error('Error tracking AI word contribution:', error);
+    }
+}
+
 // AI Write Section endpoint
 router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;
-    const { aiType, sectionName, currentContent } = req.body;
+    const { aiType, sectionName, currentContent, projectTitle } = req.body;
     const userId = req.user.uid;
 
     console.log('AI Write request received:', { id, aiType, sectionName, userId });
+    console.log('🔧 AI Service: Will use server-side OpenAI (GPT-4o-mini) - NOT Chrome API');
 
     if (!aiType) {
         return res.status(400).json({ error: 'AI type is required' });
@@ -694,6 +801,11 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
     try {
         await ensureProjectExists(id, userId);
         
+        // Get project data to fetch the actual project title
+        const projectDoc = await db.collection('userProjects').doc(id).get();
+        const projectInfo = projectDoc.data();
+        const actualProjectTitle = projectInfo?.title || 'the project';
+        
         // Map agent IDs to correct teammates (support legacy IDs)
         let aiTeammate;
         if (['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'].includes(aiType)) {
@@ -704,44 +816,53 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
             aiTeammate = AI_TEAMMATES.rakoto; // Legacy ai_helper maps to rakoto
         }
         
-        // Use agent's actual personality for writing context (not generic)
-        const writingContext = aiTeammate ? `You are ${aiTeammate.name}, ${aiTeammate.role}. ${aiTeammate.personality}` : 'You are an academic writing assistant.';
-        
-        const taskPrompt = `${writingContext}
-
-Task: Write a section titled "${sectionName || 'the project'}" for an academic research paper.
-
-Current document content:
-${currentContent || 'No content yet - this is the first section.'}
-
-Instructions:
-- Write clear, academic prose (NOT code or technical implementation)
-- Include relevant examples and explanations
-- Maintain consistency with existing content
-- Use proper academic tone and structure
-- Length: 2-3 well-developed paragraphs
-
-Write the section now:`;
+        // Use the new standardized prompt format
+        const writePrompt = aiTeammate?.writePrompt || 'Write content for the report.';
+        const taskPrompt = writePrompt
+            .replace('{section}', sectionName || 'the project')
+            .replace('{projectTitle}', actualProjectTitle);
         
         // Create a config for the AI call
         const aiConfig = {
-            max_tokens: 800,
+            max_tokens: 50,
             temperature: 0.7
         };
         
         // Try Chrome Write API first, fallback to Gemini
         let aiResponse;
        
-        console.log('Calling AI for writing task...');
-        // aiResponse = await generateAIContribution(taskPrompt, aiConfig, writingContext);
-        aiResponse = await callOpenAIContribution(taskPrompt, aiConfig, writingContext);
+        console.log('🤖 Calling AI for writing task...');
+        console.log('🔧 AI Service: OpenAI (GPT-4o-mini)');
+        console.log('📝 Task prompt:', taskPrompt.substring(0, 200) + '...');
+        console.log('⚙️ AI config:', aiConfig);
+        
+        const writingContext = `You are ${aiTeammate.name}, a ${aiTeammate.role}. ${aiTeammate.personality}`;
+        console.log('👤 Writing context:', writingContext);
+        
+        try {
+            console.log('🚀 Making OpenAI API call...');
+            aiResponse = await callOpenAIContribution(taskPrompt, aiConfig, writingContext);
+            console.log('✅ OpenAI response received:', aiResponse?.substring(0, 200) + '...');
+        } catch (aiError) {
+            console.error('❌ OpenAI API call failed:', aiError);
+            throw aiError;
+        }
 
+        console.log('🧹 Cleaning AI response...');
         const cleanedResponse = cleanAIResponse(aiResponse);
+        console.log('✅ Cleaned response:', cleanedResponse?.substring(0, 200) + '...');
+        
+        console.log('🔄 Converting to HTML...');
         const htmlResponse = convertMarkdownToHTML(cleanedResponse);
+        console.log('✅ HTML response:', htmlResponse?.substring(0, 200) + '...');
+        
         const aiName = aiTeammate.name;
         const prefixedResponse = `[${aiName}] ${htmlResponse}`;
+        console.log('📤 Final prefixed response:', prefixedResponse?.substring(0, 200) + '...');
 
+        console.log('💬 Generating completion message...');
         const completionMessage = await generateCompletionMessage(aiType, 'write');
+        console.log('✅ Completion message:', completionMessage);
 
         // Log activity
         const activityLog = {
@@ -761,14 +882,30 @@ Write the section now:`;
         // Update AI contribution automatically
         await updateAIContribution(id, aiType, 'write');
 
-        res.json({
+        // Track word contribution for this AI write
+        const wordCount = cleanedResponse.trim().split(/\s+/).filter(word => word.length > 0).length;
+        if (wordCount > 0) {
+            await trackAIWordContribution(id, aiType, wordCount, 'write');
+        }
+
+        const finalResponse = {
             success: true,
             aiType: aiType,
             response: prefixedResponse,
             responseType: 'text',
             completionMessage: completionMessage,
             timestamp: Date.now()
+        };
+        
+        console.log('📤 Sending final response to client:', {
+            success: finalResponse.success,
+            aiType: finalResponse.aiType,
+            responseLength: finalResponse.response?.length,
+            responsePreview: finalResponse.response?.substring(0, 100) + '...',
+            completionMessage: finalResponse.completionMessage
         });
+
+        res.json(finalResponse);
 
     } catch (err) {
         console.error('AI Write error:', err);
@@ -797,6 +934,11 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
     try {
         await ensureProjectExists(id, userId);
         
+        // Get project data to fetch the actual project title
+        const projectDoc = await db.collection('userProjects').doc(id).get();
+        const projectInfo = projectDoc.data();
+        const actualProjectTitle = projectInfo?.title || 'the project';
+        
         // Map agent IDs to correct teammates (support legacy IDs)
         let aiTeammate;
         if (['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'].includes(aiType)) {
@@ -807,26 +949,10 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
             aiTeammate = AI_TEAMMATES.rakoto;
         }
         
-        // Use agent's personality for review context
-        const reviewContext = aiTeammate ? `You are ${aiTeammate.name}, ${aiTeammate.role}. ${aiTeammate.personality}` : 'You are an academic reviewer.';
-        
-        // Clean the content to remove HTML markup for better AI review
-        const cleanedContent = cleanContentForReview(currentContent);
-        
-        const taskPrompt = `${reviewContext}
-
-Task: Review the following academic content and provide constructive feedback.
-
-Content to review:
-${cleanedContent}
-
-Provide exactly 4 bullet points of helpful feedback focusing on:
-- Content quality and clarity
-- Logical flow and organization  
-- Completeness of ideas
-- Writing style and tone
-
-Format: Each bullet point should start with a dash (-). Be specific and constructive.`;
+        // Use the new standardized prompt format
+        const reviewPrompt = aiTeammate?.reviewPrompt || 'Review the content.';
+        const taskPrompt = reviewPrompt
+            .replace('{reportContent}', currentContent || 'No content available');
         
         const aiConfig = {
             max_tokens: 600,
@@ -834,6 +960,7 @@ Format: Each bullet point should start with a dash (-). Be specific and construc
         };
         
         // const aiResponse = await generateAIContribution(taskPrompt, aiConfig, reviewContext);
+        const reviewContext = `You are ${aiTeammate.name}, a ${aiTeammate.role}. ${aiTeammate.personality}`;
         const aiResponse = await callOpenAIContribution(taskPrompt, aiConfig, reviewContext);
         const cleanedResponse = cleanAIResponse(aiResponse);
         const aiName = aiTeammate.name;
@@ -857,6 +984,12 @@ Format: Each bullet point should start with a dash (-). Be specific and construc
 
         // Update AI contribution automatically
         await updateAIContribution(id, aiType, 'review');
+
+        // Track word contribution for this AI review
+        const wordCount = cleanedResponse.trim().split(/\s+/).filter(word => word.length > 0).length;
+        if (wordCount > 0) {
+            await trackAIWordContribution(id, aiType, wordCount, 'review');
+        }
 
         res.json({
             success: true,
@@ -894,6 +1027,11 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
     try {
         await ensureProjectExists(id, userId);
         
+        // Get project data to fetch the actual project title
+        const projectDoc = await db.collection('userProjects').doc(id).get();
+        const projectInfo = projectDoc.data();
+        const actualProjectTitle = projectInfo?.title || 'the project';
+        
         // Map agent IDs to correct teammates (support legacy IDs)
         let aiTeammate;
         if (['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'].includes(aiType)) {
@@ -904,25 +1042,10 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
             aiTeammate = AI_TEAMMATES.rakoto;
         }
         
-        // Use agent's personality for suggestions context
-        const suggestionContext = aiTeammate ? `You are ${aiTeammate.name}, ${aiTeammate.role}. ${aiTeammate.personality}` : 'You are an academic consultant.';
-        
-        // Clean the content to remove HTML markup for better AI suggestions
-        const cleanedContent = cleanContentForReview(currentContent);
-        
-        const taskPrompt = `${suggestionContext}
-
-Task: Provide exactly 3 specific, actionable improvement suggestions for the following content.
-
-Content:
-${cleanedContent || 'No content to improve.'}
-
-Format your response as exactly 3 bullet points, each starting with a dash (-). Be specific and actionable. Focus on:
-1. Strengthening arguments or evidence
-2. Improving clarity or structure
-3. Enhancing academic rigor or depth
-
-Do not use HTML tags or markdown formatting.`;
+        // Use the new standardized prompt format
+        const suggestPrompt = aiTeammate?.suggestPrompt || 'Suggest improvements.';
+        const taskPrompt = suggestPrompt
+            .replace('{reportContent}', currentContent || 'No content available');
         
         const aiConfig = {
             max_tokens: 500,
@@ -930,6 +1053,7 @@ Do not use HTML tags or markdown formatting.`;
         };
         
         // const aiResponse = await generateAIContribution(taskPrompt, aiConfig, suggestionContext);
+        const suggestionContext = `You are ${aiTeammate.name}, a ${aiTeammate.role}. ${aiTeammate.personality}`;
         const aiResponse = await callOpenAIContribution(taskPrompt, aiConfig, suggestionContext);
         const cleanedResponse = cleanAIResponse(aiResponse);
         const aiName = aiTeammate.name;
@@ -953,6 +1077,12 @@ Do not use HTML tags or markdown formatting.`;
 
         // Update AI contribution automatically
         await updateAIContribution(id, aiType, 'suggest');
+
+        // Track word contribution for this AI suggestion
+        const wordCount = cleanedResponse.trim().split(/\s+/).filter(word => word.length > 0).length;
+        if (wordCount > 0) {
+            await trackAIWordContribution(id, aiType, wordCount, 'suggest');
+        }
 
         res.json({
             success: true,
@@ -1150,21 +1280,47 @@ router.post('/:id/word-contributions/calculate-user', verifyFirebaseToken, async
 
         // Get current word contributions
         let wordContributions = projectData.wordContributions || {
-            user: { words: 0, percentage: 0 },
-            alex: { words: 0, percentage: 0 },
-            sam: { words: 0, percentage: 0 }
+            user: { words: 0, percentage: 100 }
         };
+        
+        // Get project teammates to determine which AI agents are participating
+        const projectTeammates = projectData.team || [];
+        const participatingAgents = projectTeammates
+            .filter(teammate => teammate.type === 'ai')
+            .map(teammate => teammate.id || teammate.name?.toLowerCase())
+            .filter(agentId => agentId);
+
+        // Ensure participating AI agents are initialized
+        participatingAgents.forEach(agentId => {
+            if (!wordContributions[agentId]) {
+                wordContributions[agentId] = { words: 0, percentage: 0 };
+            }
+        });
 
         // Update user word count
         wordContributions.user.words = userWordCount;
 
-        // Recalculate percentages
-        const totalWords = wordContributions.user.words + wordContributions.alex.words + wordContributions.sam.words;
+        // Calculate total words and percentages
+        let totalWords = wordContributions.user.words;
+        participatingAgents.forEach(agentId => {
+            totalWords += (wordContributions[agentId]?.words || 0);
+        });
         
         if (totalWords > 0) {
             wordContributions.user.percentage = Math.round((wordContributions.user.words / totalWords) * 100 * 100) / 100;
-            wordContributions.alex.percentage = Math.round((wordContributions.alex.words / totalWords) * 100 * 100) / 100;
-            wordContributions.sam.percentage = Math.round((wordContributions.sam.words / totalWords) * 100 * 100) / 100;
+            participatingAgents.forEach(agentId => {
+                if (wordContributions[agentId]) {
+                    wordContributions[agentId].percentage = Math.round((wordContributions[agentId].words / totalWords) * 100 * 100) / 100;
+                }
+            });
+        } else {
+            // Default to 100% human if no content yet
+            wordContributions.user.percentage = 100;
+            participatingAgents.forEach(agentId => {
+                if (wordContributions[agentId]) {
+                    wordContributions[agentId].percentage = 0;
+                }
+            });
         }
 
         // Save updated word contributions
@@ -1188,6 +1344,286 @@ router.post('/:id/word-contributions/calculate-user', verifyFirebaseToken, async
         res.status(500).json({ 
             success: false, 
             error: error.message 
+        });
+    }
+});
+
+// Get real-time contribution data for submission page
+router.get('/:id/contributions/realtime', verifyFirebaseToken, async (req, res) => {
+    try {
+        const { id: projectId } = req.params;
+        const userId = req.user.uid;
+
+        console.log('Getting real-time contributions for submission page');
+
+        // Ensure project exists
+        await ensureProjectExists(projectId, userId);
+
+        // Get current project data
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
+        if (!projectData) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        // Get current word contributions
+        let wordContributions = projectData.wordContributions || {
+            user: { words: 0, percentage: 100 }
+        };
+
+        // Get project teammates to determine which AI agents are participating
+        const projectTeammates = projectData.team || [];
+        const participatingAgents = projectTeammates
+            .filter(teammate => teammate.type === 'ai')
+            .map(teammate => teammate.id || teammate.name?.toLowerCase())
+            .filter(agentId => agentId); // Remove any undefined values
+
+        console.log('Project teammates:', projectTeammates);
+        console.log('Participating AI agents:', participatingAgents);
+
+        // Ensure participating AI agents are initialized
+        participatingAgents.forEach(agentId => {
+            if (!wordContributions[agentId]) {
+                wordContributions[agentId] = { words: 0, percentage: 0 };
+            }
+        });
+
+        // Calculate total words and percentages
+        let totalWords = wordContributions.user.words;
+        participatingAgents.forEach(agentId => {
+            totalWords += (wordContributions[agentId]?.words || 0);
+        });
+        
+        if (totalWords > 0) {
+            wordContributions.user.percentage = Math.round((wordContributions.user.words / totalWords) * 100 * 100) / 100;
+            participatingAgents.forEach(agentId => {
+                if (wordContributions[agentId]) {
+                    wordContributions[agentId].percentage = Math.round((wordContributions[agentId].words / totalWords) * 100 * 100) / 100;
+                }
+            });
+        } else {
+            // Default to 100% human if no content yet
+            wordContributions.user.percentage = 100;
+            participatingAgents.forEach(agentId => {
+                if (wordContributions[agentId]) {
+                    wordContributions[agentId].percentage = 0;
+                }
+            });
+        }
+
+        // Format for frontend with participating AI agents only
+        const contributions = [
+            {
+                name: "You",
+                role: "Student", 
+                words: wordContributions.user.words,
+                percentage: wordContributions.user.percentage,
+                color: "#4CAF50"
+            }
+        ];
+
+        // Import AI agents configuration for colors
+        const { AI_AGENTS } = await import('../config/aiAgents.js');
+        
+        // Add participating AI agents that have contributed
+        const aiColors = {
+            'brown': AI_AGENTS.brown.color,
+            'elza': AI_AGENTS.elza.color, 
+            'kati': AI_AGENTS.kati.color,
+            'steve': AI_AGENTS.steve.color,
+            'sam': AI_AGENTS.sam.color,
+            'rasoa': AI_AGENTS.rasoa.color,
+            'rakoto': AI_AGENTS.rakoto.color
+        };
+
+        participatingAgents.forEach(agentId => {
+            if (wordContributions[agentId] && wordContributions[agentId].words > 0) {
+                // Get agent name from project teammates or capitalize agentId
+                const teammate = projectTeammates.find(t => (t.id || t.name?.toLowerCase()) === agentId);
+                const agentName = teammate?.name || agentId.charAt(0).toUpperCase() + agentId.slice(1);
+                const agentRole = teammate?.role || "AI Assistant";
+                
+                contributions.push({
+                    name: agentName,
+                    role: agentRole,
+                    words: wordContributions[agentId].words,
+                    percentage: wordContributions[agentId].percentage,
+                    color: aiColors[agentId] || '#607D8B'
+                });
+            }
+        });
+
+        console.log('Real-time contributions:', contributions);
+
+        res.json({
+            success: true,
+            contributions: contributions,
+            totalWords: totalWords,
+            lastUpdated: projectData.wordContributionsUpdatedAt || Date.now()
+        });
+
+    } catch (error) {
+        console.error('Error getting real-time contributions:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Calculate AI contributions from final report content
+router.post('/:id/word-contributions/calculate-ai', verifyFirebaseToken, async (req, res) => {
+    try {
+        const { id: projectId } = req.params;
+        const { content } = req.body;
+        const userId = req.user.uid;
+
+        console.log('Calculating AI contributions from final report content');
+
+        // Ensure project exists
+        await ensureProjectExists(projectId, userId);
+
+        // Get current project data
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
+        if (!projectData) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        const reportContent = content || '';
+        
+        // Initialize word contributions
+        let wordContributions = projectData.wordContributions || {
+            user: { words: 0, percentage: 0 }
+        };
+        
+        // Ensure all current AI teammates are initialized
+        const currentAgents = ['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'];
+        currentAgents.forEach(agentId => {
+            if (!wordContributions[agentId]) {
+                wordContributions[agentId] = { words: 0, percentage: 0 };
+            }
+        });
+
+        // Extract AI contributions from report content
+        const aiContributions = {};
+        
+        // Look for AI contribution patterns in the content
+        // Pattern 1: [AgentName] content
+        const agentPattern = /\[(Brown|Elza|Kati|Steve|Sam|Rasoa|Rakoto)\]([^[]*?)(?=\[|$)/g;
+        let match;
+        
+        while ((match = agentPattern.exec(reportContent)) !== null) {
+            const agentName = match[1].toLowerCase();
+            const content = match[2];
+            
+            // Remove HTML tags and calculate word count
+            const cleanContent = content.replace(/<[^>]*>/g, ' ').trim();
+            const wordCount = cleanContent.split(/\s+/).filter(word => word.length > 0).length;
+            
+            if (wordCount > 0) {
+                aiContributions[agentName] = (aiContributions[agentName] || 0) + wordCount;
+                console.log(`Found ${wordCount} words for ${agentName}: ${cleanContent.substring(0, 100)}...`);
+            }
+        }
+        
+        // Pattern 2: AI contribution headers
+        const headerPattern = /<div class="ai-contribution-header"[^>]*>.*?<span[^>]*>([^<]+)<\/span>.*?<\/div>([^<]*(?:<[^>]+>[^<]*)*?)(?=<div class="ai-contribution-header"|$)/gs;
+        let headerMatch;
+        
+        while ((headerMatch = headerPattern.exec(reportContent)) !== null) {
+            const agentName = headerMatch[1].toLowerCase();
+            const content = headerMatch[2];
+            
+            // Remove HTML tags and calculate word count
+            const cleanContent = content.replace(/<[^>]*>/g, ' ').trim();
+            const wordCount = cleanContent.split(/\s+/).filter(word => word.length > 0).length;
+            
+            if (wordCount > 0) {
+                aiContributions[agentName] = (aiContributions[agentName] || 0) + wordCount;
+                console.log(`Found ${wordCount} words for ${agentName} (header): ${cleanContent.substring(0, 100)}...`);
+            }
+        }
+
+        // Update word contributions with AI contributions
+        Object.keys(aiContributions).forEach(agentName => {
+            if (currentAgents.includes(agentName)) {
+                wordContributions[agentName].words = aiContributions[agentName];
+                console.log(`Updated ${agentName} word count: ${aiContributions[agentName]} words`);
+            }
+        });
+
+        // Recalculate total words and percentages
+        let totalWords = wordContributions.user.words;
+        currentAgents.forEach(agentId => {
+            totalWords += (wordContributions[agentId]?.words || 0);
+        });
+        
+        if (totalWords > 0) {
+            wordContributions.user.percentage = Math.round((wordContributions.user.words / totalWords) * 100 * 100) / 100;
+            currentAgents.forEach(agentId => {
+                if (wordContributions[agentId]) {
+                    wordContributions[agentId].percentage = Math.round((wordContributions[agentId].words / totalWords) * 100 * 100) / 100;
+                }
+            });
+        }
+
+        // Save updated word contributions
+        await updateDocument(COLLECTIONS.USER_PROJECTS, projectId, {
+            wordContributions: wordContributions,
+            wordContributionsUpdatedAt: Date.now()
+        });
+
+        console.log(`Updated AI contributions:`, aiContributions);
+        console.log(`Total words: ${totalWords}`);
+
+        res.json({ 
+            success: true, 
+            message: 'AI contributions calculated successfully',
+            aiContributions: aiContributions,
+            wordContributions: wordContributions,
+            totalWords: totalWords
+        });
+
+    } catch (error) {
+        console.error('Error calculating AI contributions:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Generate completion message endpoint
+router.post('/:id/ai/completion-message', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const { aiType, taskType } = req.body;
+    const userId = req.user.uid;
+
+    console.log('Completion message request received:', { id, aiType, taskType, userId });
+
+    if (!aiType || !taskType) {
+        return res.status(400).json({ error: 'AI type and task type are required' });
+    }
+
+    try {
+        // Ensure project exists
+        await ensureProjectExists(id, userId);
+        
+        // Generate completion message
+        const completionMessage = await generateCompletionMessage(aiType, taskType);
+        
+        res.json({
+            success: true,
+            completionMessage: completionMessage,
+            aiType: aiType,
+            taskType: taskType,
+            timestamp: Date.now()
+        });
+
+    } catch (err) {
+        console.error('Completion message generation error:', err);
+        res.status(500).json({ 
+            success: false, 
+            error: err.message 
         });
     }
 });

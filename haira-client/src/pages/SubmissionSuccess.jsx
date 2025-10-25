@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getAuth } from "firebase/auth";
 import { useAuth } from '../App';
 import ContributionTracker from "../components/ContributionTracker";
-import SummaryReflection from "../components/SummaryReflection";
 import SuccessIcon from "../images/Success.png";
 import { getChromeSummary } from "../utils/chromeAPI.js";
 import "../styles/editor.css";
