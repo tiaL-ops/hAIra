@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
+import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
 import '../styles/TaskAssignmentModal.css';
-import { AI_TEAMMATES } from '../../../haira-server/config/aiReportAgents.js';
-import AlexAvatar from '../images/Alex.png';
-import SamAvatar from '../images/Sam.png';
+
+// Using emoji from agent config instead of images
 
 const TaskAssignmentModal = ({ 
   isOpen, 
@@ -16,14 +16,8 @@ const TaskAssignmentModal = ({
 
   // Get the correct avatar based on AI teammate
   const getAvatar = (aiTeammate) => {
-    switch(aiTeammate.name) {
-      case AI_TEAMMATES.MANAGER.name:
-        return AlexAvatar;
-      case AI_TEAMMATES.LAZY.name:
-        return SamAvatar;
-      default:
-        return '🤖';
-    }
+    // Use emoji from teammate config
+    return aiTeammate.emoji || aiTeammate.avatar || '🤖';
   };
 
   const handleSubmit = (e) => {
@@ -67,16 +61,12 @@ const TaskAssignmentModal = ({
         <div className="task-modal-body">
           <div className="ai-teammate-info">
             <div className="ai-teammate-avatar" style={{ backgroundColor: aiTeammate.color }}>
-              <img 
-                src={getAvatar(aiTeammate)} 
-                alt={`${aiTeammate.name} avatar`}
-                className="ai-avatar-image"
-              />
+              <span className="ai-avatar-emoji">{getAvatar(aiTeammate)}</span>
             </div>
             <div className="ai-teammate-details">
               <h4>{aiTeammate.name}</h4>
               <p className="ai-teammate-role">{aiTeammate.role}</p>
-              <p className="ai-teammate-description">{aiTeammate.description}</p>
+              <p className="ai-teammate-personality">{aiTeammate.personality}</p>
             </div>
           </div>
           

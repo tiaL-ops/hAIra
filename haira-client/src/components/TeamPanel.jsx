@@ -1,23 +1,50 @@
 import React, { useState } from 'react';
-import { AI_TEAMMATES, TASK_TYPES } from '../../../haira-server/config/aiReportAgents.js';
+import { AI_TEAMMATES, TASK_TYPES } from '../../../haira-server/config/aiAgents.js';
 import TaskAssignmentModal from './TaskAssignmentModal';
 
-import AlexAvatar from '../images/Alex.png';
+// Import agent avatars
+import BrownAvatar from '../images/Brown.png';
+import ElzaAvatar from '../images/Elza.png';
+import KatiAvatar from '../images/Kati.png';
+import SteveAvatar from '../images/Steve.png';
 import SamAvatar from '../images/Sam.png';
+import RasoaAvatar from '../images/Rasoa.png';
+import RakotoAvatar from '../images/Rakoto.png';
 
 export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMembers = [] }) {
   const [selectedTeammate, setSelectedTeammate] = useState(null);
 
+  // Avatar mapping
+  const avatarMap = {
+    brown: BrownAvatar,
+    elza: ElzaAvatar,
+    kati: KatiAvatar,
+    steve: SteveAvatar,
+    sam: SamAvatar,
+    rasoa: RasoaAvatar,
+    rakoto: RakotoAvatar
+  };
+
   // Get appropriate avatar for AI teammates
   const getAIAvatar = (teammate) => {
-    switch(teammate.name) {
-      case AI_TEAMMATES.MANAGER.name:
-        return  <img src={AlexAvatar} alt="Alex" className="team-avatar" />;;
-      case AI_TEAMMATES.LAZY.name:
-        return <img src={SamAvatar} alt="Sam" className="team-avatar" />;
-      default:
-        return teammate.emoji;
+    const avatarSrc = avatarMap[teammate.id];
+    if (avatarSrc) {
+      return (
+        <img 
+          src={avatarSrc} 
+          alt={teammate.name}
+          style={{ 
+            width: '40px', 
+            height: '40px', 
+            borderRadius: '50%',
+            objectFit: 'cover',
+            border: `2px solid ${teammate.color || '#666'}`
+          }}
+        />
+      );
     }
+    // Fallback to emoji if no image found
+    return <span className="team-emoji">{teammate.emoji || teammate.avatar || '🤖'}</span>;
   };
 
   const handleAIClick = (teammate) => {
@@ -53,11 +80,15 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
 
 
   const getAITeammate = (memberId) => {
-    // Map memberId to the correct AI_TEAMMATES key
-    if (memberId === 'ai_manager') {
-      return AI_TEAMMATES.MANAGER;
-    } else if (memberId === 'ai_helper') {
-      return AI_TEAMMATES.LAZY;
+    // Map memberId to AI_TEAMMATES - supports new 5-agent team and legacy IDs
+    if (AI_TEAMMATES[memberId]) {
+      return AI_TEAMMATES[memberId];
+    }
+    // Legacy mapping
+    if (memberId === 'ai_manager' || memberId === 'rasoa') {
+      return AI_TEAMMATES.brown;
+    } else if (memberId === 'ai_helper' || memberId === 'rakoto') {
+      return AI_TEAMMATES.sam;
     }
     return null;
   };

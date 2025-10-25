@@ -1,5 +1,4 @@
 import admin from 'firebase-admin';
-import { deleteDoc } from 'firebase/firestore';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
@@ -8,7 +7,7 @@ import { fileURLToPath } from 'url';
 import Chat from '../models/ChatModels.js';
 import Task from '../models/KanbanModels.js';
 import { COLLECTIONS, CHAT_SCHEMA, CHAT_MESSAGE_SCHEMA } from '../schema/database.js';
-import { userInfo } from 'os';
+import { PROJECT_RULES, LEARNING_TOPICS } from '../config/projectRules.js';
 
 dotenv.config();
 
@@ -371,22 +370,43 @@ export async function ensureProjectExists(projectId, userId = 'default_user', te
 
 // Create a new project
 export async function createProject(userId, userName, title) {
-  const projectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc();
-  
-  const projectData = {
-    userId: userId,
-    title: title,
-    status: 'started',
-    startDate: Date.now(),
-    team: [{
-      id: userId,
-      name: userName,
-      role: 'owner'
-    }]
-  };
-  
-  await projectRef.set(projectData);
-  return projectRef.id;
+  try {
+    // Set any existing active project to inactive (not archived)
+    const activeProject = await getActiveProject(userId);
+    if (activeProject) {
+      await updateDocument(COLLECTIONS.USER_PROJECTS, activeProject.id, {
+        isActive: false,
+        status: 'inactive'
+      });
+      console.log(`[FirebaseService] Set previous active project ${activeProject.id} to inactive`);
+    }
+
+    const projectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc();
+    
+    const projectData = {
+      userId: userId,
+      title: title,
+      status: 'active',
+      isActive: true,
+      startDate: Date.now(),
+      team: [{
+        id: userId,
+        name: userName,
+        role: 'owner'
+      }]
+    };
+    
+    await projectRef.set(projectData);
+    
+    // Update user's active project
+    await updateUserActiveProject(userId, projectRef.id);
+    
+    console.log(`[FirebaseService] Created new active project ${projectRef.id} for user ${userId}`);
+    return projectRef.id;
+  } catch (error) {
+    console.error('[FirebaseService] Error creating project:', error);
+    throw error;
+  }
 }
 
 // Get all projects for a user
@@ -557,6 +577,42 @@ export async function updateUserActiveProject(userId, projectId) {
   });
 }
 
+// Activate a project and set previous active project to inactive
+export async function activateProject(userId, projectId) {
+  try {
+    // Get current active project
+    const activeProject = await getActiveProject(userId);
+    
+    // Set the new project as active
+    const newProjectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc(projectId);
+    await newProjectRef.update({
+      isActive: true,
+      status: 'active'
+    });
+    
+    // Set previous active project to inactive (if exists)
+    if (activeProject) {
+      const previousProjectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc(activeProject.id);
+      await previousProjectRef.update({
+        isActive: false,
+        status: 'inactive'
+      });
+    }
+    
+    // Update user's activeProjectId
+    await updateUserActiveProject(userId, projectId);
+    
+    console.log(`[FirebaseService] Activated project ${projectId} for user ${userId}`);
+    if (activeProject) {
+      console.log(`[FirebaseService] Set previous active project ${activeProject.id} to inactive`);
+    }
+    
+  } catch (error) {
+    console.error('[FirebaseService] Error activating project:', error);
+    throw error;
+  }
+}
+
 // Get count of user messages in the last 24 hours
 export async function getUserMessageCountSince(projectId, userId, projectStartDate, currentDay) {
   try {
@@ -595,6 +651,331 @@ export async function getUserMessageCountSince(projectId, userId, projectStartDa
     return count;
   } catch (error) {
     console.error(`[Firebase] Error counting user messages:`, error);
+    throw error;
+  }
+}
+
+// --------------------------------Project Management Rules--------------------------------
+
+// Check if user can create new project
+export async function canCreateNewProject(userId) {
+  try {
+    const projects = await getUserProjects(userId);
+    console.log(`[FirebaseService] Projects: ${JSON.stringify(projects, null, 2)}`);
+    console.log(`[FirebaseService] Max total projects: ${PROJECT_RULES.MAX_TOTAL_PROJECTS}`);
+    const activeProjects = projects.filter(p => p.isActive === true);
+    console.log(`[FirebaseService] Active projects: ${JSON.stringify(activeProjects, null, 2)}`);
+    console.log(`[FirebaseService] Active projects length: ${activeProjects.length}`);
+    console.log(`[FirebaseService] Total projects: ${projects.length}`);
+    console.log(`[FirebaseService] Max total projects: ${PROJECT_RULES.MAX_TOTAL_PROJECTS}`);
+    console.log(`[FirebaseService] Can create new project: ${projects.length < PROJECT_RULES.MAX_TOTAL_PROJECTS}`);
+    return projects.length < PROJECT_RULES.MAX_TOTAL_PROJECTS;
+  } catch (error) {
+    console.error('Error checking project limits:', error);
+    return false;
+  }
+}
+
+// Get active project for user
+export async function getActiveProject(userId) {
+  try {
+    const projects = await getUserProjects(userId);
+    return projects.find(p => p.isActive === true && !p.archivedAt);
+  } catch (error) {
+    console.error('Error getting active project:', error);
+    return null;
+  }
+}
+
+// Get inactive projects for user (can be continued)
+export async function getInactiveProjects(userId) {
+  try {
+    const projects = await getUserProjects(userId);
+    const inactiveProjects = projects.filter(p => p.isActive === false && !p.archivedAt);
+    console.log(`[FirebaseService] Found ${inactiveProjects.length} inactive projects for user ${userId}`);
+    return inactiveProjects;
+  } catch (error) {
+    console.error('Error getting inactive projects:', error);
+    return [];
+  }
+}
+
+// Get archived projects for user (only truly archived, not inactive)
+export async function getArchivedProjects(userId) {
+  try {
+    const projects = await getUserProjects(userId);
+    const archivedProjects = projects.filter(p => p.status === 'archived');
+    console.log(`[FirebaseService] Found ${archivedProjects.length} archived projects for user ${userId}`);
+    archivedProjects.forEach(project => {
+      console.log(`[FirebaseService] Archived project: ${project.title}, archivedAt: ${project.archivedAt}`);
+    });
+    return archivedProjects;
+  } catch (error) {
+    console.error('Error getting archived projects:', error);
+    return [];
+  }
+}
+
+// Archive a project
+export async function archiveProject(projectId, userId) {
+  try {
+    // Verify user owns the project
+    const project = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
+    if (!project || project.userId !== userId) {
+      throw new Error('Project not found or access denied');
+    }
+
+    // Archive the project
+    const archivedAt = Date.now();
+    console.log(`[FirebaseService] Archiving project ${projectId} at timestamp: ${archivedAt}`);
+    await updateDocument(COLLECTIONS.USER_PROJECTS, projectId, {
+      isActive: false,
+      status: 'archived',
+      archivedAt: archivedAt
+    });
+    console.log(`[FirebaseService] Project ${projectId} archived successfully`);
+
+    // If this was the active project, clear user's activeProjectId
+    const user = await getDocumentById(COLLECTIONS.USERS, userId);
+    if (user && user.activeProjectId === projectId) {
+      await updateDocument(COLLECTIONS.USERS, userId, {
+        activeProjectId: null
+      });
+    }
+
+    return { success: true, message: 'Project archived successfully' };
+  } catch (error) {
+    console.error('Error archiving project:', error);
+    throw error;
+  }
+}
+
+// Create AI-generated template
+export async function createAITemplate(aiProject, topic) {
+  try {
+    const templateRef = db.collection(COLLECTIONS.PROJECT_TEMPLATES).doc();
+    const templateData = {
+      title: aiProject.title,
+      description: aiProject.description,
+      durationDays: PROJECT_RULES.DEFAULT_DEADLINE_DAYS,
+      managerName: "Alex", // Default manager
+      deliverables: aiProject.deliverables || [],
+      availableTeammates: ["Rasoa", "Rakoto"], // Default teammates
+      topic: topic,
+      aiGenerated: true,
+      createdAt: Date.now()
+    };
+    
+    await templateRef.set(templateData);
+    return templateRef.id;
+  } catch (error) {
+    console.error('Error creating AI template:', error);
+    throw error;
+  }
+}
+
+// Create AI-generated project
+export async function createAIGeneratedProject(userId, userName, topic, aiProject, existingTemplateId = null) {
+  try {
+    // Check if user can create new project
+    const canCreate = await canCreateNewProject(userId);
+    if (!canCreate) {
+      throw new Error('Maximum number of projects reached. Please archive a project first.');
+    }
+
+    // Set any existing active project to inactive (not archived)
+    const activeProject = await getActiveProject(userId);
+    if (activeProject) {
+      await updateDocument(COLLECTIONS.USER_PROJECTS, activeProject.id, {
+        isActive: false,
+        status: 'inactive'
+      });
+    }
+
+    // Use existing template ID or create new template
+    let templateId;
+    if (existingTemplateId) {
+      templateId = existingTemplateId;
+      console.log(`[FirebaseService] Using existing template: ${templateId}`);
+    } else {
+      templateId = await createAITemplate(aiProject, topic);
+      console.log(`[FirebaseService] Created new template: ${templateId}`);
+    }
+    
+    // Create user project
+    const projectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc();
+    const deadline = Date.now() + (PROJECT_RULES.DEFAULT_DEADLINE_DAYS * 24 * 60 * 60 * 1000);
+    
+    const projectData = {
+      userId: userId,
+      templateId: templateId, // Reference the AI-generated template
+      title: aiProject.title,
+      status: 'active',
+      isActive: true,
+      startDate: Date.now(),
+      deadline: deadline,
+      aiGenerated: true, // Mark as AI-generated
+      topic: topic,
+      description: aiProject.description,
+      team: [{
+        id: userId,
+        name: userName,
+        role: 'owner'
+      }]
+    };
+    
+    await projectRef.set(projectData);
+    
+    // Update user's active project
+    await updateUserActiveProject(userId, projectRef.id);
+    
+    return projectRef.id;
+  } catch (error) {
+    console.error('Error creating AI project:', error);
+    throw error;
+  }
+}
+
+// Get project with template data
+export async function getProjectWithTemplate(projectId, userId) {
+  try {
+    const project = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
+    if (!project || project.userId !== userId) {
+      return null;
+    }
+
+    // Get template data
+    const template = await getDocumentById(COLLECTIONS.PROJECT_TEMPLATES, project.templateId);
+    
+    return {
+      project: project,
+      template: template
+    };
+  } catch (error) {
+    console.error('Error getting project with template:', error);
+    return null;
+  }
+}
+
+// Get all user projects with template data merged
+export async function getUserProjectsWithTemplates(userId) {
+  try {
+    const projects = await getUserProjects(userId);
+    const projectsWithTemplates = [];
+    
+    for (const project of projects) {
+      try {
+        // Get template data
+        const template = await getDocumentById(COLLECTIONS.PROJECT_TEMPLATES, project.templateId);
+        
+        // Merge project data with template data
+        const mergedProject = {
+          ...project,
+          // Template fields
+          description: template?.description || '',
+          managerName: template?.managerName || '',
+          // Keep user project team data (not template team)
+          team: project.team || [],
+          // Template fields that might be useful
+          durationDays: template?.durationDays,
+          deliverables: template?.deliverables || [],
+          availableTeammates: template?.availableTeammates || [],
+          topic: template?.topic,
+          aiGenerated: template?.aiGenerated || false
+        };
+        
+        projectsWithTemplates.push(mergedProject);
+      } catch (error) {
+        console.error(`Error getting template for project ${project.id}:`, error);
+        // Add project without template data
+        projectsWithTemplates.push(project);
+      }
+    }
+    
+    return projectsWithTemplates;
+  } catch (error) {
+    console.error('Error getting user projects with templates:', error);
+    return [];
+  }
+}
+
+// Template Reuse Functions
+
+// Get unused templates for a specific topic and user
+export async function getUnusedTemplatesForTopic(topic, userId) {
+  try {
+    console.log(`[FirebaseService] Looking for unused templates for topic: ${topic}, user: ${userId}`);
+    
+    const templates = await getDocuments(COLLECTIONS.PROJECT_TEMPLATES, { 
+      topic: topic,
+      isReusable: true 
+    });
+    
+    // Filter out templates that this user has already used
+    const unusedTemplates = templates.filter(template => {
+      const usedBy = template.usedBy || [];
+      return !usedBy.includes(userId);
+    });
+    
+    console.log(`[FirebaseService] Found ${unusedTemplates.length} unused templates for topic ${topic}`);
+    return unusedTemplates;
+  } catch (error) {
+    console.error('[FirebaseService] Error getting unused templates:', error);
+    return [];
+  }
+}
+
+// Get least-used templates for a specific topic
+export async function getLeastUsedTemplatesForTopic(topic, limit = 3) {
+  try {
+    console.log(`[FirebaseService] Looking for least-used templates for topic: ${topic}`);
+    
+    const templates = await getDocuments(COLLECTIONS.PROJECT_TEMPLATES, { 
+      topic: topic,
+      isReusable: true 
+    });
+    
+    // Sort by usage count (ascending) and limit results
+    const sortedTemplates = templates
+      .sort((a, b) => (a.usageCount || 0) - (b.usageCount || 0))
+      .slice(0, limit);
+    
+    console.log(`[FirebaseService] Found ${sortedTemplates.length} least-used templates for topic ${topic}`);
+    return sortedTemplates;
+  } catch (error) {
+    console.error('[FirebaseService] Error getting least-used templates:', error);
+    return [];
+  }
+}
+
+// Update template usage when a template is used
+export async function updateTemplateUsage(templateId, userId) {
+  try {
+    console.log(`[FirebaseService] Updating template usage for template: ${templateId}, user: ${userId}`);
+    
+    const template = await getDocumentById(COLLECTIONS.PROJECT_TEMPLATES, templateId);
+    if (!template) {
+      throw new Error(`Template ${templateId} not found`);
+    }
+    
+    const usedBy = template.usedBy || [];
+    const usageCount = template.usageCount || 0;
+    
+    // Add user to usedBy array if not already there
+    if (!usedBy.includes(userId)) {
+      usedBy.push(userId);
+    }
+    
+    // Update template with new usage data
+    await updateDocument(COLLECTIONS.PROJECT_TEMPLATES, templateId, {
+      usedBy: usedBy,
+      usageCount: usageCount + 1,
+      lastUsed: Date.now()
+    });
+    
+    console.log(`[FirebaseService] Updated template usage: ${usageCount + 1} total uses`);
+  } catch (error) {
+    console.error('[FirebaseService] Error updating template usage:', error);
     throw error;
   }
 }
