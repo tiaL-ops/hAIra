@@ -303,23 +303,30 @@ export async function updateUserProject(projectId, content, grade, status = "sub
 }
 
 export async function addTasks(projectId, userId, projectTitle, status, deliverables = []) {
-  projectTitle = projectTitle.trim();
+  projectTitle = (projectTitle || '').trim();
   await ensureProjectExists(projectId);
 
   let completedAt = 0;
-  if (status === 'done')
-    completedAt = Date.now();
+  if (status === 'done') completedAt = Date.now();
 
   const promises = deliverables.map((item) => {
+    // Frontend may send per-task assignee and priority; fallback to provided userId and MEDIUM
+    const description = item?.deliverable ?? item?.description ?? '';
+    const assignee = (item && item.assignedTo) ? String(item.assignedTo) : String(userId);
+    const priority = (item && typeof item.priority === 'number')
+      ? item.priority
+      : Task.PRIORITY.MEDIUM.value;
+
     let newDeliverable = new Task(
       projectTitle,
-      userId,
+      assignee,
       status,
-      item.deliverable,
+      description,
       Date.now(),
       completedAt,
-      Task.PRIORITY.MEDIUM.value
+      priority
     );
+
     newDeliverable = newDeliverable.toFirestore();
     return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'tasks', newDeliverable);
   });

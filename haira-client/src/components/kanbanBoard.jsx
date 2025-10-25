@@ -98,7 +98,7 @@ export default function KanbanBoard({ id }) {
     const newTask = {
       id: uuidv4(),
       name: "New task",
-      assignee: teammates.length > 0 ? teammates[0].name : "Unassigned",
+      assignee: teammates.length > 0 ? (teammates[0].id || teammates[0].name) : "",
     };
     const token = await auth.currentUser.getIdToken(true);
     const data = { title : id, taskUserId : newTask.assignee , status : column, description : newTask.name };
@@ -258,7 +258,10 @@ export default function KanbanBoard({ id }) {
                             <div className="ai-avatar"><img src={getAIAvatar(task.assignee)} alt="Alex" className="team-avatar" /></div>
                             <div className="ai-info">
                               <h4>{task.name}</h4>
-                              <span className="ai-role">{task.assignee}</span>
+                              <span className="ai-role">{(() => {
+                                const mate = teammates.find(t => String(t.id).toLowerCase() === String(task.assignee || '').toLowerCase());
+                                return mate ? mate.name : (task.assignee || 'Unassigned');
+                              })()}</span>
                             </div>
                             {/* Disable edit button for tasks in "done" column */}
                             {col.id !== 'done' && (
@@ -310,7 +313,7 @@ export default function KanbanBoard({ id }) {
                               }
                             >
                               {teammates.map((teammate) => (
-                                <option key={teammate.id || teammate.name} value={teammate.name}>
+                                <option key={teammate.id || teammate.name} value={teammate.id || teammate.name}>
                                   {teammate.type === 'human' ? '👤' : '🤖'} {teammate.name} - {teammate.role}
                                 </option>
                               ))}

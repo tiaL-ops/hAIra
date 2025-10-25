@@ -5,8 +5,10 @@ function TaskReviewModal({ tasks, teammates, onSave, onCancel }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [editedTasks, setEditedTasks] = useState(tasks.map(task => ({
     ...task,
-    assignedTo: task.assignedTo || (teammates.length > 0 ? teammates[0].name : 'Unassigned')
+    // Store assignee as teammate.id (not name) for consistency with backend
+    assignedTo: task.assignedTo || (teammates.length > 0 ? (teammates[0].id || teammates[0].name) : '')
   })));
+  const [error, setError] = useState('');
 
   const currentTask = editedTasks[currentIndex];
 
@@ -14,9 +16,15 @@ function TaskReviewModal({ tasks, teammates, onSave, onCancel }) {
     const updated = [...editedTasks];
     updated[currentIndex] = { ...updated[currentIndex], [field]: value };
     setEditedTasks(updated);
+    if (field === 'assignedTo' && value) setError('');
   };
 
   const handleNext = () => {
+    // Validation: require an assignee
+    if (!editedTasks[currentIndex].assignedTo) {
+      setError('Please choose who this task is assigned to.');
+      return;
+    }
     if (currentIndex < editedTasks.length - 1) {
       setCurrentIndex(currentIndex + 1);
     }
@@ -29,6 +37,12 @@ function TaskReviewModal({ tasks, teammates, onSave, onCancel }) {
   };
 
   const handleSaveAll = () => {
+    // Ensure all tasks have an assignee before saving
+    const invalid = editedTasks.find(t => !t.assignedTo);
+    if (invalid) {
+      setError('All tasks must have an assignee before saving.');
+      return;
+    }
     onSave(editedTasks);
   };
 
@@ -61,11 +75,16 @@ function TaskReviewModal({ tasks, teammates, onSave, onCancel }) {
                 onChange={(e) => handleTaskChange('assignedTo', e.target.value)}
               >
                 {teammates.map((teammate) => (
-                  <option key={teammate.id || teammate.name} value={teammate.name}>
+                  <option key={teammate.id || teammate.name} value={teammate.id || teammate.name}>
                     {teammate.type === 'human' ? '👤' : '🤖'} {teammate.name} - {teammate.role}
                   </option>
                 ))}
               </select>
+              {error && (
+                <p className="error-text" style={{ color: '#B00020', marginTop: '6px' }}>
+                  {error}
+                </p>
+              )}
             </div>
 
             <div className="form-group">
