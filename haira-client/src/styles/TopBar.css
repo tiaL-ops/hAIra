@@ -107,3 +107,37 @@
 .header-top .btn.logout {
   background: #ffe9ec;
 }
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  20% {
+    transform: translateY(-15px) scale(2);
+  }
+  40% {
+    transform: translateY(-10px) scale(2.5);
+  }
+  60% {
+    transform: translateY(-5px) scale(1.8);
+  }
+  80% {
+    transform: translateY(-2px) scale(1.5);
+  }
+}
+
+.bouncy {
+  animation: bounce 1.6s infinite ease-in-out;
+}
+
+.topbar-badge {
+  position: absolute;
+  top: 0;
+  color: yellow;
+  font-size: 180%;
+  padding: 2px 5px;
+  margin-left: 25px;
+  margin-top: -15px;
+  min-width: 16px;
+  text-align: center;
+}

@@ -23,29 +23,47 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
     const userId = req.user.uid;
     const {includeArchived} = req.query;
     
-    const projects = await getUserProjectsWithTemplates(userId);
+    let projects = await getUserProjectsWithTemplates(userId);
     
     console.log(`[ProjectRoutes] Raw projects for user ${userId}:`);
     projects.forEach(p => {
-      console.log(`  - ${p.id}: isActive=${p.isActive}, status=${p.status}, archivedAt=${p.archivedAt}`);
+      console.log(`  - ${p.id}: title="${p.title}", isActive=${p.isActive}, status=${p.status}, startDate=${p.startDate}`);
     });
 
-    //separate active and archived projects only
-    let activeProjects = projects.filter(project => !project.archivedAt);
+    // Sort projects by startDate (most recent first)
+    projects = projects.sort((a, b) => (b.startDate || 0) - (a.startDate || 0));
+
+    // Ensure most recent project is active if no active project exists
+    const hasActiveProject = projects.some(p => p.isActive === true && !p.archivedAt);
+    if (!hasActiveProject && projects.length > 0 && !projects[0].archivedAt) {
+      console.log(`[ProjectRoutes] No active project found, setting most recent project ${projects[0].id} as active`);
+      await updateDocument(COLLECTIONS.USER_PROJECTS, projects[0].id, {
+        isActive: true,
+        status: 'active'
+      });
+      projects[0].isActive = true;
+      projects[0].status = 'active';
+    }
+
+    // Filter projects: show all non-archived projects by default
+    const activeProjects = projects.filter(project => !project.archivedAt);
     const archivedProjects = projects.filter(project => project.archivedAt);
+    const displayProjects = includeArchived ? projects : activeProjects;
 
     //create project limits
     const canCreate = await canCreateNewProject(userId);
     const activeProject = await getActiveProject(userId);
     
+    console.log(`[ProjectRoutes] Returning ${displayProjects.length} projects (${activeProjects.length} active, ${archivedProjects.length} archived)`);
+    
     res.json({
       success: true,
-      projects: includeArchived ? projects : activeProjects,
+      projects: displayProjects,
       activeProjects: activeProjects,
       archivedProjects: archivedProjects,
       canCreateNew: canCreate,
       activeProject: activeProject,
-      hasActiveProject: activeProject ? true : false,
+      hasActiveProject: !!activeProject,
       projectLimits: {
         maxTotalProjects: PROJECT_RULES.MAX_TOTAL_PROJECTS,
         maxActiveProjects: PROJECT_RULES.MAX_ACTIVE_PROJECTS,
@@ -56,6 +74,31 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching user projects:', error);
     res.status(500).json({ error: 'Failed to fetch projects' });
+  }
+});
+
+// Debug endpoint to check user projects raw data
+router.get('/debug', verifyFirebaseToken, async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const projects = await getUserProjects(userId);
+    
+    res.json({
+      success: true,
+      userId: userId,
+      projectCount: projects.length,
+      projects: projects.map(p => ({
+        id: p.id,
+        title: p.title,
+        status: p.status,
+        isActive: p.isActive,
+        archivedAt: p.archivedAt,
+        startDate: p.startDate
+      }))
+    });
+  } catch (error) {
+    console.error('Error in debug endpoint:', error);
+    res.status(500).json({ error: 'Failed to fetch debug info' });
   }
 });
 
@@ -86,6 +129,22 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to create project' });
   }
 });
+
+//
+router.get('/topics', verifyFirebaseToken, async (req, res) => {
+  try {
+    console.log('[ProjectRoutes] Topics endpoint called by user:', req.user?.uid);
+    res.json({
+      success: true,
+      topics: LEARNING_TOPICS
+    });
+  } catch (error) {
+    console.error('Error fetching learning topics:', error);
+    res.status(500).json({ error: 'Failed to fetch learning topics' });
+  }
+});
+
+
 
 // Get project by ID
 router.get('/:id', verifyFirebaseToken, async (req, res) => {
@@ -336,18 +395,7 @@ router.get('/:id/with-template', verifyFirebaseToken, async (req, res) => {
 });
 
 // Get learning topics
-router.get('/topics', verifyFirebaseToken, async (req, res) => {
-  try {
-    console.log('[ProjectRoutes] Topics endpoint called by user:', req.user?.uid);
-    res.json({
-      success: true,
-      topics: LEARNING_TOPICS
-    });
-  } catch (error) {
-    console.error('Error fetching learning topics:', error);
-    res.status(500).json({ error: 'Failed to fetch learning topics' });
-  }
-});
+
 
 // Get available templates for a specific topic
 router.get('/templates/:topic', verifyFirebaseToken, async (req, res) => {
@@ -387,57 +435,4 @@ router.get('/templates/:topic', verifyFirebaseToken, async (req, res) => {
   }
 });
 // Export the router so we can use it in index.js
-// Manual migration route to fix existing projects without isActive field
-router.post('/fix-projects', verifyFirebaseToken, async (req, res) => {
-  try {
-    const userId = req.user.uid;
-    const projects = await getUserProjects(userId);
-    
-    console.log(`[ProjectRoutes] Found ${projects.length} projects for user ${userId}`);
-    
-    const projectsWithoutIsActive = projects.filter(p => p.isActive === undefined && !p.archivedAt);
-    console.log(`[ProjectRoutes] Found ${projectsWithoutIsActive.length} projects without isActive field`);
-    
-    if (projectsWithoutIsActive.length === 0) {
-      return res.json({ 
-        success: true, 
-        message: 'All projects already have isActive field',
-        fixed: 0
-      });
-    }
-    
-    // Make the most recent project active, others inactive
-    const sortedProjects = projectsWithoutIsActive.sort((a, b) => (b.startDate || 0) - (a.startDate || 0));
-    
-    let fixed = 0;
-    for (let i = 0; i < sortedProjects.length; i++) {
-      const project = sortedProjects[i];
-      const isActive = i === 0; // First (most recent) is active
-      
-      await updateDocument(COLLECTIONS.USER_PROJECTS, project.id, {
-        isActive: isActive,
-        status: isActive ? 'active' : 'inactive'
-      });
-      
-      if (isActive) {
-        await updateUserActiveProject(userId, project.id);
-      }
-      
-      fixed++;
-      console.log(`[ProjectRoutes] Fixed project ${project.id} - isActive: ${isActive}`);
-    }
-    
-    res.json({
-      success: true,
-      message: `Fixed ${fixed} projects`,
-      fixed: fixed,
-      activeProject: sortedProjects[0].id
-    });
-    
-  } catch (error) {
-    console.error('Error fixing projects:', error);
-    res.status(500).json({ error: 'Failed to fix projects' });
-  }
-});
-
 export default router;
