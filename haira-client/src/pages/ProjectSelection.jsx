@@ -274,8 +274,6 @@ export default function ProjectSelection() {
                 // Owner is always added by default, so we need more than 1 team member
                 const hasTeammates = Array.isArray(project?.team) && project.team.length > 1;
                 
-                console.log('Project:', project.title, 'team:', project?.team, 'hasTeammates:', hasTeammates);
-                
                 return (
                   <div key={project.id} className="project-card-large">
                     <h2 className="project-card-title-large">
