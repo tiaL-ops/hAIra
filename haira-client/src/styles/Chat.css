@@ -86,10 +86,48 @@
 
 /* Navigation buttons in sidebar */
 .sidebar-section.page-navigation-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
   padding: 1rem;
+}
+
+/* Segmented navigation bar */
+.nav-bar {
+  display: flex;
+  width: 100%;
+  border: 3px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 4px 4px 0 var(--border-color);
+}
+
+.nav-tab {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: background 0.15s ease, transform 0.05s ease;
+  color: var(--text-dark);
+}
+
+.nav-tab + .nav-tab {
+  border-left: 3px solid var(--border-color);
+}
+
+/* Themed tabs */
+.nav-tab-kanban {
+  background: linear-gradient(180deg, #B4565A, #9f4b4f);
+}
+.nav-tab-kanban:hover {
+  filter: brightness(0.95);
+}
+
+.nav-tab-submission {
+  background: linear-gradient(180deg, #93C263, #7fb052);
+}
+.nav-tab-submission:hover {
+  filter: brightness(0.95);
 }
 
 /* Navigation button base style */

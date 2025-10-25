@@ -112,7 +112,7 @@ function TaskReviewModal({ tasks, teammates, onSave, onCancel }) {
                 >
                   {teammates.map((teammate) => (
                     <option key={teammate.id || teammate.name} value={teammate.id || teammate.name}>
-                      {teammate.type === 'human' ? '👤' : '🤖'} {teammate.name} - {teammate.role}
+                      {teammate.name} - {teammate.role}
                     </option>
                   ))}
                 </select>
