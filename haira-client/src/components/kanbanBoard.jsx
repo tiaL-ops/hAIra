@@ -6,6 +6,16 @@ import { getAuth, onAuthStateChanged  } from 'firebase/auth';
 import { useAuth } from '../App';
 import axios from 'axios';
 import '../styles/Kanban.css';
+// Avatars
+import AlexAvatar from '../images/Alex.png';
+import BrownAvatar from '../images/Brown.png';
+import ElzaAvatar from '../images/Elza.png';
+import KatiAvatar from '../images/Kati.png';
+import SteveAvatar from '../images/Steve.png';
+import SamAvatar from '../images/Sam.png';
+import RasoaAvatar from '../images/Rasoa.png';
+import RakotoAvatar from '../images/Rakoto.png';
+import YouAvatar from '../images/You.png';
 
 const auth = getAuth();
 
@@ -44,7 +54,7 @@ export default function KanbanBoard({ id }) {
   const [tasks, setTasks] = useState(initialData);
   const [editingTask, setEditingTask] = useState(null);
   const [priority, setPriority] = useState([]);
-  const [assignees, setAssignees] = useState([currentUser.name]);
+  const [teammates, setTeammates] = useState([]);
   
   useEffect(() => {
     let isMounted = true;
@@ -65,11 +75,11 @@ export default function KanbanBoard({ id }) {
         });
         setTasks(data);
         
-        let team = kanbanData.data.team;
-        // default value for team
-        if (!team)
-          team = ['You', 'Alex', 'Sam', 'Rakoto', 'Rasoa' ];
-        setAssignees(team);
+        // Get teammates from project data
+        let team = kanbanData.data.project?.team || [];
+        // Filter to get names for the dropdown
+        const teammateNames = team.map(t => t.name);
+        setTeammates(team);
 
         const priorityData = await axios.get(`http://localhost:3002/api/project/tasks/priority`, { headers: { Authorization: `Bearer ${token}` } });
         setPriority(priorityData.data.priority);
@@ -88,7 +98,7 @@ export default function KanbanBoard({ id }) {
     const newTask = {
       id: uuidv4(),
       name: "New task",
-      assignee: assignees[0],
+      assignee: teammates.length > 0 ? (teammates[0].id || teammates[0].name) : "",
     };
     const token = await auth.currentUser.getIdToken(true);
     const data = { title : id, taskUserId : newTask.assignee , status : column, description : newTask.name };
@@ -172,15 +182,38 @@ export default function KanbanBoard({ id }) {
     });
   };
 
-  const getAIAvatar = (name) => {
-    // Avatar of the connected user
-    if (name === assignees[0])
-      return '/src/images/You.png';
+  // Map known AI names/ids to avatars
+  const avatarMap = {
+    alex: AlexAvatar,
+    brown: BrownAvatar,
+    elza: ElzaAvatar,
+    kati: KatiAvatar,
+    steve: SteveAvatar,
+    sam: SamAvatar,
+    rasoa: RasoaAvatar,
+    rakoto: RakotoAvatar,
+  };
 
-    if (assignees.includes(name))
-      return '/src/images/' + name + '.png';
+  const getAIAvatar = (nameOrId) => {
+    if (!nameOrId) return YouAvatar;
+    const lookup = String(nameOrId).toLowerCase();
 
-    return '';
+    // If this is the logged-in human or any human teammate, show You avatar
+    const teammate = teammates.find(t => (t.name && t.name.toLowerCase() === lookup) || (t.id && String(t.id).toLowerCase() === lookup));
+    if (teammate && teammate.type === 'human') return YouAvatar;
+
+    // Try id/name mapping for AI
+    if (avatarMap[lookup]) return avatarMap[lookup];
+
+    // Try to map known display names to ids
+    const nameToId = {
+      alex: 'alex', brown: 'brown', elza: 'elza', kati: 'kati', steve: 'steve', sam: 'sam', rasoa: 'rasoa', rakoto: 'rakoto'
+    };
+    const normalized = nameToId[lookup];
+    if (normalized && avatarMap[normalized]) return avatarMap[normalized];
+
+    // Fallbacks
+    return SteveAvatar;
   };
 
   const columns = [
@@ -225,16 +258,27 @@ export default function KanbanBoard({ id }) {
                             <div className="ai-avatar"><img src={getAIAvatar(task.assignee)} alt="Alex" className="team-avatar" /></div>
                             <div className="ai-info">
                               <h4>{task.name}</h4>
-                              <span className="ai-role">{task.assignee}</span>
+                              <span className="ai-role">{(() => {
+                                const mate = teammates.find(t => String(t.id).toLowerCase() === String(task.assignee || '').toLowerCase());
+                                return mate ? mate.name : (task.assignee || 'Unassigned');
+                              })()}</span>
                             </div>
-                            <button
-                              onClick={() =>
-                                setEditingTask({ ...task, column: col.id })
-                              }
-                              className="text-sm text-blue-500 hover:underline opacity-0 group-hover:opacity-100 transition"
-                            >
-                              Edit
-                            </button>
+                            {/* Disable edit button for tasks in "done" column */}
+                            {col.id !== 'done' && (
+                              <button
+                                onClick={() =>
+                                  setEditingTask({ ...task, column: col.id })
+                                }
+                                className="text-sm text-blue-500 hover:underline opacity-0 group-hover:opacity-100 transition"
+                              >
+                                Edit
+                              </button>
+                            )}
+                            {col.id === 'done' && (
+                              <span className="text-sm text-gray-400 opacity-50">
+                                ✓ Done
+                              </span>
+                            )}
                           </div>
                           {/* <div>
                             <div className="font-medium">{task.name}</div>
@@ -247,6 +291,10 @@ export default function KanbanBoard({ id }) {
 
                         {editingTask && editingTask.id === task.id && (
                           <div className="absolute top-full left-0 mt-2 p-2 w-64 bg-white border rounded shadow z-10" style={{ width: '100%' }}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <img src={getAIAvatar(editingTask.assignee)} alt="assignee" className="team-avatar" />
+                              <span className="text-sm text-gray-600">Assignee</span>
+                            </div>
                             <input
                               type="text"
                               className="w-full border p-1 rounded mb-2"
@@ -268,9 +316,9 @@ export default function KanbanBoard({ id }) {
                                 })
                               }
                             >
-                              {assignees.map((a) => (
-                                <option key={a} value={a}>
-                                  {a}
+                              {teammates.map((teammate) => (
+                                <option key={teammate.id || teammate.name} value={teammate.id || teammate.name}>
+                                  {teammate.type === 'human' ? '👤' : '🤖'} {teammate.name} - {teammate.role}
                                 </option>
                               ))}
                             </select>

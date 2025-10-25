@@ -303,23 +303,30 @@ export async function updateUserProject(projectId, content, grade, status = "sub
 }
 
 export async function addTasks(projectId, userId, projectTitle, status, deliverables = []) {
-  projectTitle = projectTitle.trim();
+  projectTitle = (projectTitle || '').trim();
   await ensureProjectExists(projectId);
 
   let completedAt = 0;
-  if (status === 'done')
-    completedAt = Date.now();
+  if (status === 'done') completedAt = Date.now();
 
   const promises = deliverables.map((item) => {
+    // Frontend may send per-task assignee and priority; fallback to provided userId and MEDIUM
+    const description = item?.deliverable ?? item?.description ?? '';
+    const assignee = (item && item.assignedTo) ? String(item.assignedTo) : String(userId);
+    const priority = (item && typeof item.priority === 'number')
+      ? item.priority
+      : Task.PRIORITY.MEDIUM.value;
+
     let newDeliverable = new Task(
       projectTitle,
-      userId,
+      assignee,
       status,
-      item.deliverable,
+      description,
       Date.now(),
       completedAt,
-      Task.PRIORITY.MEDIUM.value
+      priority
     );
+
     newDeliverable = newDeliverable.toFirestore();
     return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'tasks', newDeliverable);
   });
@@ -560,10 +567,35 @@ export async function getProjectWithTasks(projectId, userId) {
   console.log(`[FirebaseService] Found project ${projectId} with ${tasks.length} tasks`);
   console.log(`[FirebaseService] All tasks:`, JSON.stringify(tasks, null, 2));
   
+  // Fetch teammates from subcollection (source of truth)
+  const teammatesRef = projectRef.collection('teammates');
+  const teammatesSnapshot = await teammatesRef.get();
+  
+  const teammates = [];
+  teammatesSnapshot.forEach(doc => {
+    const teammateData = doc.data();
+    teammates.push({
+      id: doc.id,
+      name: teammateData.name,
+      role: teammateData.role,
+      type: teammateData.type,
+      avatar: teammateData.avatar,
+      color: teammateData.color
+    });
+  });
+  
+  console.log(`[FirebaseService] Found ${teammates.length} teammates in subcollection`);
+  
+  // Update project.team from subcollection if teammates exist
+  let updatedProjectData = { ...projectData };
+  if (teammates.length > 0) {
+    updatedProjectData.team = teammates;
+  }
+  
   return {
     project: {
       id: projectId,
-      ...projectData
+      ...updatedProjectData
     },
     tasks: tasks
   };
@@ -868,14 +900,36 @@ export async function getUserProjectsWithTemplates(userId) {
         // Get template data
         const template = await getDocumentById(COLLECTIONS.PROJECT_TEMPLATES, project.templateId);
         
+        // Fetch teammates from subcollection (source of truth)
+        const teammatesRef = db.collection(COLLECTIONS.USER_PROJECTS)
+          .doc(project.id)
+          .collection('teammates');
+        const teammatesSnapshot = await teammatesRef.get();
+        
+        const teammates = [];
+        teammatesSnapshot.forEach(doc => {
+          const teammateData = doc.data();
+          teammates.push({
+            id: doc.id,
+            name: teammateData.name,
+            role: teammateData.role,
+            type: teammateData.type,
+            avatar: teammateData.avatar,
+            color: teammateData.color
+          });
+        });
+        
+        // Use teammates from subcollection if available, fallback to document field
+        const teamData = teammates.length > 0 ? teammates : (project.team || []);
+        
         // Merge project data with template data
         const mergedProject = {
           ...project,
           // Template fields
           description: template?.description || '',
           managerName: template?.managerName || '',
-          // Keep user project team data (not template team)
-          team: project.team || [],
+          // Keep user project team data from subcollection (source of truth)
+          team: teamData,
           // Template fields that might be useful
           durationDays: template?.durationDays,
           deliverables: template?.deliverables || [],

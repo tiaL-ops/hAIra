@@ -23,26 +23,47 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
     const userId = req.user.uid;
     const {includeArchived} = req.query;
     
-    const projects = await getUserProjectsWithTemplates(userId);
+    let projects = await getUserProjectsWithTemplates(userId);
+    
+    console.log(`[ProjectRoutes] Raw projects for user ${userId}:`);
+    projects.forEach(p => {
+      console.log(`  - ${p.id}: title="${p.title}", isActive=${p.isActive}, status=${p.status}, startDate=${p.startDate}`);
+    });
 
-    //separate active, inactive, and archived projects
-    const activeProjects = projects.filter(project => project.isActive === true);
-    const inactiveProjects = projects.filter(project => project.status === 'inactive' && project.isActive === false);
-    const archivedProjects = projects.filter(project => project.status === 'archived');
+    // Sort projects by startDate (most recent first)
+    projects = projects.sort((a, b) => (b.startDate || 0) - (a.startDate || 0));
+
+    // Ensure most recent project is active if no active project exists
+    const hasActiveProject = projects.some(p => p.isActive === true && !p.archivedAt);
+    if (!hasActiveProject && projects.length > 0 && !projects[0].archivedAt) {
+      console.log(`[ProjectRoutes] No active project found, setting most recent project ${projects[0].id} as active`);
+      await updateDocument(COLLECTIONS.USER_PROJECTS, projects[0].id, {
+        isActive: true,
+        status: 'active'
+      });
+      projects[0].isActive = true;
+      projects[0].status = 'active';
+    }
+
+    // Filter projects: show all non-archived projects by default
+    const activeProjects = projects.filter(project => !project.archivedAt);
+    const archivedProjects = projects.filter(project => project.archivedAt);
+    const displayProjects = includeArchived ? projects : activeProjects;
 
     //create project limits
     const canCreate = await canCreateNewProject(userId);
     const activeProject = await getActiveProject(userId);
     
+    console.log(`[ProjectRoutes] Returning ${displayProjects.length} projects (${activeProjects.length} active, ${archivedProjects.length} archived)`);
+    
     res.json({
       success: true,
-      projects: includeArchived ? projects : activeProjects,
+      projects: displayProjects,
       activeProjects: activeProjects,
-      inactiveProjects: inactiveProjects,
       archivedProjects: archivedProjects,
       canCreateNew: canCreate,
       activeProject: activeProject,
-      hasActiveProject: activeProject ? true : false,
+      hasActiveProject: !!activeProject,
       projectLimits: {
         maxTotalProjects: PROJECT_RULES.MAX_TOTAL_PROJECTS,
         maxActiveProjects: PROJECT_RULES.MAX_ACTIVE_PROJECTS,
@@ -53,6 +74,31 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching user projects:', error);
     res.status(500).json({ error: 'Failed to fetch projects' });
+  }
+});
+
+// Debug endpoint to check user projects raw data
+router.get('/debug', verifyFirebaseToken, async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const projects = await getUserProjects(userId);
+    
+    res.json({
+      success: true,
+      userId: userId,
+      projectCount: projects.length,
+      projects: projects.map(p => ({
+        id: p.id,
+        title: p.title,
+        status: p.status,
+        isActive: p.isActive,
+        archivedAt: p.archivedAt,
+        startDate: p.startDate
+      }))
+    });
+  } catch (error) {
+    console.error('Error in debug endpoint:', error);
+    res.status(500).json({ error: 'Failed to fetch debug info' });
   }
 });
 

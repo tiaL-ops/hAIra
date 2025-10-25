@@ -410,6 +410,24 @@ function Chat() {
     <div className="chat-container">
       {/* LEFT SIDEBAR */}
       <div className="chat-sidebar">
+          {/* Navigation Buttons */}
+          <div className="sidebar-section page-navigation-buttons">
+            <button 
+              onClick={() => navigate(`/project/${id}/kanban`)}
+              className="nav-btn nav-btn-kanban"
+              title="Go to Kanban Board"
+            >
+              📋 Kanban
+            </button>
+            <button 
+              onClick={() => navigate(`/project/${id}/submission`)}
+              className="nav-btn nav-btn-submission"
+              title="Go to Submission"
+            >
+              📤 Submission
+            </button>
+          </div>
+        
         {/* Project Info */}
         <div className="sidebar-section">
           <h3>📋 {projectName || 'Project Chat'}</h3>

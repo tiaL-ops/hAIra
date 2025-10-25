@@ -127,7 +127,6 @@ export default function TopBar() {
 
   const tabs = [
     { to: '/projects', label: 'Projects' },
-    { to: '/classroom', label: 'Classroom' },
     { to: '/profile', label: 'Profile' },
   ];
 
