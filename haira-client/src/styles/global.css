@@ -16,6 +16,7 @@
 
 body {
   font-family: "Jersey 10", sans-serif;
+  font-size: 1.06rem; /* Slightly larger base font for better readability */
   background: var(--color-bg);
   color: var(--color-text);
   margin: 0;
