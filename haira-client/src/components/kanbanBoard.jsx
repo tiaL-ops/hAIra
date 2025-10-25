@@ -6,6 +6,16 @@ import { getAuth, onAuthStateChanged  } from 'firebase/auth';
 import { useAuth } from '../App';
 import axios from 'axios';
 import '../styles/Kanban.css';
+// Avatars
+import AlexAvatar from '../images/Alex.png';
+import BrownAvatar from '../images/Brown.png';
+import ElzaAvatar from '../images/Elza.png';
+import KatiAvatar from '../images/Kati.png';
+import SteveAvatar from '../images/Steve.png';
+import SamAvatar from '../images/Sam.png';
+import RasoaAvatar from '../images/Rasoa.png';
+import RakotoAvatar from '../images/Rakoto.png';
+import YouAvatar from '../images/You.png';
 
 const auth = getAuth();
 
@@ -172,18 +182,38 @@ export default function KanbanBoard({ id }) {
     });
   };
 
-  const getAIAvatar = (name) => {
-    // Avatar of the connected user (first teammate if human)
-    const firstTeammate = teammates.length > 0 ? teammates[0].name : null;
-    if (name === firstTeammate)
-      return '/src/images/You.png';
+  // Map known AI names/ids to avatars
+  const avatarMap = {
+    alex: AlexAvatar,
+    brown: BrownAvatar,
+    elza: ElzaAvatar,
+    kati: KatiAvatar,
+    steve: SteveAvatar,
+    sam: SamAvatar,
+    rasoa: RasoaAvatar,
+    rakoto: RakotoAvatar,
+  };
 
-    // Check if name exists in teammates
-    const teammateNames = teammates.map(t => t.name);
-    if (teammateNames.includes(name))
-      return '/src/images/' + name + '.png';
+  const getAIAvatar = (nameOrId) => {
+    if (!nameOrId) return YouAvatar;
+    const lookup = String(nameOrId).toLowerCase();
 
-    return '';
+    // If this is the logged-in human or any human teammate, show You avatar
+    const teammate = teammates.find(t => (t.name && t.name.toLowerCase() === lookup) || (t.id && String(t.id).toLowerCase() === lookup));
+    if (teammate && teammate.type === 'human') return YouAvatar;
+
+    // Try id/name mapping for AI
+    if (avatarMap[lookup]) return avatarMap[lookup];
+
+    // Try to map known display names to ids
+    const nameToId = {
+      alex: 'alex', brown: 'brown', elza: 'elza', kati: 'kati', steve: 'steve', sam: 'sam', rasoa: 'rasoa', rakoto: 'rakoto'
+    };
+    const normalized = nameToId[lookup];
+    if (normalized && avatarMap[normalized]) return avatarMap[normalized];
+
+    // Fallbacks
+    return SteveAvatar;
   };
 
   const columns = [

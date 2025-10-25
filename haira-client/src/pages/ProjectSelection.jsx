@@ -7,6 +7,16 @@ import ProjectViewModal from '../components/ProjectViewModal';
 import ProjectWelcome from '../components/ProjectWelcome';
 import '../styles/ProjectSelection.css';
 import axios from 'axios';
+// Avatars
+import AlexAvatar from '../images/Alex.png';
+import BrownAvatar from '../images/Brown.png';
+import ElzaAvatar from '../images/Elza.png';
+import KatiAvatar from '../images/Kati.png';
+import SteveAvatar from '../images/Steve.png';
+import SamAvatar from '../images/Sam.png';
+import RasoaAvatar from '../images/Rasoa.png';
+import RakotoAvatar from '../images/Rakoto.png';
+import YouAvatar from '../images/You.png';
 
 const backend_host = "http://localhost:3002";
 
@@ -143,6 +153,25 @@ export default function ProjectSelection() {
     setProjectToArchive(null);
   };
 
+  // Resolve avatar for a teammate
+  const avatarMap = {
+    alex: AlexAvatar,
+    brown: BrownAvatar,
+    elza: ElzaAvatar,
+    kati: KatiAvatar,
+    steve: SteveAvatar,
+    sam: SamAvatar,
+    rasoa: RasoaAvatar,
+    rakoto: RakotoAvatar,
+  };
+
+  const getTeammateAvatar = (member) => {
+    if (!member) return YouAvatar;
+    if (member.type === 'human') return YouAvatar;
+    const key = (member.id || member.name || '').toString().toLowerCase();
+    return avatarMap[key] || SteveAvatar;
+  };
+
   // Show project modal
   const showProjectView = (projects, title) => {
     setModalProjects(projects);
@@ -263,9 +292,7 @@ export default function ProjectSelection() {
                         <div className="teammates-list">
                           {project.team.map((member, index) => (
                             <div key={index} className="teammate-item">
-                              <span className="teammate-icon">
-                                {member.type === 'human' ? '👤' : '🤖'}
-                              </span>
+                              <img className="teammate-avatar" src={getTeammateAvatar(member)} alt={member.name} />
                               <div className="teammate-info">
                                 <span className="teammate-name">{member.name}</span>
                                 <span className="teammate-role">{member.role}</span>

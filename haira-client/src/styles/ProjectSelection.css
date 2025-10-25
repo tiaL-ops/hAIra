@@ -149,10 +149,13 @@
   border: 2px solid #E6E0F8;
 }
 
-.teammate-icon {
-  font-size: 24px;
-  min-width: 30px;
-  text-align: center;
+/* Teammate avatar image */
+.teammate-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 2px solid #E6E0F8;
 }
 
 .teammate-info {

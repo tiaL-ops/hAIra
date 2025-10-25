@@ -123,6 +123,14 @@
     min-width: 0;
 }
 
+/* Avatar image used in Kanban cards */
+.team-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
 .page-side-block-col {
     position: sticky;
     top: 150px;

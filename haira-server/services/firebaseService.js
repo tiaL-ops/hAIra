@@ -560,28 +560,37 @@ export async function getProjectWithTasks(projectId, userId) {
   console.log(`[FirebaseService] Found project ${projectId} with ${tasks.length} tasks`);
   console.log(`[FirebaseService] All tasks:`, JSON.stringify(tasks, null, 2));
   
-  // Get teammates from subcollection
+  // Fetch teammates from subcollection (source of truth)
   const teammatesRef = projectRef.collection('teammates');
   const teammatesSnapshot = await teammatesRef.get();
   
   const teammates = [];
   teammatesSnapshot.forEach(doc => {
+    const teammateData = doc.data();
     teammates.push({
       id: doc.id,
-      ...doc.data()
+      name: teammateData.name,
+      role: teammateData.role,
+      type: teammateData.type,
+      avatar: teammateData.avatar,
+      color: teammateData.color
     });
-    console.log(`[FirebaseService] Teammate ${doc.id}:`, doc.data());
   });
   
-  console.log(`[FirebaseService] Found ${teammates.length} teammates`);
+  console.log(`[FirebaseService] Found ${teammates.length} teammates in subcollection`);
+  
+  // Update project.team from subcollection if teammates exist
+  let updatedProjectData = { ...projectData };
+  if (teammates.length > 0) {
+    updatedProjectData.team = teammates;
+  }
   
   return {
     project: {
       id: projectId,
-      ...projectData
+      ...updatedProjectData
     },
-    tasks: tasks,
-    teammates: teammates
+    tasks: tasks
   };
 }
 
@@ -884,14 +893,36 @@ export async function getUserProjectsWithTemplates(userId) {
         // Get template data
         const template = await getDocumentById(COLLECTIONS.PROJECT_TEMPLATES, project.templateId);
         
+        // Fetch teammates from subcollection (source of truth)
+        const teammatesRef = db.collection(COLLECTIONS.USER_PROJECTS)
+          .doc(project.id)
+          .collection('teammates');
+        const teammatesSnapshot = await teammatesRef.get();
+        
+        const teammates = [];
+        teammatesSnapshot.forEach(doc => {
+          const teammateData = doc.data();
+          teammates.push({
+            id: doc.id,
+            name: teammateData.name,
+            role: teammateData.role,
+            type: teammateData.type,
+            avatar: teammateData.avatar,
+            color: teammateData.color
+          });
+        });
+        
+        // Use teammates from subcollection if available, fallback to document field
+        const teamData = teammates.length > 0 ? teammates : (project.team || []);
+        
         // Merge project data with template data
         const mergedProject = {
           ...project,
           // Template fields
           description: template?.description || '',
           managerName: template?.managerName || '',
-          // Keep user project team data (not template team)
-          team: project.team || [],
+          // Keep user project team data from subcollection (source of truth)
+          team: teamData,
           // Template fields that might be useful
           durationDays: template?.durationDays,
           deliverables: template?.deliverables || [],
@@ -992,56 +1023,6 @@ export async function updateTemplateUsage(templateId, userId) {
     console.log(`[FirebaseService] Updated template usage: ${usageCount + 1} total uses`);
   } catch (error) {
     console.error('[FirebaseService] Error updating template usage:', error);
-    throw error;
-  }
-}
-
-// Teammate management functions
-export async function addTeammate(projectId, teammateData) {
-  try {
-    console.log(`[FirebaseService] Adding teammate to project ${projectId}:`, teammateData);
-    return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'teammates', {
-      ...teammateData,
-      createdAt: Date.now()
-    });
-  } catch (error) {
-    console.error('[FirebaseService] Error adding teammate:', error);
-    throw error;
-  }
-}
-
-export async function updateTeammate(projectId, teammateId, updateData) {
-  try {
-    console.log(`[FirebaseService] Updating teammate ${teammateId} in project ${projectId}:`, updateData);
-    const teammateRef = db.collection(COLLECTIONS.USER_PROJECTS)
-      .doc(projectId)
-      .collection('teammates')
-      .doc(teammateId);
-      
-    await teammateRef.update({
-      ...updateData,
-      updatedAt: Date.now()
-    });
-    
-    return { id: teammateId, ...updateData };
-  } catch (error) {
-    console.error('[FirebaseService] Error updating teammate:', error);
-    throw error;
-  }
-}
-
-export async function deleteTeammate(projectId, teammateId) {
-  try {
-    console.log(`[FirebaseService] Deleting teammate ${teammateId} from project ${projectId}`);
-    const teammateRef = db.collection(COLLECTIONS.USER_PROJECTS)
-      .doc(projectId)
-      .collection('teammates')
-      .doc(teammateId);
-      
-    await teammateRef.delete();
-    return { id: teammateId };
-  } catch (error) {
-    console.error('[FirebaseService] Error deleting teammate:', error);
     throw error;
   }
 }
