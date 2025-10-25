@@ -241,7 +241,11 @@ export default function ProjectSelection() {
             
             <div className="projects-grid-large">
               {projects.map((project) => {
-                const hasTeammates = project?.team && project.team.length > 0;
+                // Check if teammates exist - must have AI teammates (more than just the owner)
+                // Owner is always added by default, so we need more than 1 team member
+                const hasTeammates = Array.isArray(project?.team) && project.team.length > 1;
+                
+                console.log('Project:', project.title, 'team:', project?.team, 'hasTeammates:', hasTeammates);
                 
                 return (
                   <div key={project.id} className="project-card-large">
@@ -276,14 +280,41 @@ export default function ProjectSelection() {
                       </div>
                     )}
                     
+                    {/* Show navigation buttons if teammates are chosen, otherwise show choose teammates button */}
                     <div className="project-actions-large">
-                      <button 
-                        onClick={() => handleOpenProject(project.id, 'classroom', project)}
-                        className="btn-action-large btn-primary-large"
-                        title="Choose or manage AI teammates"
-                      >
-                        {hasTeammates ? '⚙️ Change Teammates' : '⚡ Choose Teammates'}
-                      </button>
+                      {hasTeammates ? (
+                        <>
+                          <button 
+                            onClick={() => handleOpenProject(project.id, 'kanban', project)}
+                            className="btn-action-large btn-kanban"
+                            title="Manage tasks and workflow"
+                          >
+                            📋 Kanban Board
+                          </button>
+                          <button 
+                            onClick={() => handleOpenProject(project.id, 'chat', project)}
+                            className="btn-action-large btn-chat"
+                            title="Chat with your AI teammates"
+                          >
+                            💬 Chat
+                          </button>
+                          <button 
+                            onClick={() => handleOpenProject(project.id, 'submission', project)}
+                            className="btn-action-large btn-submission"
+                            title="Submit your project"
+                          >
+                            📤 Submission
+                          </button>
+                        </>
+                      ) : (
+                        <button 
+                          onClick={() => handleOpenProject(project.id, 'classroom', project)}
+                          className="btn-action-large btn-primary-large"
+                          title="Choose your AI teammates"
+                        >
+                          ⚡ Choose Teammates
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

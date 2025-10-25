@@ -180,6 +180,11 @@
   gap: 1rem;
 }
 
+/* When there are multiple action buttons (with teammates), use responsive grid */
+.project-actions-large:has(> button:nth-child(2)) {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
 /* Base Pixel Button Style */
 .btn-action-large {
   padding: 0.8rem 1.2rem;
@@ -211,34 +216,40 @@
 }
 
 /* Blue Button (Kanban) */
-.btn-kanban-large {
+.btn-kanban-large,
+.btn-kanban {
   background: #91a4d3; /* Pixelverse Blue */
   border: 3px solid #5f6a8a;
   box-shadow: 4px 4px 0px #5f6a8a;
 }
-.btn-kanban-large:hover:not(:disabled) {
+.btn-kanban-large:hover:not(:disabled),
+.btn-kanban:hover:not(:disabled) {
   background: #8093c2;
   box-shadow: 2px 2px 0px #5f6a8a;
 }
 
 /* Red Button (Chat) */
-.btn-chat-large {
+.btn-chat-large,
+.btn-chat {
   background: #d39191; /* Pixelverse Red */
   border: 3px solid #8a5f5f;
   box-shadow: 4px 4px 0px #8a5f5f;
 }
-.btn-chat-large:hover:not(:disabled) {
+.btn-chat-large:hover:not(:disabled),
+.btn-chat:hover:not(:disabled) {
   background: #c28080;
   box-shadow: 2px 2px 0px #8a5f5f;
 }
 
 /* Yellow Button (Submission) */
-.btn-secondary-large {
+.btn-secondary-large,
+.btn-submission {
   background: #d3c091; /* Pixelverse Yellow/Treasure */
   border: 3px solid #8a805f;
   box-shadow: 4px 4px 0px #8a805f;
 }
-.btn-secondary-large:hover:not(:disabled) {
+.btn-secondary-large:hover:not(:disabled),
+.btn-submission:hover:not(:disabled) {
   background: #c2b080;
   box-shadow: 2px 2px 0px #8a805f;
 }
