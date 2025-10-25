@@ -620,6 +620,24 @@ function Submission() {
       />
       
       <div className="main-editor">
+          {/* Navigation Buttons */}
+          <div className="page-navigation-buttons">
+            <button 
+              onClick={() => navigate(`/project/${id}/kanban`)}
+              className="nav-btn nav-btn-kanban"
+              title="Go to Kanban Board"
+            >
+              📋 Kanban
+            </button>
+            <button 
+              onClick={() => navigate(`/project/${id}/chat`)}
+              className="nav-btn nav-btn-chat"
+              title="Go to Chat"
+            >
+              💬 Chat
+            </button>
+          </div>
+        
         <AIToolbar
           onSummarize={handleAISummarize}
           onProofread={handleAIProofread}

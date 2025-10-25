@@ -165,7 +165,25 @@ function Kanban() {
 
     return (
       <div className="page-content">
-        <h1 className="title-toolbar text-2xl font-bold mb-4">Kanban Board</h1>
+          <div className="page-header-with-nav">
+            <h1 className="title-toolbar text-2xl font-bold mb-4">Kanban Board</h1>
+            <div className="page-navigation-buttons">
+              <button 
+                onClick={() => navigate(`/project/${id}/chat`)}
+                className="nav-btn nav-btn-chat"
+                title="Go to Chat"
+              >
+                💬 Chat
+              </button>
+              <button 
+                onClick={() => navigate(`/project/${id}/submission`)}
+                className="nav-btn nav-btn-submission"
+                title="Go to Submission"
+              >
+                📤 Submission
+              </button>
+            </div>
+          </div>
         <div className="min-h-screen p-6 flex gap-6">
           {/* Left side: Kanban Board */}
           <KanbanBoard id={id} key={kanbanBoardKey}/>
