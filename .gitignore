@@ -5,4 +5,4 @@ haira-server/.env
 firestore.rules
 
 .env
-.env/
+.env/.env
