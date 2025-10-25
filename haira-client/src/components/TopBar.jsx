@@ -1,27 +1,58 @@
-import React from 'react';
+import { React, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getAuth, signOut } from 'firebase/auth';
 import { useAuth } from '../App';
+import axios from 'axios';
 import '../styles/TopBar.css';
 
-import { useState } from 'react';
+const backend_host = "http://localhost:3002";
+
 
 export function NotificationDropdown() {
+  const [notification, setNotification] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
+  const { currentUser, isAuthenticated } = useAuth();
+  const auth = getAuth();
 
   const toggleDropdown = () => setIsOpen(!isOpen);
 
-  const notifications = [
-    { id: 1, message: 'New comment on your post' },
-    { id: 2, message: 'John liked your photo' },
-    { id: 3, message: 'You have a new follower' },
-  ];
+  const checkNotifications = async () => {
+    const token = await auth.currentUser.getIdToken();
+    const response = await axios.get(`${backend_host}/api/notification`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (response.data.notifications)
+      setNotification(response.data.notifications);
+    else
+      setNotification([]);
+  };
+
+  const handleClearNotifications = async (e) => {
+    setNotification([]);
+    setIsOpen(false);
+    const token = await auth.currentUser.getIdToken();
+    await axios.delete(`${backend_host}/api/notification`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+  }
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      checkNotifications();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [notification]);
 
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
       {/* Topbar Button */}
       <button onClick={toggleDropdown} className='header-heart' aria-hidden>
-        ♥ <span className="topbar-badge bouncy">3</span>
+        ♥ {notification.length > 0 && <span className="topbar-badge bouncy">{notification.length}</span>}
       </button>
 
       {/* Notification List */}
@@ -41,13 +72,13 @@ export function NotificationDropdown() {
             Notifications
           </div>
           <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-            {notifications.map((notif) => (
+            {notification.map((notif) => (
               <li key={notif.id} style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', cursor: 'pointer' }}>
                 {notif.message}
               </li>
             ))}
           </ul>
-          <button>
+          <button onClick={handleClearNotifications}>
             Clear notifications
           </button>
         </div>

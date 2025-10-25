@@ -57,16 +57,6 @@ function Kanban() {
         }
       };
       fetchProjectData();
-
-      const interval = setInterval(() => {
-        checkNotifications();
-      }, 10000); // 60,000 ms = 1 minute
-
-      if (notif.length > 0) {
-        alert('found ' + notif?.length + ' notifications');
-      }
-
-      return () => clearInterval(interval);
     }, [id, navigate, notif, auth]);
 
     const handleSubmit = async (e) => {
@@ -129,21 +119,6 @@ function Kanban() {
       }
     };
 
-    const handleGetNotifs = async (e) => {
-      try {
-        const token = await auth.currentUser.getIdToken();
-        const response = await axios.get(`${backend_host}/api/notification`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        console.log(response.data);
-        if (response.data)
-          alert('Found some notifications');
-      } catch (error) {
-        const msg = 'data could not be stored to database';
-        console.log(msg);
-        alert(msg);
-      }
-    };
     const handlePushNotifs = async (e) => {
       try {
         const token = await auth.currentUser.getIdToken();
@@ -175,15 +150,6 @@ function Kanban() {
         setNotif([]);
     };
 
-    const handleClearNotifications = async () => {
-      const token = await auth.currentUser.getIdToken();
-      await axios.delete(`${backend_host}/api/notification`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-    };
-
     return (
       <div className="page-content">
         <h1 className="title-toolbar text-2xl font-bold mb-4">Kanban Board</h1>
@@ -213,9 +179,7 @@ function Kanban() {
                 {loading ? "Waiting..." : "Ask for deliverables"}
               </button>
             </form>
-            <button onClick={handleGetNotifs}>Get Notifs</button>
             <button onClick={handlePushNotifs}>Push Notif</button>
-            <button onClick={handleClearNotifications}>Clear Notif</button>
 
             {deliverables.length > 0 && (
               <div className="mt-6">
