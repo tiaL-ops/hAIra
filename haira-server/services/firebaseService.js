@@ -426,7 +426,7 @@ export async function getNotifications(userId) {
   const notifSnapshot = await notifRef.get();
   let notif = [];
   notifSnapshot.forEach((doc) => {
-    notif.push(doc.data());
+    notif.push({ id: doc.id, ...doc.data() });
   });
 
   if (!notif)

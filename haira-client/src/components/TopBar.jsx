@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getAuth, signOut } from 'firebase/auth';
 import { useAuth } from '../App';
 import axios from 'axios';
+import { ToastContainer, toast } from 'react-toastify';
 import '../styles/TopBar.css';
 
 const backend_host = "http://localhost:3002";
@@ -23,10 +24,21 @@ export function NotificationDropdown() {
         'Authorization': `Bearer ${token}`
       }
     });
-    if (response.data.notifications)
-      setNotification(response.data.notifications);
-    else
+    const newNotif = response.data.notifications;
+    if (newNotif) {
+      let diff = [];
+      diff = newNotif.filter(obj1 =>
+        !notification.some(obj2 => obj2.id === obj1.id)
+      );
+
+      diff.forEach(item => {
+        toast('LISTEN UP: ' + item.message);
+      });
+
+      setNotification(newNotif);
+    } else {
       setNotification([]);
+    }
   };
 
   const handleClearNotifications = async (e) => {
@@ -54,6 +66,18 @@ export function NotificationDropdown() {
       <button onClick={toggleDropdown} className='header-heart' aria-hidden>
         ♥ {notification.length > 0 && <span className="topbar-badge bouncy">{notification.length}</span>}
       </button>
+      <ToastContainer
+        position="bottom-right"
+        autoClose={8000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick={false}
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
 
       {/* Notification List */}
       {isOpen && (
