@@ -1211,6 +1211,42 @@ router.post('/:id/word-contributions/calculate-user', verifyFirebaseToken, async
     }
 });
 
+// Generate completion message endpoint
+router.post('/:id/ai/completion-message', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const { aiType, taskType } = req.body;
+    const userId = req.user.uid;
+
+    console.log('Completion message request received:', { id, aiType, taskType, userId });
+
+    if (!aiType || !taskType) {
+        return res.status(400).json({ error: 'AI type and task type are required' });
+    }
+
+    try {
+        // Ensure project exists
+        await ensureProjectExists(id, userId);
+        
+        // Generate completion message
+        const completionMessage = await generateCompletionMessage(aiType, taskType);
+        
+        res.json({
+            success: true,
+            completionMessage: completionMessage,
+            aiType: aiType,
+            taskType: taskType,
+            timestamp: Date.now()
+        });
+
+    } catch (err) {
+        console.error('Completion message generation error:', err);
+        res.status(500).json({ 
+            success: false, 
+            error: err.message 
+        });
+    }
+});
+
 // AI Grading endpoint
 router.post('/:id/ai/grade', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;

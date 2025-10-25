@@ -55,6 +55,31 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     return null;
   };
 
+  const generateCompletionMessage = async (aiType, taskType) => {
+    try {
+      console.log('🎯 Generating completion message for:', { aiType, taskType });
+      console.log('🔍 Debug projectId:', projectId);
+      console.log('🔍 Debug backend_host:', backend_host);
+      
+      const token = await getIdTokenSafely();
+      const endpoint = `${backend_host}/api/project/${projectId}/ai/completion-message`;
+      const requestData = { aiType, taskType };
+      
+      console.log('🚀 Calling completion message API:', { endpoint, requestData });
+      const { data } = await axios.post(endpoint, requestData, { 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
+      
+      console.log('📥 Completion message received:', data.completionMessage);
+      return data.completionMessage;
+    } catch (error) {
+      console.error('❌ Error generating completion message:', error);
+      console.error('❌ Error details:', error.response?.data || error.message);
+      // Fallback to simple message
+      return `${aiType} completed the ${taskType} task`;
+    }
+  };
+
   const insertAIText = useCallback(async (text, aiType, taskType = '') => {
     console.log('📝 insertAIText called with:', { text: text?.substring(0, 100) + '...', aiType, taskType });
     
@@ -156,6 +181,14 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
   const performWriteTask = useCallback(async (aiTeammate, sectionName, currentContent, projectTitle = null) => {
     console.log('🎯 performWriteTask called with:', { aiTeammate, sectionName, currentContent: currentContent?.substring(0, 50) + '...' });
     
+    // Set loading state
+    console.log('🔄 Setting loading state for:', aiTeammate.id);
+    setLoadingAIs(prev => {
+      const newSet = new Set([...prev, aiTeammate.id]);
+      console.log('🔄 New loading state:', Array.from(newSet));
+      return newSet;
+    });
+    
     // Create server fallback function
     const serverFallback = async () => {
       console.log('🔄 Server fallback: Calling OpenAI API...');
@@ -205,6 +238,29 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       insertAIText(htmlResponse, aiTeammate.id, 'write_section');
       console.log('✅ Client: AI text inserted successfully');
       
+      // Generate completion message from API
+      console.log('🔍 Debug aiTeammate:', aiTeammate);
+      console.log('🔍 Debug aiTeammate.id:', aiTeammate.id);
+      
+      // Fix: Use aiTeammate.id or fallback to the key from AI_TEAMMATES
+      const aiType = aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate);
+      console.log('🔍 Debug resolved aiType:', aiType);
+      
+      const generatedMessage = await generateCompletionMessage(aiType, 'write');
+      console.log('🔍 Debug generatedMessage:', generatedMessage);
+      const completionMessage = {
+        id: Date.now(),
+        aiType: aiType,
+        message: generatedMessage,
+        timestamp: Date.now()
+      };
+      console.log('📝 Adding completion message:', completionMessage);
+      setTaskCompletionMessages(prev => {
+        const newMessages = [...prev, completionMessage];
+        console.log('📝 New completion messages:', newMessages);
+        return newMessages;
+      });
+      
       return result;
       
     } catch (error) {
@@ -218,12 +274,35 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       insertAIText(htmlResponse, aiTeammate.id, 'write_section');
       console.log('✅ Client: Fallback AI text inserted successfully');
       
+      // Generate completion message from API
+      const aiType = aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate);
+      const generatedMessage = await generateCompletionMessage(aiType, 'write');
+      const completionMessage = {
+        id: Date.now(),
+        aiType: aiType,
+        message: generatedMessage,
+        timestamp: Date.now()
+      };
+      setTaskCompletionMessages(prev => [...prev, completionMessage]);
+      
       return fallbackResult;
+    } finally {
+      // Clear loading state
+      console.log('🔄 Clearing loading state for:', aiTeammate.id);
+      setLoadingAIs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(aiTeammate.id);
+        console.log('🔄 Final loading state:', Array.from(newSet));
+        return newSet;
+      });
     }
   }, [projectId, insertAIText]);
 
   const performReviewTask = useCallback(async (aiTeammate, currentContent) => {
     console.log('🎯 performReviewTask called with:', { aiTeammate, currentContent: currentContent?.substring(0, 50) + '...' });
+    
+    // Set loading state
+    setLoadingAIs(prev => new Set([...prev, aiTeammate.id]));
     
     // Create server fallback function
     const serverFallback = async () => {
@@ -278,6 +357,17 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       if (onAddComment) onAddComment(`Review by ${aiTeammate.name}:\n${plainResponse}`, 'review', aiTeammate.name);
       console.log('✅ Client: Review comment added successfully');
       
+      // Generate completion message from API
+      const aiType = aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate);
+      const generatedMessage = await generateCompletionMessage(aiType, 'review');
+      const completionMessage = {
+        id: Date.now(),
+        aiType: aiType,
+        message: result.completionMessage || generatedMessage,
+        timestamp: Date.now()
+      };
+      setTaskCompletionMessages(prev => [...prev, completionMessage]);
+      
       return result;
       
     } catch (error) {
@@ -291,12 +381,33 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       if (onAddComment) onAddComment(`Review by ${aiTeammate.name}:\n${plainResponse}`, 'review', aiTeammate.name);
       console.log('✅ Client: Fallback review comment added successfully');
       
+      // Generate completion message from API
+      const aiType = aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate);
+      const generatedMessage = await generateCompletionMessage(aiType, 'review');
+      const completionMessage = {
+        id: Date.now(),
+        aiType: aiType,
+        message: fallbackResult.completionMessage || generatedMessage,
+        timestamp: Date.now()
+      };
+      setTaskCompletionMessages(prev => [...prev, completionMessage]);
+      
       return fallbackResult;
+    } finally {
+      // Clear loading state
+      setLoadingAIs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(aiTeammate.id);
+        return newSet;
+      });
     }
   }, [projectId, onAddComment]);
 
   const performSuggestTask = useCallback(async (aiTeammate, currentContent) => {
     console.log('🎯 performSuggestTask called with:', { aiTeammate, currentContent: currentContent?.substring(0, 50) + '...' });
+    
+    // Set loading state
+    setLoadingAIs(prev => new Set([...prev, aiTeammate.id]));
     
     // Create server fallback function
     const serverFallback = async () => {
@@ -352,6 +463,17 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       if (onAddComment) onAddComment(`Suggestion by ${aiTeammate.name}:\n${plainResponse}`, 'suggest', aiTeammate.name);
       console.log('✅ Client: Suggestion comment added successfully');
       
+      // Generate completion message from API
+      const aiType = aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate);
+      const generatedMessage = await generateCompletionMessage(aiType, 'suggest');
+      const completionMessage = {
+        id: Date.now(),
+        aiType: aiType,
+        message: result.completionMessage || generatedMessage,
+        timestamp: Date.now()
+      };
+      setTaskCompletionMessages(prev => [...prev, completionMessage]);
+      
       return result;
       
     } catch (error) {
@@ -365,7 +487,25 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       if (onAddComment) onAddComment(`Suggestion by ${aiTeammate.name}:\n${plainResponse}`, 'suggest', aiTeammate.name);
       console.log('✅ Client: Fallback suggestion comment added successfully');
       
+      // Generate completion message from API
+      const aiType = aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate);
+      const generatedMessage = await generateCompletionMessage(aiType, 'suggest');
+      const completionMessage = {
+        id: Date.now(),
+        aiType: aiType,
+        message: fallbackResult.completionMessage || generatedMessage,
+        timestamp: Date.now()
+      };
+      setTaskCompletionMessages(prev => [...prev, completionMessage]);
+      
       return fallbackResult;
+    } finally {
+      // Clear loading state
+      setLoadingAIs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(aiTeammate.id);
+        return newSet;
+      });
     }
   }, [projectId, onAddComment]);
 
