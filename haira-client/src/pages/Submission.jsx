@@ -179,6 +179,7 @@ function Submission() {
   // Team collaboration state
   const [teamContext, setTeamContext] = useState(null);
   const [projectData, setProjectData] = useState(null);
+  const [pendingTasks, setPendingTasks] = useState([]); // Tasks from Kanban
   
   // Function to add AI comments to sidebar
   const handleAddAIComment = useCallback((text, type, author) => {
@@ -242,6 +243,9 @@ function Submission() {
         // Set team context with the actual teammates
         setTeamContext(team);
         
+        // Load pending tasks from Kanban
+        await fetchPendingTasks(token);
+        
         // Load draft content if available
         if (data.project?.draftReport?.content) {
           setReportContent(data.project.draftReport.content);
@@ -263,6 +267,36 @@ function Submission() {
     
     fetchSubmission();
   }, [id, navigate, auth]);
+
+  // Fetch pending tasks from Kanban
+  const fetchPendingTasks = async (token) => {
+    try {
+      const response = await axios.get(`${backend_host}/api/project/${id}/kanban`, {
+        headers: {
+          'Authorization': `Bearer ${token || await getIdTokenSafely()}`
+        }
+      });
+      
+      if (response.data.success) {
+        // List of valid AI teammate IDs
+        const aiTeammateIds = ['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto', 'ai_manager', 'ai_helper'];
+        
+        // Filter for AI tasks that are in "todo" status
+        // Only include tasks assigned to known AI teammates
+        const aiTasks = response.data.tasks?.filter(task => {
+          const isAITask = task.assignedTo && aiTeammateIds.includes(task.assignedTo.toLowerCase());
+          const isTodoStatus = task.status === 'todo';
+          return isAITask && isTodoStatus;
+        }) || [];
+        
+        console.log('[Submission] All tasks:', response.data.tasks);
+        console.log('[Submission] Filtered pending AI tasks:', aiTasks);
+        setPendingTasks(aiTasks);
+      }
+    } catch (err) {
+      console.error('[Submission] Error fetching pending tasks:', err);
+    }
+  };
 
   // Autosave effect
   useEffect(() => {
@@ -634,8 +668,8 @@ function Submission() {
   }
 
   // Handle AI task assignment
-  async function handleAssignAITask(aiType, taskType, sectionName) {
-    console.log('handleAssignAITask called:', { aiType, taskType, sectionName });
+  async function handleAssignAITask(aiType, taskType, sectionName, isExistingTask = false, existingTaskId = null) {
+    console.log('handleAssignAITask called:', { aiType, taskType, sectionName, isExistingTask, existingTaskId });
   
     try {
       // Debug: Log the aiType and available keys
@@ -648,8 +682,27 @@ function Submission() {
         id: aiType // Ensure id is preserved
       };
       console.log('🔍 Debug selected aiTeammate:', aiTeammate);
+      
+      // Create task description based on task type and section
+      let taskDescription = '';
+      if (taskType === 'write' || taskType === 'write_section') {
+        taskDescription = sectionName ? `write ${sectionName}` : 'write content';
+      } else if (taskType === 'review' || taskType === 'review_content') {
+        taskDescription = sectionName ? `review ${sectionName}` : 'review content';
+      } else if (taskType === 'suggest' || taskType === 'suggest_improvements') {
+        taskDescription = sectionName ? `suggest improvements for ${sectionName}` : 'suggest improvements';
+      }
+      
+      // Only create task if NOT clicking an existing pending task
+      if (taskDescription && !isExistingTask) {
+        console.log('[handleAssignAITask] Creating NEW task in Kanban');
+        await syncTasksToKanban([{ description: taskDescription, assignedTo: aiType }], false, 'todo'); // Create as "todo"
+      } else if (isExistingTask) {
+        console.log('[handleAssignAITask] Task already exists - will just update to done after execution');
+      }
   
-      if (taskType === 'write_section') {
+      // Execute the AI task
+      if (taskType === 'write' || taskType === 'write_section') {
         await write(aiTeammate, sectionName, reportContent, projectData?.title);
       } else if (taskType === 'review' || taskType === 'review_content') {
         await review(aiTeammate, reportContent);
@@ -662,9 +715,59 @@ function Submission() {
       }
   
       setAiFeedback(`✅ ${aiTeammate.name} completed ${taskType.replace('_', ' ')} task`);
+      
+      // Update task to "done" in Kanban after completion
+      if (taskDescription) {
+        console.log('[handleAssignAITask] Updating task to done');
+        // If we have the existing task id, send it so server updates by id (more reliable)
+        const payloadTask = existingTaskId ? { id: existingTaskId, description: taskDescription, assignedTo: aiType } : { description: taskDescription, assignedTo: aiType };
+        await syncTasksToKanban([ payloadTask ], false, 'done'); // Update to "done"
+        
+        // Refresh pending tasks list to remove completed task
+        const token = await getIdTokenSafely();
+        await fetchPendingTasks(token);
+      }
     } catch (error) {
       console.error('AI task assignment failed:', error);
       setAiFeedback(`❌ AI task failed: ${error.message}`);
+    }
+  }
+
+  // Sync tasks to Kanban
+  async function syncTasksToKanban(tasks, showAlert = false, status = 'done') {
+    if (!tasks || tasks.length === 0) {
+      console.warn('[syncTasks] No tasks provided');
+      if (showAlert) {
+        alert("No tasks found to sync.");
+      }
+      return null;
+    }
+    
+    console.log('[syncTasks] ===== SYNC CALL =====');
+    console.log('[syncTasks] Status:', status);
+    console.log('[syncTasks] Tasks:', JSON.stringify(tasks, null, 2));
+    
+    try {
+      const token = await getIdTokenSafely();
+      console.log('[syncTasks] Token obtained:', !!token);
+      
+      const response = await axios.post(
+        `${backend_host}/api/project/${id}/sync-tasks`,
+        { tasks, status }, // Pass status to backend
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          }
+        }
+      );
+      
+      console.log('[syncTasks] ✅ Response:', response.data);
+      console.log('[syncTasks] ===== END SYNC =====');
+      return response.data;
+    } catch (err) {
+      console.error('[syncTasks] ❌ Error:', err.response?.data || err.message);
+      throw err;
     }
   }
 
@@ -683,6 +786,8 @@ function Submission() {
     setSubmitting(true);
     try {
       const token = await getIdTokenSafely();
+      
+      // Submit the report
       const response = await axios.post(`${backend_host}/api/project/${id}/submission`, 
         { content: reportContent },
         {
@@ -749,14 +854,14 @@ function Submission() {
               className="nav-btn nav-btn-kanban"
               title="Go to Kanban Board"
             >
-              📋 Kanban
+              Kanban
             </button>
             <button 
               onClick={() => navigate(`/project/${id}/chat`)}
               className="nav-btn nav-btn-chat"
               title="Go to Chat"
             >
-              💬 Chat
+              Chat
             </button>
           </div>
         
@@ -797,6 +902,96 @@ function Submission() {
       </div>
 
       <div className="right-sidebar">
+        {/* Pending Tasks Section */}
+        {pendingTasks.length > 0 && (
+          <div className="pending-tasks-panel">
+            <h3>Pending Tasks</h3>
+            <div className="pending-tasks-list">
+              {pendingTasks.map((task) => {
+                // Find the teammate for this task
+                const teammate = teamContext?.find(m => 
+                  (m.id || m.name?.toLowerCase()) === task.assignedTo
+                );
+                const aiAgent = AI_TEAMMATES[task.assignedTo];
+                
+                // Get avatar mapping
+                const avatarMap = {
+                  brown: BrownAvatar,
+                  elza: ElzaAvatar,
+                  kati: KatiAvatar,
+                  steve: SteveAvatar,
+                  sam: SamAvatar,
+                  rasoa: RasoaAvatar,
+                  rakoto: RakotoAvatar
+                };
+                
+                const avatarSrc = avatarMap[task.assignedTo];
+                
+                // Parse task description to get task type and section
+                const taskDesc = task.description || task.title || '';
+                let taskType = 'write';
+                let sectionName = '';
+                
+                if (taskDesc.toLowerCase().includes('review')) {
+                  taskType = 'review';
+                  sectionName = taskDesc.replace(/review\s*/i, '').trim();
+                } else if (taskDesc.toLowerCase().includes('suggest')) {
+                  taskType = 'suggest';
+                  sectionName = taskDesc.replace(/suggest\s*(improvements\s*for\s*)?/i, '').trim();
+                } else if (taskDesc.toLowerCase().includes('write')) {
+                  taskType = 'write';
+                  sectionName = taskDesc.replace(/write\s*/i, '').trim();
+                }
+                
+                return (
+                  <div 
+                    key={task.id} 
+                    className="pending-task-item clickable"
+                    onClick={() => {
+                      // Pass true as 4th param to indicate this is an existing task
+                      // and pass the task id so backend can update by id
+                      handleAssignAITask(task.assignedTo, taskType, sectionName, true, task.id);
+                    }}
+                    title={`Click to start: ${taskDesc}`}
+                  >
+                    <div className="task-avatar" style={{ backgroundColor: aiAgent?.color || '#607D8B' }}>
+                      {avatarSrc ? (
+                        <img 
+                          src={avatarSrc} 
+                          alt={teammate?.name || task.assignedTo}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: '50%',
+                            objectFit: 'cover'
+                          }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontWeight: 'bold',
+                          fontSize: '16px'
+                        }}>
+                          {teammate?.name ? teammate.name.charAt(0).toUpperCase() : '?'}
+                        </div>
+                      )}
+                    </div>
+                    <div className="task-details">
+                      <div className="task-description">{taskDesc}</div>
+                    </div>
+                    <div className="task-action">▶</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        
         {/* Team Panel - positioned above CommentSidebar */}
         {teamContext && (
           <TeamPanel

@@ -187,4 +187,121 @@ router.delete('/:id/tasks', verifyFirebaseToken, async (req, res) => {
     }
 });
 
+// Sync tasks from submission content to Kanban
+router.post("/:id/sync-tasks", verifyFirebaseToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { tasks, status = 'done' } = req.body; // Accept status parameter (defaults to 'done')
+        const userId = req.user?.uid || 'system';
+        
+        console.log('[KanbanRoutes] Syncing tasks with status:', status);
+        console.log('[KanbanRoutes] Tasks to sync:', tasks);
+
+        if (!tasks || !Array.isArray(tasks)) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Tasks array is required' 
+            });
+        }
+
+        // Get project data with existing tasks (scoped to current user)
+        const projectData = await getProjectWithTasks(id, userId);
+        if (!projectData?.project) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Project not found' 
+            });
+        }
+        
+        const existingTasks = projectData.tasks || [];
+        
+        console.log('[KanbanRoutes] Existing tasks:', existingTasks.length);
+        console.log('[KanbanRoutes] Existing tasks details:', JSON.stringify(existingTasks.map(t => ({
+            id: t.id,
+            description: t.description,
+            assignedTo: t.assignedTo,
+            status: t.status
+        })), null, 2));
+        console.log('[KanbanRoutes] Incoming tasks:', JSON.stringify(tasks, null, 2));
+        
+        // Find which tasks need to be created and which need to be updated
+        const newTasks = [];
+        const updatedTasks = [];
+        
+        for (const task of tasks) {
+            // If client provided an explicit task id, prefer matching by id (robust)
+            let existingTask = null;
+            if (task.id) {
+                existingTask = existingTasks.find(t => t.id === task.id);
+            }
+
+            // Fallback: match by description and assignedTo
+            if (!existingTask) {
+                existingTask = existingTasks.find(t => 
+                    (t.description || '').toLowerCase().trim() === (task.description || '').toLowerCase().trim() &&
+                    t.assignedTo === task.assignedTo
+                );
+            }
+            
+            console.log('[KanbanRoutes] Processing task:', {
+                incomingDesc: task.description,
+                incomingAssignedTo: task.assignedTo,
+                targetStatus: status,
+                foundExisting: !!existingTask,
+                existingId: existingTask?.id,
+                existingStatus: existingTask?.status,
+                existingAssignedTo: existingTask?.assignedTo,
+                willUpdate: existingTask && existingTask.status !== status
+            });
+            
+            if (existingTask) {
+                // Task exists - update to provided status if different
+                if (existingTask.status !== status) {
+                    console.log('[KanbanRoutes] ✅ UPDATING task', existingTask.id, 'from', existingTask.status, '→', status);
+                    await updateTask(
+                        id, 
+                        existingTask.id, 
+                        existingTask.title || task.description,
+                        status, // Use provided status (can be 'todo' or 'done')
+                        userId,
+                        task.description,
+                        existingTask.priority || 1
+                    );
+                    updatedTasks.push(existingTask.id);
+                } else {
+                    console.log('[KanbanRoutes] ⏭️ Task already has status:', status);
+                }
+            } else {
+                // Task doesn't exist - create it with provided status
+                console.log('[KanbanRoutes] ➕ CREATING new task with status:', status);
+                newTasks.push({
+                    deliverable: task.description,
+                    assignedTo: task.assignedTo,
+                    priority: 1
+                });
+            }
+        }
+        
+        // Create new tasks if any (with provided status)
+        let createdTasks = [];
+        if (newTasks.length > 0) {
+            createdTasks = await addTasks(id, userId, projectData.project.title, status, newTasks);
+            console.log('[KanbanRoutes] Created new tasks:', createdTasks.length, 'with status:', status);
+        }
+
+        res.status(200).json({
+            success: true,
+            created: createdTasks.length,
+            updated: updatedTasks.length,
+            message: `Synced ${createdTasks.length + updatedTasks.length} tasks to Kanban`
+        });
+    } catch (err) {
+        console.error('[KanbanRoutes] Error syncing tasks:', err);
+        res.status(500).json({ 
+            success: false,
+            error: err.message 
+        });
+    }
+});
+
 export default router;
