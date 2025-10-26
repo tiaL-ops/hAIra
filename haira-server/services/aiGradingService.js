@@ -1,4 +1,4 @@
-import { generateAIContribution as callOpenAIContribution } from '../api/openaiService.js';
+import { generateAIContribution as callOpenAIContribution } from './aiService.js';
 import { getDocumentById, getSubdocuments, updateDocument, getProjectWithTasks, getChatMessagesByUser } from './firebaseService.js';
 import { COLLECTIONS } from '../schema/database.js';
 

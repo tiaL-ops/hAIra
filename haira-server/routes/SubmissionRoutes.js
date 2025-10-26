@@ -11,12 +11,12 @@ import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
 import { 
     generateGradeResponse,
     generateAIResponse,
-    generateAIContribution as callGeminiContribution,
-} from '../api/geminiService.js';
-import { generateAIContribution as callOpenAIContribution } from '../api/openaiService.js';
+    generateAIContribution
+} from '../services/aiService.js';
 import { AI_TEAMMATES, TASK_TYPES } from '../config/aiAgents.js';
 import { AIGradingService } from '../services/aiGradingService.js';
 import { getTeammates } from '../services/teammateService.js';
+
 
 const router = express.Router()
 const db = admin.firestore();
@@ -106,21 +106,18 @@ function convertMarkdownToHTML(markdown) {
         .replace(/<p><\/p>/g, '');
 }
 
-// Clean HTML content for AI review - extract readable text
-function cleanContentForReview(htmlContent) {
-    if (!htmlContent) return '';
-    
-    return htmlContent
-        // Remove HTML tags but keep the text content
-        .replace(/<[^>]*>/g, ' ')
-        // Remove multiple spaces and normalize whitespace
-        .replace(/\s+/g, ' ')
-        // Remove AI prefixes like [Alex] or [Sam]
-        .replace(/\[(Alex|Sam|Lala|Mino)\]\s*/g, '')
-        // Clean up any remaining artifacts
-        .trim();
+function convertMarkdownToPlainText(markdown) {
+    if (!markdown) return '';
+    return markdown
+      .replace(/^#{1,6}\s+(.*)$/gm, '$1')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/^\d+\.\s+(.*)$/gm, '• $1')
+      .replace(/^[-*]\s+(.*)$/gm, '• $1')
+      .replace(/\n\s*\n/g, '\n\n')
+      .trim();
 }
-
+  
 // Generate AI-specific completion messages
 async function generateCompletionMessage(aiType, taskType) {
     // Get the correct AI teammate
@@ -152,7 +149,7 @@ async function generateCompletionMessage(aiType, taskType) {
         
         const systemInstruction = `You are ${aiTeammate.name}, ${aiTeammate.role}. ${aiTeammate.personality}`;
         
-        const aiResponse = await callOpenAIContribution(prompt, config, systemInstruction);
+        const aiResponse = await generateAIContribution(prompt, config, systemInstruction);
         return cleanAIResponse(aiResponse);
     } catch (error) {
         console.error('Error generating completion message:', error);
@@ -483,8 +480,23 @@ Respond with JSON format:
     ]
 }
 `;
-
-        const aiResponse = await generateAIResponse(grammarPrompt, "You are a grammar expert. Provide clear, helpful corrections.");
+        const proofreadContext = `You are a grammar expert. Provide clear, helpful corrections.`;
+        try {
+            console.log('🚀 Making Gemini API call...');
+            aiResponse = await callGemini(grammarPrompt, proofreadContext);
+            console.log('✅ Gemini response received:', aiResponse?.substring(0, 200) + '...');
+        } catch (aiError) {
+            console.error('❌ Gemini API call failed:', aiError.message || aiError);
+            console.log('🚀 Falling back to OpenAI API...');
+            try {
+            aiResponse = await callOpenAI(grammarPrompt, proofreadContext);
+            console.log('✅ OpenAI response received:', aiResponse?.substring(0, 200) + '...');
+            } catch (fallbackError) {
+            console.error('❌ Both Gemini and OpenAI calls failed:', fallbackError.message || fallbackError);
+            aiResponse = "⚠️ Sorry, both AI services are currently unavailable.";
+            }
+        }
+        
         const aiCorrections = parseAIResponseToJson(aiResponse);
 
         res.json({
@@ -524,10 +536,22 @@ Respond with JSON format:
 }
 `;
 
-        const aiResponse = await generateAIResponse(
-            summaryPrompt, 
-            "You are a summarization expert. Create concise, accurate summaries."
-        );
+        const summarizeContext ="You are a summarization expert. Create concise, accurate summaries.";
+        try {
+            console.log('🚀 Making Gemini API call...');
+            aiResponse = await callGemini(summaryPrompt, summarizeContext);
+            console.log('✅ Gemini response received:', aiResponse?.substring(0, 200) + '...');
+        } catch (aiError) {
+            console.error('❌ Gemini API call failed:', aiError.message || aiError);
+            console.log('🚀 Falling back to OpenAI API...');
+            try {
+            aiResponse = await callOpenAI(summaryPrompt, summarizeContext);
+            console.log('✅ OpenAI response received:', aiResponse?.substring(0, 200) + '...');
+            } catch (fallbackError) {
+            console.error('❌ Both Gemini and OpenAI calls failed:', fallbackError.message || fallbackError);
+            aiResponse = "⚠️ Sorry, both AI services are currently unavailable.";
+            }
+        }
         const summary = parseAIResponseToJson(aiResponse);
 
         res.json({
@@ -918,13 +942,14 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
         const writingContext = `You are ${aiTeammate.name}, a ${aiTeammate.role}. ${aiTeammate.personality}`;
         console.log('👤 Writing context:', writingContext);
         
+        // Use centralized AI service with automatic fallback (Gemini first, then OpenAI)
         try {
-            console.log('🚀 Making OpenAI API call...');
-            aiResponse = await callOpenAIContribution(taskPrompt, aiConfig, writingContext);
-            console.log('✅ OpenAI response received:', aiResponse?.substring(0, 200) + '...');
+            console.log('🚀 Making AI call with centralized service...');
+            aiResponse = await generateAIContribution(taskPrompt, aiConfig, writingContext);
+            console.log('✅ AI response received:', aiResponse?.substring(0, 200) + '...');
         } catch (aiError) {
-            console.error('❌ OpenAI API call failed:', aiError);
-            throw aiError;
+            console.error('❌ AI service call failed:', aiError.message || aiError);
+            aiResponse = "⚠️ Sorry, AI service is currently unavailable.";
         }
 
         console.log('🧹 Cleaning AI response...');
@@ -1040,10 +1065,26 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         
         // const aiResponse = await generateAIContribution(taskPrompt, aiConfig, reviewContext);
         const reviewContext = `You are ${aiTeammate.name}, a ${aiTeammate.role}. ${aiTeammate.personality}`;
-        const aiResponse = await callOpenAIContribution(taskPrompt, aiConfig, reviewContext);
+
+        try {
+            console.log('🚀 Making AI call with centralized service...');
+            aiResponse = await generateAIContribution(taskPrompt, aiConfig, reviewContext);
+            console.log('✅ AI response received:', aiResponse?.substring(0, 200) + '...');
+        } catch (aiError) {
+            console.error('❌ AI service call failed:', aiError.message || aiError);
+            aiResponse = "⚠️ Sorry, AI service is currently unavailable.";
+        }
+
+        console.log('🧹 Cleaning AI response...');
         const cleanedResponse = cleanAIResponse(aiResponse);
+        console.log('✅ Cleaned response:', cleanedResponse?.substring(0, 200) + '...');
+        
+        console.log('🔄 Converting to HTML...');
+        const plainTextResponse = convertMarkdownToPlainText(cleanedResponse);
+        console.log('✅ Plain text response:', plainTextResponse?.substring(0, 200) + '...');
+        
         const aiName = aiTeammate.name;
-        const prefixedResponse = `[${aiName}] ${cleanedResponse}`;
+        const prefixedResponse = `[${aiName}] ${plainTextResponse}`;
 
         const completionMessage = await generateCompletionMessage(aiType, 'review');
 
@@ -1133,7 +1174,16 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         
         // const aiResponse = await generateAIContribution(taskPrompt, aiConfig, suggestionContext);
         const suggestionContext = `You are ${aiTeammate.name}, a ${aiTeammate.role}. ${aiTeammate.personality}`;
-        const aiResponse = await callOpenAIContribution(taskPrompt, aiConfig, suggestionContext);
+        
+        try {
+            console.log('🚀 Making AI call with centralized service...');
+            aiResponse = await generateAIContribution(taskPrompt, aiConfig, suggestionContext);
+            console.log('✅ AI response received:', aiResponse?.substring(0, 200) + '...');
+        } catch (aiError) {
+            console.error('❌ AI service call failed:', aiError.message || aiError);
+            aiResponse = "⚠️ Sorry, AI service is currently unavailable.";
+        }
+        
         const cleanedResponse = cleanAIResponse(aiResponse);
         const aiName = aiTeammate.name;
         const prefixedResponse = `[${aiName}] ${cleanedResponse}`;

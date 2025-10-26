@@ -1,7 +1,7 @@
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
 import { addTasks, updateTask, deleteTask, ensureProjectExists, getProjectWithTasks } from '../services/firebaseService.js';
-import { generateDeliverablesResponse } from '../api/geminiService.js';
+import { generateDeliverablesResponse } from '../services/aiService.js';
 import Task from '../models/KanbanModels.js';
 
 const router = express.Router();

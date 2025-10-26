@@ -1,24 +1,340 @@
 // AI service layer - handles LLM interactions and context building
-import { generateAIResponse as callOpenAI } from '../api/openaiService.js';
+import { generateAIResponse as callOpenAI, generateAIContribution as callOpenAIContribution, generateAIProject as callOpenAIProject } from '../api/openaiService.js';
+import { generateAIResponse as callGemini, generateGradeResponse as callGeminiGrade, generateDeliverablesResponse as callGeminiDeliverables, generateAIContribution as callGeminiContribution } from '../api/geminiService.js';
 import { AI_AGENTS } from '../config/aiAgents.js';
 import { getAgentContext, buildEnhancedPrompt } from './contextService.js';
+import { getAIConfig, getPrimaryAPI, getFallbackAPI, isAPIAvailable } from './aiConfigService.js';
 
 // In-memory cache for conversation summaries
 const summaryCache = new Map();
 
 /**
- * Generate AI response with error handling
+ * Generate AI response with conditional API selection based on environment
  * @param {string} userContent - User's message
  * @param {string} contextualPrompt - Full context prompt
  * @returns {Promise<string>} AI response text
  */
 export async function generateAIResponse(userContent, contextualPrompt) {
-  try {
-    return await callOpenAI(userContent, contextualPrompt);
-  } catch (error) {
-    console.error('[AI Service] Error generating response:', error);
-    throw error;
+  const config = getAIConfig();
+  const primaryAPI = getPrimaryAPI();
+  const fallbackAPI = getFallbackAPI();
+
+  console.log(`🚀 AI Service: Using ${config.description}`);
+  console.log(`   Primary API: ${primaryAPI || 'None'}`);
+  console.log(`   Fallback API: ${fallbackAPI || 'None'}`);
+
+  // Try primary API first
+  if (primaryAPI === 'openai' && isAPIAvailable('openai')) {
+    try {
+      console.log('🚀 Making OpenAI API call (primary)...');
+      return await callOpenAI(userContent, contextualPrompt);
+    } catch (error) {
+      console.error('[AI Service] OpenAI API call failed:', error.message || error);
+      
+      // Try fallback if available
+      if (fallbackAPI === 'gemini' && isAPIAvailable('gemini')) {
+        console.log('🚀 Falling back to Gemini API...');
+        try {
+          return await callGemini(userContent, contextualPrompt);
+        } catch (fallbackError) {
+          console.error('[AI Service] Gemini fallback API call failed:', fallbackError.message || fallbackError);
+          throw fallbackError;
+        }
+      } else {
+        throw error;
+      }
+    }
+  } else if (primaryAPI === 'gemini' && isAPIAvailable('gemini')) {
+    try {
+      console.log('🚀 Making Gemini API call (primary)...');
+      return await callGemini(userContent, contextualPrompt);
+    } catch (error) {
+      console.error('[AI Service] Gemini API call failed:', error.message || error);
+      
+      // Try fallback if available
+      if (fallbackAPI === 'openai' && isAPIAvailable('openai')) {
+        console.log('🚀 Falling back to OpenAI API...');
+        try {
+          return await callOpenAI(userContent, contextualPrompt);
+        } catch (fallbackError) {
+          console.error('[AI Service] OpenAI fallback API call failed:', fallbackError.message || fallbackError);
+          throw fallbackError;
+        }
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    throw new Error('No AI API available. Please check your environment configuration.');
   }
+}
+
+/**
+ * Generate grade response with conditional API selection
+ * @param {string} userSubmission - User's submission content
+ * @param {string} systemInstruction - System instructions for grading
+ * @returns {Promise<string>} Grading response
+ */
+export async function generateGradeResponse(userSubmission, systemInstruction) {
+  const primaryAPI = getPrimaryAPI();
+  const fallbackAPI = getFallbackAPI();
+
+  // Try primary API first
+  if (primaryAPI === 'openai' && isAPIAvailable('openai')) {
+    try {
+      console.log('🚀 Making OpenAI API call for grading (primary)...');
+      // OpenAI doesn't have a direct grade function, so we use generateAIResponse
+      return await callOpenAI(userSubmission, systemInstruction);
+    } catch (error) {
+      console.error('[AI Service] OpenAI grading API call failed:', error.message || error);
+      
+      // Try fallback if available
+      if (fallbackAPI === 'gemini' && isAPIAvailable('gemini')) {
+        console.log('🚀 Falling back to Gemini API for grading...');
+        try {
+          return await callGeminiGrade(userSubmission, systemInstruction);
+        } catch (fallbackError) {
+          console.error('[AI Service] Gemini fallback grading API call failed:', fallbackError.message || fallbackError);
+          throw fallbackError;
+        }
+      } else {
+        throw error;
+      }
+    }
+  } else if (primaryAPI === 'gemini' && isAPIAvailable('gemini')) {
+    try {
+      console.log('🚀 Making Gemini API call for grading (primary)...');
+      return await callGeminiGrade(userSubmission, systemInstruction);
+    } catch (error) {
+      console.error('[AI Service] Gemini grading API call failed:', error.message || error);
+      
+      // Try fallback if available
+      if (fallbackAPI === 'openai' && isAPIAvailable('openai')) {
+        console.log('🚀 Falling back to OpenAI API for grading...');
+        try {
+          return await callOpenAI(userSubmission, systemInstruction);
+        } catch (fallbackError) {
+          console.error('[AI Service] OpenAI fallback grading API call failed:', fallbackError.message || fallbackError);
+          throw fallbackError;
+        }
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    throw new Error('No AI API available for grading. Please check your environment configuration.');
+  }
+}
+
+/**
+ * Generate deliverables response with conditional API selection
+ * @param {string} title - Project title
+ * @param {string} systemInstruction - System instructions for deliverables
+ * @returns {Promise<string>} Deliverables response
+ */
+export async function generateDeliverablesResponse(title, systemInstruction) {
+  const primaryAPI = getPrimaryAPI();
+  const fallbackAPI = getFallbackAPI();
+
+  // Try primary API first
+  if (primaryAPI === 'openai' && isAPIAvailable('openai')) {
+    try {
+      console.log('🚀 Making OpenAI API call for deliverables (primary)...');
+      return await callOpenAI(title, systemInstruction);
+    } catch (error) {
+      console.error('[AI Service] OpenAI deliverables API call failed:', error.message || error);
+      
+      // Try fallback if available
+      if (fallbackAPI === 'gemini' && isAPIAvailable('gemini')) {
+        console.log('🚀 Falling back to Gemini API for deliverables...');
+        try {
+          return await callGeminiDeliverables(title, systemInstruction);
+        } catch (fallbackError) {
+          console.error('[AI Service] Gemini fallback deliverables API call failed:', fallbackError.message || fallbackError);
+          throw fallbackError;
+        }
+      } else {
+        throw error;
+      }
+    }
+  } else if (primaryAPI === 'gemini' && isAPIAvailable('gemini')) {
+    try {
+      console.log('🚀 Making Gemini API call for deliverables (primary)...');
+      return await callGeminiDeliverables(title, systemInstruction);
+    } catch (error) {
+      console.error('[AI Service] Gemini deliverables API call failed:', error.message || error);
+      
+      // Try fallback if available
+      if (fallbackAPI === 'openai' && isAPIAvailable('openai')) {
+        console.log('🚀 Falling back to OpenAI API for deliverables...');
+        try {
+          return await callOpenAI(title, systemInstruction);
+        } catch (fallbackError) {
+          console.error('[AI Service] OpenAI fallback deliverables API call failed:', fallbackError.message || fallbackError);
+          throw fallbackError;
+        }
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    throw new Error('No AI API available for deliverables. Please check your environment configuration.');
+  }
+}
+
+/**
+ * Generate AI contribution response with conditional API selection
+ * @param {string} userInput - User input
+ * @param {Object} personaConfig - Persona configuration (temperature, max_tokens)
+ * @param {string} systemInstruction - System instructions
+ * @returns {Promise<string>} Contribution response
+ */
+export async function generateAIContribution(userInput, personaConfig, systemInstruction) {
+  const primaryAPI = getPrimaryAPI();
+  const fallbackAPI = getFallbackAPI();
+
+  // Try primary API first
+  if (primaryAPI === 'openai' && isAPIAvailable('openai')) {
+    try {
+      console.log('🚀 Making OpenAI API call for contribution (primary)...');
+      return await callOpenAIContribution(userInput, personaConfig, systemInstruction);
+    } catch (error) {
+      console.error('[AI Service] OpenAI contribution API call failed:', error.message || error);
+      
+      // Try fallback if available
+      if (fallbackAPI === 'gemini' && isAPIAvailable('gemini')) {
+        console.log('🚀 Falling back to Gemini API for contribution...');
+        try {
+          return await callGeminiContribution(userInput, personaConfig, systemInstruction);
+        } catch (fallbackError) {
+          console.error('[AI Service] Gemini fallback contribution API call failed:', fallbackError.message || fallbackError);
+          throw fallbackError;
+        }
+      } else {
+        throw error;
+      }
+    }
+  } else if (primaryAPI === 'gemini' && isAPIAvailable('gemini')) {
+    try {
+      console.log('🚀 Making Gemini API call for contribution (primary)...');
+      return await callGeminiContribution(userInput, personaConfig, systemInstruction);
+    } catch (error) {
+      console.error('[AI Service] Gemini contribution API call failed:', error.message || error);
+      
+      // Try fallback if available
+      if (fallbackAPI === 'openai' && isAPIAvailable('openai')) {
+        console.log('🚀 Falling back to OpenAI API for contribution...');
+        try {
+          return await callOpenAIContribution(userInput, personaConfig, systemInstruction);
+        } catch (fallbackError) {
+          console.error('[AI Service] OpenAI fallback contribution API call failed:', fallbackError.message || fallbackError);
+          throw fallbackError;
+        }
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    throw new Error('No AI API available for contribution. Please check your environment configuration.');
+  }
+}
+
+/**
+ * Generate AI project with conditional API selection
+ * @param {string} prompt - Project generation prompt
+ * @returns {Promise<Object>} Generated project data
+ */
+export async function generateAIProject(prompt) {
+  const primaryAPI = getPrimaryAPI();
+  const fallbackAPI = getFallbackAPI();
+
+  // Try primary API first
+  if (primaryAPI === 'openai' && isAPIAvailable('openai')) {
+    try {
+      console.log('🚀 Making OpenAI API call for project generation (primary)...');
+      return await callOpenAIProject(prompt);
+    } catch (error) {
+      console.error('[AI Service] OpenAI project API call failed:', error.message || error);
+      
+      // Try fallback if available
+      if (fallbackAPI === 'gemini' && isAPIAvailable('gemini')) {
+        console.log('🚀 Falling back to Gemini API for project generation...');
+        try {
+          return await generateProjectWithGemini(prompt);
+        } catch (fallbackError) {
+          console.error('[AI Service] Gemini fallback project API call failed:', fallbackError.message || fallbackError);
+          throw fallbackError;
+        }
+      } else {
+        throw error;
+      }
+    }
+  } else if (primaryAPI === 'gemini' && isAPIAvailable('gemini')) {
+    try {
+      console.log('🚀 Making Gemini API call for project generation (primary)...');
+      return await generateProjectWithGemini(prompt);
+    } catch (error) {
+      console.error('[AI Service] Gemini project API call failed:', error.message || error);
+      
+      // Try fallback if available
+      if (fallbackAPI === 'openai' && isAPIAvailable('openai')) {
+        console.log('🚀 Falling back to OpenAI API for project generation...');
+        try {
+          return await callOpenAIProject(prompt);
+        } catch (fallbackError) {
+          console.error('[AI Service] OpenAI fallback project API call failed:', fallbackError.message || fallbackError);
+          throw fallbackError;
+        }
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    throw new Error('No AI API available for project generation. Please check your environment configuration.');
+  }
+}
+
+/**
+ * Helper function to generate project with Gemini
+ * @param {string} prompt - Project generation prompt
+ * @returns {Promise<Object>} Generated project data
+ */
+async function generateProjectWithGemini(prompt) {
+  // Gemini doesn't have direct project function, use generateAIResponse
+  const systemPrompt = `You are an educational AI that creates engaging learning projects. 
+Generate a project with:
+- A compelling title (max 50 characters)
+- A detailed description (2-3 sentences explaining the project)
+- 3-5 specific deliverables (array of strings)
+
+Format your response as JSON with keys: title, description, deliverables (array).
+
+Example response:
+{
+  "title": "Market Research Analysis",
+  "description": "Analyze consumer behavior in the tech industry through surveys, interviews, and data analysis to identify trends and opportunities.",
+  "deliverables": ["Survey Design", "Data Collection", "Statistical Analysis", "Trend Report", "Recommendations"]
+}`;
+
+  const fullPrompt = `${systemPrompt}\n\nTopic: ${prompt}`;
+  const response = await callGemini(fullPrompt, systemPrompt);
+  
+  // Try to parse JSON response
+  try {
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+  } catch (parseError) {
+    console.error('Error parsing Gemini response:', parseError);
+  }
+  
+  // Fallback if JSON parsing fails
+  return {
+    title: "AI-Generated Learning Project",
+    description: response.substring(0, 200) + "...",
+    deliverables: ["Research", "Implementation", "Documentation"]
+  };
 }
 
 /**
@@ -213,8 +529,8 @@ export async function generateContextAwareResponse(agentId, projectId, userId, c
       console.log(`[AI Service] ⚠️⚠️⚠️ NO TASK SECTION FOUND IN PROMPT!`);
     }
     
-    // Generate response
-    const response = await callOpenAI(userMessage, enhancedPrompt);
+    // Generate response using centralized AI service with fallback
+    const response = await generateAIResponse(userMessage, enhancedPrompt);
     
     console.log(`[AI Service] ✅ Generated response for ${agentId} with context awareness`);
     console.log(`[AI Service] Response preview:`, response.substring(0, 100) + '...');
