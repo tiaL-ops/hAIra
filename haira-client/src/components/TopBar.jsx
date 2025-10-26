@@ -11,6 +11,7 @@ const backend_host = "http://localhost:3002";
 
 
 export default function TopBar() {
+  const firebaseAvailable = isFirebaseAvailable();
   const { currentUser, isAuthenticated } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ export default function TopBar() {
 
   const tabs = [
     { to: '/projects', label: 'Projects' },
-    { to: '/profile', label: 'Profile' },
+    ...(firebaseAvailable ? [{ to: '/profile', label: 'Profile' }] : [])
   ];
 
   const isActive = (path) => {
