@@ -2,8 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from 'axios';
 import { useAuth } from '../App';
-import { auth } from '../../firebase';
-import { isFirebaseAvailable } from '../services/localStorageService';
+import { auth, serverFirebaseAvailable } from '../../firebase';
 import '../styles/Chat.css'; // Your CSS (the updated one you shared)
 
 import AlexAvatar from '../images/Alex.png';
@@ -147,8 +146,7 @@ function Chat() {
     
     // Check authentication with fallback
     const checkAuth = () => {
-      const firebaseAvailable = isFirebaseAvailable();
-      if (firebaseAvailable) {
+      if (serverFirebaseAvailable) {
         return auth.currentUser;
       } else {
         // Check localStorage for user
@@ -170,8 +168,7 @@ function Chat() {
         
         // Get token with fallback
         let token;
-        const firebaseAvailable = isFirebaseAvailable();
-        if (firebaseAvailable) {
+        if (serverFirebaseAvailable) {
           token = await auth.currentUser.getIdToken(true);
         } else {
           // Generate mock token for localStorage
@@ -251,8 +248,7 @@ function Chat() {
     try {
       // Get token with fallback
       let token;
-      const firebaseAvailable = isFirebaseAvailable();
-      if (firebaseAvailable) {
+      if (serverFirebaseAvailable) {
         token = await auth.currentUser.getIdToken(true);
       } else {
         // Check localStorage for user
@@ -337,8 +333,7 @@ function Chat() {
   const getMessageStyle = (senderId) => {
     // Check current user with fallback
     let currentUserId;
-    const firebaseAvailable = isFirebaseAvailable();
-    if (firebaseAvailable) {
+    if (serverFirebaseAvailable) {
       currentUserId = auth.currentUser?.uid;
     } else {
       const storedUser = localStorage.getItem('__localStorage_current_user__');
@@ -368,8 +363,7 @@ function Chat() {
   const getSenderInfo = (senderId, senderName) => {
     // Check current user with fallback
     let currentUserId;
-    const firebaseAvailable = isFirebaseAvailable();
-    if (firebaseAvailable) {
+    if (serverFirebaseAvailable) {
       currentUserId = auth.currentUser?.uid;
     } else {
       const storedUser = localStorage.getItem('__localStorage_current_user__');

@@ -1,55 +1,73 @@
-# Force localStorage Mode (No Firebase Service Account)
+# Automatic Storage Mode (Firebase or localStorage)
 
-If you don't have a Firebase service account on the backend, you can force the app to use localStorage instead.
+The app **automatically detects** whether to use Firebase or localStorage based on the presence of Firebase credentials on the backend. No manual configuration needed!
 
-## Option 1: Browser Console (Quick & Easy)
+## How It Works:
 
-1. Open your browser's Developer Console (F12)
-2. Paste this command and press Enter:
-```javascript
-localStorage.setItem('__force_local_storage__', 'true'); location.reload();
-```
+### Server Detection (Automatic)
+The server automatically detects Firebase availability:
+- **Firebase Mode**: If `serviceAccountKey.json` exists at `haira-server/config/serviceAccountKey.json` OR valid Firebase env variables are set
+- **localStorage Mode**: If no Firebase credentials are found
 
-The app will now use localStorage instead of Firebase!
+### Client Detection (Automatic)
+The client queries the server's `/api/config` endpoint on startup to determine which mode to use.
 
-## Option 2: Environment Variable (Permanent)
+## Switching Modes:
 
-1. Create a `.env` file in the `haira-client` folder:
+### To Use Firebase:
+Add your Firebase service account key:
 ```bash
-cd haira-client
-echo "VITE_USE_LOCAL_STORAGE=true" > .env
+# Place your serviceAccountKey.json at:
+haira-server/config/serviceAccountKey.json
 ```
 
-2. Restart your dev server:
+Then restart the server:
 ```bash
-npm run dev
+cd haira-server
+npm start
 ```
 
-## To Switch Back to Firebase:
-
-**Option 1:** Browser Console:
-```javascript
-localStorage.removeItem('__force_local_storage__'); location.reload();
-```
-
-**Option 2:** Remove or change the `.env` file:
+### To Use localStorage:
+Remove or rename the Firebase service account key:
 ```bash
-# Delete the .env file or change the value to false
-echo "VITE_USE_LOCAL_STORAGE=false" > .env
+# Rename the file (keep backup):
+cd haira-server/config
+mv serviceAccountKey.json serviceAccountKey.json.backup
+
+# Or delete it:
+rm serviceAccountKey.json
 ```
 
-## How to Check Which Mode You're In:
+Then restart the server:
+```bash
+cd haira-server
+npm start
+```
 
-Look at the browser console when the app loads:
-- `🔥 Firebase initialized successfully` - Using Firebase
-- `💾 Forced localStorage mode - Firebase disabled` - Using localStorage
+## How to Check Which Mode You're Using:
 
-## What This Does:
+### Server Console:
+- `🔥 Firebase Admin SDK initialized successfully` - Using Firebase
+- `💾 No Firebase credentials found - using localStorage fallback` - Using localStorage
 
-When localStorage mode is forced:
-- ✅ All authentication happens in localStorage (no Firebase Auth)
-- ✅ All data is stored in localStorage (no Firestore)
-- ✅ No Firebase service account needed on backend
-- ✅ Everything works offline
-- ✅ Perfect for development without Firebase setup
+### Client Console:
+- `📡 Server storage mode: firebase` - Connected to Firebase
+- `📡 Server storage mode: localStorage` - Using localStorage
+
+### Browser Network Tab:
+Check the response from `http://localhost:3002/api/config`:
+```json
+{
+  "firebaseAvailable": true,
+  "storageMode": "firebase"
+}
+```
+
+## Benefits:
+
+✅ **Automatic detection** - no manual env variables needed
+✅ **Easy switching** - just add/remove the service key file
+✅ **Full feature parity** - both modes support all features
+✅ **Development friendly** - works offline with localStorage
+✅ **Production ready** - automatically uses Firebase when configured
 

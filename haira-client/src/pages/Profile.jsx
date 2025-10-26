@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { isFirebaseAvailable } from '../services/localStorageService';
+import { serverFirebaseAvailable } from '../../firebase';
 import '../styles/Profile.css';
 import bg from '../images/backgroundsky.png'; // put your image here
 
@@ -23,8 +23,7 @@ function Profile() {
     const fetchProfile = async () => {
       // Check authentication with fallback
       let currentUser;
-      const firebaseAvailable = isFirebaseAvailable();
-      if (firebaseAvailable) {
+      if (serverFirebaseAvailable) {
         currentUser = auth.currentUser;
       } else {
         const storedUser = localStorage.getItem('__localStorage_current_user__');
@@ -41,7 +40,7 @@ function Profile() {
         
         // Get token with fallback
         let token;
-        if (firebaseAvailable) {
+        if (serverFirebaseAvailable) {
           token = await auth.currentUser.getIdToken();
         } else {
           token = `mock-token-${currentUser.uid}-${Date.now()}`;
@@ -67,8 +66,7 @@ function Profile() {
   const handleLanguageChange = async (newLanguage) => {
     // Check authentication with fallback
     let currentUser;
-    const firebaseAvailable = isFirebaseAvailable();
-    if (firebaseAvailable) {
+    if (serverFirebaseAvailable) {
       currentUser = auth.currentUser;
     } else {
       const storedUser = localStorage.getItem('__localStorage_current_user__');

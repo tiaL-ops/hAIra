@@ -1,8 +1,7 @@
 // src/components/ContributionTracker.jsx
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
-import { auth } from '../../firebase';
-import { isFirebaseAvailable } from '../services/localStorageService';
+import { auth, serverFirebaseAvailable } from '../../firebase';
 import { getAIAgents } from '../services/aiAgentsService.js';
 import '../styles/ContributionTracker.css';
 
@@ -111,8 +110,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
   // Utility to get token
   async function getIdTokenSafely() {
     try {
-      const firebaseAvailable = isFirebaseAvailable();
-      if (firebaseAvailable) {
+      if (serverFirebaseAvailable) {
         if (auth && auth.currentUser) {
           return await auth.currentUser.getIdToken();
         }

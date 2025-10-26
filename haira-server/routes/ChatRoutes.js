@@ -1,7 +1,16 @@
 // Phase 3: Chat Routes with Teammates Sync
-
 import express from 'express';
+import admin from 'firebase-admin';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
+import { 
+  addDocument, 
+  addSubdocument, 
+  getDocumentById, 
+  updateDocument, 
+  querySubcollection,
+  getUserMessageCountSince,
+  firebaseAvailable
+} from '../services/databaseService.js';
 import {
   getTeammates,
   getTeammate,
@@ -12,30 +21,18 @@ import {
   getSleepResponse
 } from '../services/teammateService.js';
 import { triggerAgentResponse } from '../services/aiService.js';
-import { getDefaultResponseAgents } from '../utils/chatUtils.js';
-import { 
-  getUserMessageCountSince, 
-  firebaseAvailable, 
-  getDocumentById, 
-  setDocument, 
-  addDocument, 
-  querySubcollection,
-  addSubdocument,
-  updateDocument,
-  queryDocuments
-} from '../services/databaseService.js';
-import * as localStorageService from '../services/localStorageService.js';
 import { getProjectDay } from '../utils/chatUtils.js';
 
-
 const router = express.Router();
-const isLocalMode = !firebaseAvailable; // true when using localStorage, false when using Firebase
 
 // Handle FieldValue for Firebase operations
 const getFieldValue = () => {
   if (firebaseAvailable) {
-    const admin = require('firebase-admin');
-    return admin.firestore.FieldValue;
+    try {
+      return admin.firestore.FieldValue;
+    } catch (error) {
+      console.warn('Firebase admin not available, using mock FieldValue');
+    }
   }
   return {
     increment: (value) => ({ _increment: value }),
@@ -52,22 +49,36 @@ router.get('/:id/chat', verifyFirebaseToken, async (req, res) => {
   const userId = req.user.uid;
 
   try {
-    // Use unified approach for both Firebase and localStorage
+    // 1. Verify user has access to project
     const projectDoc = await getDocumentById('userProjects', projectId);
-    if (!projectDoc) return res.status(404).json({ error: 'Project not found' });
-    if (projectDoc.userId !== userId) return res.status(403).json({ error: 'Access denied' });
     
-    const messages = await querySubcollection('userProjects', projectId, 'chatMessages');
+    if (!projectDoc) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    if (projectDoc.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // 2. Fetch chat messages
+    const messages = await querySubcollection('userProjects', projectId, 'chatMessages', {
+      orderBy: [{ field: 'timestamp', direction: 'asc' }],
+      limit: 100
+    });
+
+    // 3. Fetch all teammates
     const teammates = await getTeammates(projectId);
-    const projectData = projectDoc;
+    
     // Convert to object for easy lookup { teammateId: teammateData }
     const teammatesMap = teammates.reduce((acc, teammate) => {
       acc[teammate.id] = teammate;
       return acc;
     }, {});
-    // Enrich messages with teammate data
+
+    // 4. Enrich messages with teammate data
     const enrichedMessages = messages.map(msg => {
       const sender = teammatesMap[msg.senderId];
+      
       return {
         ...msg,
         senderName: sender?.name || 'Unknown',
@@ -78,20 +89,25 @@ router.get('/:id/chat', verifyFirebaseToken, async (req, res) => {
         senderType: sender?.type || 'unknown'
       };
     });
-    // Calculate availability for each AI agent
+
+    // 5. Calculate availability for each AI agent
     const availability = {};
-    const currentDay = projectData.currentDay || 1;
+    const currentDay = projectDoc.currentDay || 1;
+    
     for (const teammate of teammates) {
       if (teammate.type === 'ai') {
         availability[teammate.id] = await isTeammateAvailable(projectId, teammate.id);
       }
     }
+
+    // 6. Return response
     res.json({
       chats: enrichedMessages,
       teammates: teammatesMap,
       availability,
       currentDay
     });
+
   } catch (error) {
     console.error('❌ Error fetching chat messages:', error);
     res.status(500).json({ error: 'Failed to fetch messages' });
@@ -133,7 +149,7 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
 
     // 3.5. Check user's daily message quota (7 messages per 24 hours)
     // Use project data already fetched in step 2
-    const projectData = projectDoc; // projectDoc is already the data object in localStorage mode
+    const projectData = projectDoc;
     const projectStart = new Date(projectData?.startDate || Date.now());
     const currentDay = getProjectDay(projectStart);
     
@@ -291,43 +307,30 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
     const probabilityHandled = [];
     
     if (mentions.length === 0) {
-      console.log(`🎲 No mentions detected, checking probability-based responses...`);
+      console.log(`🤖 No mentions detected, all AI teammates will respond...`);
       
       // Get all AI teammates for this project
       const allTeammates = await getTeammates(projectId);
       const aiTeammates = allTeammates.filter(t => t.type === 'ai');
       
-      console.log(`🎲 AI teammates in project:`, aiTeammates.map(t => t.id));
+      console.log(`🤖 AI teammates in project:`, aiTeammates.map(t => t.id));
       
       // If no AI teammates, skip
       if (aiTeammates.length === 0) {
         console.log(`⚠️ No AI teammates found in project`);
       } else {
-        // Randomly select which AI teammates should respond
-        const probabilityAgents = getDefaultResponseAgents(aiTeammates.map(t => t.id));
-        console.log(`🎲 Probability selected agents:`, probabilityAgents);
+        // ALL AI teammates respond with generated content
+        console.log(`🤖 Triggering responses from all ${aiTeammates.length} AI teammates`);
         
-        for (const agentId of probabilityAgents) {
+        for (const teammate of aiTeammates) {
+          const agentId = teammate.id;
           try {
-            // Fetch agent teammate
-            const agentTeammate = await getTeammate(projectId, agentId);
-            
-            if (!agentTeammate) {
-              console.log(`⚠️ Probability agent ${agentId} not found`);
-              continue;
-            }
-          
-            if (agentTeammate.type !== 'ai') {
-              console.log(`⚠️ ${agentId} is not an AI agent, skipping`);
-              continue;
-            }
-            
             // Check availability
             const availabilityCheck = await isTeammateAvailable(projectId, agentId);
             
             if (availabilityCheck.available) {
-              // Agent is available - trigger AI response
-              console.log(`🎲 ${agentTeammate.name} responding (probability-based)...`);
+              // Agent is available - trigger AI-generated response
+              console.log(`🤖 ${teammate.name} responding with AI-generated content...`);
               
               try {
                 await triggerAgentResponse(projectId, agentId, message);
@@ -341,29 +344,29 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
                 
                 probabilityHandled.push({
                   teammateId: agentId,
-                  name: agentTeammate.name,
+                  name: teammate.name,
                   responded: true,
-                  trigger: 'probability'
+                  trigger: 'auto-response'
                 });
                 
-                console.log(`✅ ${agentTeammate.name} responded (probability-based)`);
+                console.log(`✅ ${teammate.name} responded with AI-generated content`);
                 
               } catch (aiError) {
-                console.error(`❌ Error in probability response for ${agentTeammate.name}:`, aiError);
+                console.error(`❌ Error generating AI response for ${teammate.name}:`, aiError);
                 probabilityHandled.push({
                   teammateId: agentId,
-                  name: agentTeammate.name,
+                  name: teammate.name,
                   responded: false,
-                  error: 'Failed to generate response'
+                  error: 'Failed to generate response',
+                  trigger: 'auto-response'
                 });
               }
-              
             } else {
-              // Agent is unavailable - skip (no sleep message for probability responses)
-              console.log(`😴 ${agentTeammate.name} unavailable for probability response: ${availabilityCheck.reason}`);
+              // Agent is unavailable - skip (no sleep message for auto responses)
+              console.log(`😴 ${teammate.name} unavailable: ${availabilityCheck.reason}`);
               probabilityHandled.push({
                 teammateId: agentId,
-                name: agentTeammate.name,
+                name: teammate.name,
                 responded: false,
                 reason: availabilityCheck.reason,
                 trigger: 'probability'
@@ -412,10 +415,12 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
         }
         
         // Get recent chat messages to check if tasks were discussed
-        const recentMessages = await querySubcollection('userProjects', projectId, 'chatMessages');
-        const recentMessagesLimited = recentMessages.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
+        const recentMessages = await querySubcollection('userProjects', projectId, 'chatMessages', {
+          orderBy: [{ field: 'timestamp', direction: 'desc' }],
+          limit: 10
+        });
         
-        const chatTexts = recentMessagesLimited.map(msg => (msg.content || msg.text || '').toLowerCase()).join(' ');
+        const chatTexts = recentMessages.map(msg => (msg.content || msg.text || '').toLowerCase()).join(' ');
         const hasTaskDiscussion = chatTexts.includes('task') || chatTexts.includes('work on') || 
                                    chatTexts.includes('need to') || chatTexts.includes('should do');
         
@@ -448,9 +453,9 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
     }
 
     // 9. Fetch all messages to return (including AI responses)
-    const allMessages = await querySubcollection('userProjects', projectId, 'chatMessages');
-    // Sort by timestamp ascending
-    allMessages.sort((a, b) => a.timestamp - b.timestamp);
+    const allMessages = await querySubcollection('userProjects', projectId, 'chatMessages', {
+      orderBy: [{ field: 'timestamp', direction: 'asc' }]
+    });
 
     // 10. Return success response with all messages
     const messagesAfterThis = userMsgsToday + 1; // Count including this message
@@ -545,7 +550,7 @@ router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
         messagesReceived: 0,
         lastResetDate: new Date().toISOString().split('T')[0]
       },
-      joinedAt: getFieldValue()?.serverTimestamp()
+      joinedAt: firebaseAvailable ? getFieldValue()?.serverTimestamp() : Date.now()
     };
     await addSubdocument('userProjects', projectId, 'teammates', userId, humanTeammate);
 
@@ -597,7 +602,7 @@ router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
           missedMentions: 0,
           lastResetDate: new Date().toISOString().split('T')[0]
         },
-        joinedAt: getFieldValue()?.serverTimestamp()
+        joinedAt: firebaseAvailable ? getFieldValue()?.serverTimestamp() : Date.now()
       };
 
       await addSubdocument('userProjects', projectId, 'teammates', agentId, aiTeammate);
@@ -625,7 +630,7 @@ router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
 
     await updateDocument('userProjects', projectId, {
       team: teamArray,
-      teamUpdatedAt: getFieldValue()?.serverTimestamp()
+      teamUpdatedAt: firebaseAvailable ? getFieldValue()?.serverTimestamp() : Date.now()
     });
 
     res.json({

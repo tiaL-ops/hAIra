@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from 'axios';
 import { useAuth } from '../App';
-import { isFirebaseAvailable } from '../services/localStorageService';
+import { serverFirebaseAvailable } from '../../firebase';
 import KanbanBoard from "../components/kanbanBoard";
 import TaskReviewModal from "../components/TaskReviewModal";
 import '../styles/Chat.css';
@@ -32,8 +32,7 @@ function Kanban() {
       const fetchProjectData = async () => {
         // Check authentication with fallback
         let currentUser;
-        const firebaseAvailable = isFirebaseAvailable();
-        if (firebaseAvailable) {
+        if (serverFirebaseAvailable) {
           try {
             currentUser = auth.currentUser;
           } catch (error) {
@@ -98,8 +97,7 @@ function Kanban() {
         try {
             // Get token with fallback
             let token;
-            const firebaseAvailable = isFirebaseAvailable();
-            if (firebaseAvailable) {
+            if (serverFirebaseAvailable) {
               try {
                 token = await auth.currentUser.getIdToken();
               } catch (error) {
@@ -140,8 +138,7 @@ function Kanban() {
       try {
         // Get token with fallback
         let token;
-        const firebaseAvailable = isFirebaseAvailable();
-        if (firebaseAvailable) {
+        if (serverFirebaseAvailable) {
           try {
             token = await auth.currentUser.getIdToken();
           } catch (error) {

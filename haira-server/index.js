@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 
-
+import { firebaseAvailable } from './services/firebaseService.js';
 import homeRoutes from './routes/HomeRoutes.js';
 import profileRoutes from './routes/ProfileRoutes.js';
 import loginRoutes from './routes/LoginRoutes.js';
@@ -29,6 +29,14 @@ app.use(express.json());
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`);
   next();
+});
+
+// Endpoint to expose Firebase availability status
+app.get('/api/config', (req, res) => {
+  res.json({ 
+    firebaseAvailable,
+    storageMode: firebaseAvailable ? 'firebase' : 'localStorage'
+  });
 });
 
 // add all routes here 

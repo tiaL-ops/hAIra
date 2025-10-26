@@ -7,9 +7,8 @@ import {
   updateProfile
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../../firebase';
+import { auth, db, serverFirebaseAvailable } from '../../firebase';
 import { useNavigate } from 'react-router-dom';
-import { isFirebaseAvailable } from '../services/localStorageService';
 import '../styles/Login.css';
 
 export default function Login() {
@@ -23,7 +22,7 @@ export default function Login() {
 
   // Auto-login test user when Firebase is not available
   useEffect(() => {
-    if (!isFirebaseAvailable()) {
+    if (!serverFirebaseAvailable) {
       console.log('💾 No Firebase detected - auto-logging in test user');
       
       // Create test user in localStorage
@@ -154,8 +153,8 @@ export default function Login() {
     }
 
     try {
-      // Check if Firebase is available (auth object exists and has Firebase methods)
-      const isFirebaseAuth = auth && typeof auth.createUserWithEmailAndPassword === 'function';
+      // Check if server has Firebase available
+      const isFirebaseAuth = serverFirebaseAvailable;
       
       if (isFirebaseAuth) {
         // Use Firebase authentication
@@ -224,8 +223,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // Check if Firebase is available (auth object exists and has Firebase methods)
-      const isFirebaseAuth = auth && typeof auth.signInWithEmailAndPassword === 'function';
+      // Check if server has Firebase available
+      const isFirebaseAuth = serverFirebaseAvailable;
       
       if (isFirebaseAuth) {
         // Use Firebase authentication
@@ -291,8 +290,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // Check if Firebase is available (auth object exists and has Firebase methods)
-      const isFirebaseAuth = auth && typeof auth.signInWithPopup === 'function';
+      // Check if server has Firebase available
+      const isFirebaseAuth = serverFirebaseAvailable;
       
       if (isFirebaseAuth) {
         // Use Firebase authentication

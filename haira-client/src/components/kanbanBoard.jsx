@@ -3,8 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { v4 as uuidv4 } from "uuid";
 import { useAuth } from '../App';
-import { isFirebaseAvailable } from '../services/localStorageService';
-import { auth } from '../../firebase';
+import { auth, serverFirebaseAvailable } from '../../firebase';
 import axios from 'axios';
 import '../styles/Kanban.css';
 // Avatars
@@ -63,8 +62,7 @@ export default function KanbanBoard({ id }) {
     
     // Check authentication with fallback
     const checkAuth = () => {
-      const firebaseAvailable = isFirebaseAvailable();
-      if (firebaseAvailable) {
+      if (serverFirebaseAvailable) {
         try {
           return auth.currentUser;
         } catch (error) {
@@ -88,8 +86,7 @@ export default function KanbanBoard({ id }) {
       try {
         // Get token with fallback
         let token;
-        const firebaseAvailable = isFirebaseAvailable();
-        if (firebaseAvailable) {
+        if (serverFirebaseAvailable) {
           try {
             token = await auth.currentUser.getIdToken(true);
           } catch (error) {
@@ -156,8 +153,7 @@ export default function KanbanBoard({ id }) {
     
     // Get token with fallback
     let token;
-    const firebaseAvailable = isFirebaseAvailable();
-    if (firebaseAvailable) {
+    if (serverFirebaseAvailable) {
       try {
         token = await auth.currentUser.getIdToken(true);
       } catch (error) {
@@ -192,8 +188,7 @@ export default function KanbanBoard({ id }) {
   const handleSaveTask = async (column, task, updateState = true) => {
     // Get token with fallback
     let token;
-    const firebaseAvailable = isFirebaseAvailable();
-    if (firebaseAvailable) {
+    if (serverFirebaseAvailable) {
       try {
         token = await auth.currentUser.getIdToken(true);
       } catch (error) {
@@ -230,8 +225,7 @@ export default function KanbanBoard({ id }) {
   const handleDeleteTask = async (column, taskId) => {
     // Get token with fallback
     let token;
-    const firebaseAvailable = isFirebaseAvailable();
-    if (firebaseAvailable) {
+    if (serverFirebaseAvailable) {
       try {
         token = await auth.currentUser.getIdToken(true);
       } catch (error) {

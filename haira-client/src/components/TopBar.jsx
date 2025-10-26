@@ -1,7 +1,8 @@
 import { React, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
-import { isFirebaseAvailable } from '../services/localStorageService';
+import { auth, serverFirebaseAvailable } from '../../firebase';
+import { signOut } from 'firebase/auth';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import '../styles/TopBar.css';
@@ -11,7 +12,6 @@ const backend_host = "http://localhost:3002";
 
 
 export default function TopBar() {
-  const firebaseAvailable = isFirebaseAvailable();
   const { currentUser, isAuthenticated } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -19,7 +19,7 @@ export default function TopBar() {
 
   const tabs = [
     { to: '/projects', label: 'Projects' },
-    ...(firebaseAvailable ? [{ to: '/profile', label: 'Profile' }] : [])
+    ...(serverFirebaseAvailable ? [{ to: '/profile', label: 'Profile' }] : [])
   ];
 
   const isActive = (path) => {
@@ -29,11 +29,8 @@ export default function TopBar() {
 
   const handleLogout = async () => {
     try {
-      const firebaseAvailable = isFirebaseAvailable();
-      if (firebaseAvailable) {
+      if (serverFirebaseAvailable) {
         try {
-          const { getAuth, signOut } = require('firebase/auth');
-          const auth = getAuth();
           await signOut(auth);
         } catch (error) {
           console.warn('Firebase logout error, falling back to localStorage:', error);

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { auth } from '../../firebase';
-import { isFirebaseAvailable } from '../services/localStorageService';
+import { auth, serverFirebaseAvailable } from '../../firebase';
 import { useAuth } from '../App';
 import ContributionTracker from "../components/ContributionTracker";
 import SuccessIcon from "../images/Success.png";
@@ -31,8 +30,7 @@ function SubmissionSuccess() {
   // Helper function to get token safely
   const getIdTokenSafely = async () => {
     try {
-      const firebaseAvailable = isFirebaseAvailable();
-      if (firebaseAvailable) {
+      if (serverFirebaseAvailable) {
         if (auth && auth.currentUser) {
           return await auth.currentUser.getIdToken();
         }

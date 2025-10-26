@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { auth } from '../../firebase';
-import { isFirebaseAvailable } from '../services/localStorageService';
+import { auth, serverFirebaseAvailable } from '../../firebase';
 import axios from 'axios';
 import { getAIAgents } from '../services/aiAgentsService.js';
 import { getChromeWriter } from '../utils/chromeAPI.js';
@@ -68,8 +67,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
 
   const getIdTokenSafely = async () => {
     try {
-      const firebaseAvailable = isFirebaseAvailable();
-      if (firebaseAvailable) {
+      if (serverFirebaseAvailable) {
         if (auth && auth.currentUser) {
           return await auth.currentUser.getIdToken();
         }

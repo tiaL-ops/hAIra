@@ -300,14 +300,18 @@ export async function getTeammates(projectId) {
  */
 export async function updateTeammateStats(projectId, teammateId, updates) {
   try {
+    // Get current teammate from subcollection
+    const teammate = await getTeammate(projectId, teammateId);
+    if (!teammate) {
+      console.warn(`Teammate ${teammateId} not found in project ${projectId}`);
+      return;
+    }
+    
     // Process FieldValue objects for localStorage mode
     const processedUpdates = {};
     for (const [key, value] of Object.entries(updates)) {
       if (value && typeof value === 'object' && value._increment !== undefined) {
         // Handle increment operations
-        const currentDoc = await getDocumentById('userProjects', projectId);
-        const teammates = currentDoc?.teammates || {};
-        const teammate = teammates[teammateId] || {};
         const currentValue = key.split('.').reduce((obj, k) => obj?.[k], teammate) || 0;
         processedUpdates[key] = currentValue + value._increment;
       } else if (value && typeof value === 'object' && value._serverTimestamp !== undefined) {
@@ -318,32 +322,24 @@ export async function updateTeammateStats(projectId, teammateId, updates) {
       }
     }
     
-    // Add updatedAt timestamp
-    const updateData = {
-      ...processedUpdates,
-      updatedAt: Date.now()
-    };
-    
-    // Update the teammate document
-    const teammateDoc = await getDocumentById('userProjects', projectId);
-    if (teammateDoc && teammateDoc.teammates && teammateDoc.teammates[teammateId]) {
-      // Update the specific fields in the teammate object
-      const updatedTeammate = { ...teammateDoc.teammates[teammateId] };
-      for (const [key, value] of Object.entries(updateData)) {
-        const keys = key.split('.');
-        let current = updatedTeammate;
-        for (let i = 0; i < keys.length - 1; i++) {
-          if (!current[keys[i]]) current[keys[i]] = {};
-          current = current[keys[i]];
-        }
-        current[keys[keys.length - 1]] = value;
+    // Build updated teammate object with nested property updates
+    const updatedTeammate = { ...teammate };
+    for (const [key, value] of Object.entries(processedUpdates)) {
+      const keys = key.split('.');
+      let current = updatedTeammate;
+      for (let i = 0; i < keys.length - 1; i++) {
+        if (!current[keys[i]]) current[keys[i]] = {};
+        current = current[keys[i]];
       }
-      
-      // Save the updated teammate
-      await updateDocument('userProjects', projectId, {
-        [`teammates.${teammateId}`]: updatedTeammate
-      });
+      current[keys[keys.length - 1]] = value;
     }
+    
+    // Update timestamp
+    updatedTeammate.updatedAt = Date.now();
+    
+    // Save the updated teammate to subcollection (addSubdocument with existing ID overwrites)
+    const { addSubdocument } = await import('./databaseService.js');
+    await addSubdocument('userProjects', projectId, 'teammates', teammateId, updatedTeammate);
     
   } catch (error) {
     console.error(`Error updating teammate ${teammateId} in project ${projectId}:`, error);

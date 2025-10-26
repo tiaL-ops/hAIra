@@ -44,36 +44,27 @@ function buildCredential() {
 let firebaseAvailable = false;
 let db = null;
 
-// Check if localStorage mode is forced via environment variable
-const forceLocalStorage = process.env.USE_LOCAL_STORAGE === 'true';
-
-if (forceLocalStorage) {
-  console.log('💾 NO FIREBASE - Using localStorage for all operations');
-  console.log('💾 All data will be stored in local_data/fallback_firebase.json');
-  firebaseAvailable = false;
-  db = null;
+// Initialize Firebase Admin SDK once - auto-detect based on credentials
+if (!admin.apps.length) {
+  try {
+    const credential = buildCredential();
+    admin.initializeApp({ credential });
+    db = admin.firestore();
+    firebaseAvailable = true;
+    console.log('🔥 Firebase Admin SDK initialized successfully');
+  } catch (error) {
+    console.error('❌ Firebase initialization failed:', error.message);
+    console.log('💾 No Firebase credentials found - using localStorage fallback for all operations');
+    console.log('💾 All data will be stored in local_data/fallback_firebase.json');
+    firebaseAvailable = false;
+  }
 } else {
-  // Initialize Firebase Admin SDK once
-  if (!admin.apps.length) {
-    try {
-      const credential = buildCredential();
-      admin.initializeApp({ credential });
-      db = admin.firestore();
-      firebaseAvailable = true;
-      console.log('🔥 Firebase Admin SDK initialized successfully');
-    } catch (error) {
-      console.error('❌ Firebase initialization failed:', error.message);
-      console.log('💾 Will use localStorage fallback for all operations');
-      firebaseAvailable = false;
-    }
-  } else {
-    try {
-      db = admin.firestore();
-      firebaseAvailable = true;
-    } catch (error) {
-      console.error('❌ Firebase firestore not available:', error.message);
-      firebaseAvailable = false;
-    }
+  try {
+    db = admin.firestore();
+    firebaseAvailable = true;
+  } catch (error) {
+    console.error('❌ Firebase firestore not available:', error.message);
+    firebaseAvailable = false;
   }
 }
 

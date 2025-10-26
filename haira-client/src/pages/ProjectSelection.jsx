@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { isFirebaseAvailable } from '../services/localStorageService';
-import { auth } from '../../firebase';
+import { auth, serverFirebaseAvailable } from '../../firebase';
 import WeeklyLearningPrompt from '../components/WeeklyLearningPrompt';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ProjectViewModal from '../components/ProjectViewModal';
@@ -45,8 +44,7 @@ export default function ProjectSelection() {
     const fetchUserProjects = async () => {
       // Check authentication with fallback
       let currentUser;
-      const firebaseAvailable = isFirebaseAvailable();
-      if (firebaseAvailable) {
+      if (serverFirebaseAvailable) {
         try {
           currentUser = auth.currentUser;
         } catch (error) {
@@ -69,7 +67,7 @@ export default function ProjectSelection() {
       try {
         // Get token with fallback
         let token;
-        if (firebaseAvailable && currentUser && currentUser.getIdToken) {
+        if (serverFirebaseAvailable && currentUser && currentUser.getIdToken) {
           token = await currentUser.getIdToken();
         } else {
           token = `mock-token-${currentUser.uid}-${Date.now()}`;
@@ -113,8 +111,7 @@ export default function ProjectSelection() {
     try {
       // Get token with fallback
       let token;
-      const firebaseAvailable = isFirebaseAvailable();
-      if (firebaseAvailable) {
+      if (serverFirebaseAvailable) {
         try {
           token = await auth.currentUser.getIdToken();
         } catch (error) {
@@ -160,8 +157,7 @@ export default function ProjectSelection() {
     try {
       // Get token with fallback
       let token;
-      const firebaseAvailable = isFirebaseAvailable();
-      if (firebaseAvailable) {
+      if (serverFirebaseAvailable) {
         try {
           token = await auth.currentUser.getIdToken();
         } catch (error) {
@@ -276,8 +272,7 @@ export default function ProjectSelection() {
     try {
       // Get token with fallback
       let token;
-      const firebaseAvailable = isFirebaseAvailable();
-      if (firebaseAvailable) {
+      if (serverFirebaseAvailable) {
         try {
           token = await auth.currentUser.getIdToken();
         } catch (error) {

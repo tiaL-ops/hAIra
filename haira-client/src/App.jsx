@@ -1,7 +1,6 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { auth, db } from '../firebase';
-import { getAuthService, isFirebaseAvailable } from './services/localStorageService';
+import { auth, db, serverFirebaseAvailable } from '../firebase';
 import Home from './pages/Home';
 import TopBar from './components/TopBar';
 import Profile from './pages/Profile';
@@ -30,10 +29,8 @@ function AuthProvider({ children }) {
 
   useEffect(() => {
     const initializeAuth = () => {
-      // Check if Firebase is available (auth object exists and has Firebase methods)
-      const isFirebaseAuth = auth && typeof auth.onAuthStateChanged === 'function';
-      
-      if (isFirebaseAuth) {
+      // Check if server has Firebase available
+      if (serverFirebaseAvailable) {
         // Use Firebase auth
         setStorageMode('firebase');
         console.log('🔥 Using Firebase authentication');

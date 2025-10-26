@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from 'react-router-dom';
-import { auth } from '../../firebase';
-import { isFirebaseAvailable } from '../services/localStorageService';
+import { auth, serverFirebaseAvailable } from '../../firebase';
 import axios from 'axios';
 import { getAIAgents } from '../services/aiAgentsService.js';
 import '../styles/Classroom.css';
@@ -68,8 +67,7 @@ function Classroom() {
         try {
             // Get token with fallback
             let token;
-            const firebaseAvailable = isFirebaseAvailable();
-            if (firebaseAvailable) {
+            if (serverFirebaseAvailable) {
               try {
                 token = await auth.currentUser.getIdToken(true);
               } catch (error) {
@@ -132,8 +130,7 @@ function Classroom() {
         try {
             // Get token with fallback
             let token;
-            const firebaseAvailable = isFirebaseAvailable();
-            if (firebaseAvailable) {
+            if (serverFirebaseAvailable) {
               try {
                 token = await auth.currentUser.getIdToken(true);
               } catch (error) {

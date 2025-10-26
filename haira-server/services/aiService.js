@@ -483,10 +483,6 @@ export async function generateContextAwareResponse(agentId, projectId, userId, c
     'rakoto': `Hey! I'm Rakoto, your data analyst. I help make sense of information and find patterns. What data or analysis do you need help with?`
   };
   
-  // For now, return mock response to test functionality
-  console.log(`[AI Service] Using mock response for ${agentId} (AI APIs not configured)`);
-  return mockResponses[agentId] || `Hello! I'm ${agentId}, and I'm here to help with your project. What would you like to work on?`;
-  
   try {
     console.log(`[AI Service] Generating context-aware response for ${agentId}`);
     console.log(`[AI Service] Project: ${projectId}, User: ${userId}, Day: ${currentDay}`);
@@ -596,34 +592,6 @@ export async function triggerAgentResponse(projectId, agentId, triggerMessage) {
     'rasoa': `Hello! I'm Rasoa, your project coordinator. I keep things organized and on track. What project management challenges can I help you with?`,
     'rakoto': `Hey! I'm Rakoto, your data analyst. I help make sense of information and find patterns. What data or analysis do you need help with?`
   };
-  
-  // For now, return mock response to test functionality
-  console.log(`[AI Service] Using mock response for ${agentId} (AI APIs not configured)`);
-  const aiResponse = mockResponses[agentId] || `Hello! I'm ${agentId}, and I'm here to help with your project. What would you like to work on?`;
-  
-  // Generate unique message ID
-  const generateId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-  
-  // Create message object
-  const agent = AI_AGENTS[agentId];
-  const responseMessage = {
-    messageId: generateId(),
-    projectId: projectId,
-    senderId: agentId,
-    senderName: agent?.name || agentId,
-    senderType: 'ai',
-    content: aiResponse,
-    timestamp: Date.now(),
-    type: 'message',
-    inReplyTo: triggerMessage.messageId || null
-  };
-  
-  // Save to chatMessages
-  await addSubdocument('userProjects', projectId, 'chatMessages', null, responseMessage);
-  
-  console.log(`[AI Service] ✅ ${agentId} responded successfully with mock response`);
-  
-  return responseMessage;
   
   try {
     console.log(`[AI Service] 🤖 Triggering response for ${agentId} in project ${projectId}`);

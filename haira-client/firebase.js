@@ -5,42 +5,66 @@ import { getFirestore } from 'firebase/firestore';
 import { getAuthService, getFirestoreService } from './src/services/localStorageService';
 
 let app, auth, db;
+let isInitialized = false;
+let serverFirebaseAvailable = false;
 
-// Check if we should force localStorage mode (for when backend has no Firebase service account)
-// Only check environment variable, not localStorage flag
-const forceLocalStorage = import.meta?.env?.VITE_USE_LOCAL_STORAGE === 'true';
-
-if (forceLocalStorage) {
-  console.log('💾 Forced localStorage mode - Firebase disabled');
-  auth = getAuthService();
-  db = getFirestoreService();
-  app = null;
-} else {
-  // Try to initialize Firebase first
+// Fetch Firebase availability from server
+async function checkServerFirebaseAvailability() {
   try {
-    const firebaseConfig = {
-      apiKey: "AIzaSyAV-rdY66x8CAElzUWfR4tZ-HgcP9xIwDM",
-      authDomain: "haira-dev.firebaseapp.com",
-      projectId: "haira-dev",
-      storageBucket: "haira-dev.firebasestorage.app",
-      messagingSenderId: "325852042789",
-      appId: "1:325852042789:web:a9f0654c719b22a4da51cc",
-      measurementId: "G-FE30L1DSNX"
-    };
-
-    // Initialize Firebase
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
-    
-    console.log('🔥 Firebase initialized successfully');
+    const response = await fetch('http://localhost:3002/api/config');
+    const config = await response.json();
+    serverFirebaseAvailable = config.firebaseAvailable;
+    console.log(`📡 Server storage mode: ${config.storageMode}`);
+    return serverFirebaseAvailable;
   } catch (error) {
-    console.warn('Firebase initialization failed, falling back to localStorage:', error);
-    // Fall back to localStorage services
+    console.warn('⚠️ Could not reach server, assuming localStorage mode:', error);
+    serverFirebaseAvailable = false;
+    return false;
+  }
+}
+
+// Initialize based on server's Firebase availability
+async function initializeFirebaseClient() {
+  if (isInitialized) return;
+  
+  const serverHasFirebase = await checkServerFirebaseAvailability();
+  
+  if (serverHasFirebase) {
+    // Server has Firebase, initialize client Firebase
+    try {
+      const firebaseConfig = {
+        apiKey: "AIzaSyAV-rdY66x8CAElzUWfR4tZ-HgcP9xIwDM",
+        authDomain: "haira-dev.firebaseapp.com",
+        projectId: "haira-dev",
+        storageBucket: "haira-dev.firebasestorage.app",
+        messagingSenderId: "325852042789",
+        appId: "1:325852042789:web:a9f0654c719b22a4da51cc",
+        measurementId: "G-FE30L1DSNX"
+      };
+
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
+      
+      console.log('🔥 Firebase client initialized successfully');
+    } catch (error) {
+      console.warn('⚠️ Firebase client initialization failed, falling back to localStorage:', error);
+      auth = getAuthService();
+      db = getFirestoreService();
+      app = null;
+    }
+  } else {
+    // Server doesn't have Firebase, use localStorage
+    console.log('💾 Server using localStorage - client will use localStorage mode');
     auth = getAuthService();
     db = getFirestoreService();
     app = null;
   }
+  
+  isInitialized = true;
 }
 
-export { app, auth, db };
+// Initialize on module load
+await initializeFirebaseClient();
+
+export { app, auth, db, serverFirebaseAvailable };

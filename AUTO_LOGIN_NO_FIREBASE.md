@@ -52,12 +52,12 @@ When Firebase is not available:
 
 ## Testing
 
-1. **With `.env` file** (`VITE_USE_LOCAL_STORAGE=true`):
+1. **Without Firebase service key** (localStorage mode):
    - Start app → Auto-logged in as test user
    - Go directly to `/projects` → Works!
    - No login needed
 
-2. **Without `.env` or with Firebase**:
+2. **With Firebase service key** (Firebase mode):
    - Normal login flow
    - Firebase authentication
 
@@ -82,21 +82,21 @@ User opens app → Login page → Sign in → Use features
 
 ## Configuration
 
-### Force Auto-Login Mode:
+### Automatic Mode Detection:
 
-**Option 1:** Environment variable (recommended)
-```bash
-# haira-client/.env
-VITE_USE_LOCAL_STORAGE=true
-```
+The app automatically detects whether to use Firebase or localStorage:
 
-**Option 2:** Browser console
-```javascript
-localStorage.setItem('__force_local_storage__', 'true');
-location.reload();
-```
+**localStorage Mode (Auto-Login):**
+- Remove or rename `haira-server/config/serviceAccountKey.json`
+- Restart server → Automatically uses localStorage
+- Client automatically detects this and enables auto-login
 
-### Default Test User:
+**Firebase Mode (Normal Login):**
+- Add `haira-server/config/serviceAccountKey.json`
+- Restart server → Automatically uses Firebase
+- Client automatically detects this and shows login page
+
+### Default Test User (localStorage mode):
 
 - **UID**: `test-user`
 - **Email**: `test@example.com`
