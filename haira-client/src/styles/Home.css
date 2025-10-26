@@ -1337,3 +1337,46 @@
   font-weight: 700;
   font-size: 1.1rem;
 }
+
+/* 3D Components Styling */
+.steps-3d-container {
+  margin-bottom: 2rem;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.steps-text-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.step-text-item {
+  text-align: center;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(34, 204, 136, 0.2);
+  transition: all 0.3s ease;
+}
+
+.step-text-item:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(34, 204, 136, 0.4);
+}
+
+.step-text-item h3 {
+  color: #22cc88;
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.step-text-item p {
+  color: #e0e0e0;
+  line-height: 1.6;
+  font-size: 1rem;
+}

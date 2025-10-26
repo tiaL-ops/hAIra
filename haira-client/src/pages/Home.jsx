@@ -1,6 +1,9 @@
 // src/pages/Home.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Link } from 'react-router-dom';
+import ProblemNeuralNetwork from '../components/ProblemNeuralNetwork';
+import Solution3D from '../components/Solution3D';
+import Steps3D from '../components/Steps3D';
 import '../styles/Home.css';
 
 function Home() {
@@ -103,12 +106,9 @@ function Home() {
       <section className="home-section problem-section">
         <div className="problem-content">
           <div className="problem-visual">
-            <div className="problem-icon">⚠️</div>
-            <div className="problem-graphic">
-              <div className="brain-icon">🧠</div>
-              <div className="arrow-down">↓</div>
-              <div className="ai-icon">🤖</div>
-            </div>
+            <Suspense fallback={<div style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22cc88' }}>Loading Neural Network...</div>}>
+              <ProblemNeuralNetwork />
+            </Suspense>
           </div>
           <div className="problem-text">
             <h2 className="section-title">The Problem</h2>
@@ -142,14 +142,9 @@ function Home() {
             </ul>
           </div>
           <div className="solution-visual">
-            <div className="solution-icon">🤝</div>
-            <div className="solution-graphic">
-              <div className="human-icon">👤</div>
-              <div className="plus-icon">+</div>
-              <div className="ai-team-icon">🤖</div>
-              <div className="equals-icon">=</div>
-              <div className="success-icon">✨</div>
-            </div>
+            <Suspense fallback={<div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22cc88' }}>Loading Solution...</div>}>
+              <Solution3D />
+            </Suspense>
           </div>
         </div>
       </section>
@@ -157,46 +152,27 @@ function Home() {
       {/* How It Works */}
       <section className="home-section steps-section">
         <h2 className="section-title">Get Started in 4 Steps</h2>
-        <div className="steps-container">
-          <div className="step-item">
-            <div className="step-visual">
-              <div className="step-number">1</div>
-              <div className="step-icon">📋</div>
-            </div>
-            <div className="step-content">
-              <h3>Choose Your Project</h3>
-              <p>Pick from a list of topics or have the AI generate a new, realistic project brief for a total of 7 days.</p>
-            </div>
+        <div className="steps-3d-container">
+          <Suspense fallback={<div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22cc88' }}>Loading Steps...</div>}>
+            <Steps3D />
+          </Suspense>
+        </div>
+        <div className="steps-text-container">
+          <div className="step-text-item">
+            <h3>1. Choose Your Project</h3>
+            <p>Pick from a list of topics or have the AI generate a new, realistic project brief for a total of 7 days.</p>
           </div>
-          <div className="step-item">
-            <div className="step-visual">
-              <div className="step-number">2</div>
-              <div className="step-icon">👥</div>
-            </div>
-            <div className="step-content">
-              <h3>Meet Your AI Team</h3>
-              <p>Choose your teammate. Use the group chat and task board to plan your attack.</p>
-            </div>
+          <div className="step-text-item">
+            <h3>2. Meet Your AI Team</h3>
+            <p>Choose your teammate. Use the group chat and task board to plan your attack.</p>
           </div>
-          <div className="step-item">
-            <div className="step-visual">
-              <div className="step-number">3</div>
-              <div className="step-icon">✍️</div>
-            </div>
-            <div className="step-content">
-              <h3>Collaborate and Co-Create</h3>
-              <p>Work together in the built-in text editor. Ask your AI teammates to draft sections, review your work, or give you feedback—just like real colleagues.</p>
-            </div>
+          <div className="step-text-item">
+            <h3>3. Collaborate and Co-Create</h3>
+            <p>Work together in the built-in text editor. Ask your AI teammates to draft sections, review your work, or give you feedback—just like real colleagues.</p>
           </div>
-          <div className="step-item">
-            <div className="step-visual">
-              <div className="step-number">4</div>
-              <div className="step-icon">📊</div>
-            </div>
-            <div className="step-content">
-              <h3>Submit & Get Feedback</h3>
-              <p>Submit your final project to the AI Project Manager for a detailed grade on report quality, teamwork, and contribution balance.</p>
-            </div>
+          <div className="step-text-item">
+            <h3>4. Submit & Get Feedback</h3>
+            <p>Submit your final project to the AI Project Manager for a detailed grade on report quality, teamwork, and contribution balance.</p>
           </div>
         </div>
       </section>

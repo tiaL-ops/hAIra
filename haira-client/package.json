@@ -13,6 +13,8 @@
     "@floating-ui/dom": "^1.7.4",
     "@headlessui/react": "^2.2.9",
     "@hello-pangea/dnd": "^18.0.1",
+    "@react-three/drei": "^10.7.6",
+    "@react-three/fiber": "^9.4.0",
     "@tiptap/extension-bold": "^3.7.2",
     "@tiptap/extension-collaboration": "^3.7.2",
     "@tiptap/extension-color": "^3.7.2",
@@ -38,6 +40,7 @@
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.9.4",
     "react-toastify": "^11.0.5",
+    "three": "^0.180.0",
     "yjs": "^13.6.27"
   },
   "devDependencies": {
