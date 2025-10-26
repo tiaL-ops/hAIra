@@ -75,6 +75,8 @@ export const USER_PROJECT_SCHEMA = {
     content: String,
     submittedAt: Number
   },
+  comments: Array,        // Array of comment objects
+  commentsLastSaved: Number, // Timestamp of last comment save
   finalReflection: String, // AI-generated reflection
   reflectionUpdatedAt: Number, // When reflection was last updated
   grade: {            // Project evaluation
@@ -82,7 +84,13 @@ export const USER_PROJECT_SCHEMA = {
     workPercentage: Number,
     responsiveness: Number,
     reportQuality: Number
-  }
+  },
+
+  // To persist comments
+  comments: Array,        // Array of comment objects
+  commentsLastSaved: Number, // Timestamp of last comment save
+
+  
 };
 
 // Schema for Chat Message documents (subcollection of userProjects)
@@ -127,6 +135,23 @@ export const NOTIFICATIONS_SCHEMA = {
 }
 
 // ...existing code...
+
+// Schema for Comment documents (stored in userProjects)
+export const COMMENT_SCHEMA = {
+  id: String,           // Unique comment ID
+  author: String,       // Author name ("You", AI teammate name, etc.)
+  text: String,         // Comment content
+  anchor: String,       // Selected text (null if no selection)
+  createdAt: Number,    // Creation timestamp
+  updatedAt: Number,    // Last update timestamp
+  resolved: Boolean,    // Whether comment is resolved
+  selection: {          // Text selection data
+    start: Number,      // Start position in document
+    end: Number,        // End position in document
+    text: String        // Selected text content
+  },
+  replies: Array        // Array of reply objects (optional for future)
+};
 
 // Schema for Teammate documents (subcollection of userProjects)
 export const TEAMMATE_SCHEMA = {
