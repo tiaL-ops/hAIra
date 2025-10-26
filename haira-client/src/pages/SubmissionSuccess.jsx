@@ -20,7 +20,6 @@ function SubmissionSuccess() {
 
   const [submission, setSubmission] = useState(null);
   const [grade, setGrade] = useState(null);
-  const [aiSummary, setAiSummary] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [aiGrades, setAiGrades] = useState(null);
@@ -105,36 +104,7 @@ function SubmissionSuccess() {
         const data = await response.json();
         setSubmission(data.submission);
         setGrade(data.grade);
-        
-        // Generate AI summary if we have content
-        if (data.submission?.content) {
-          try {
-            // Call server-side AI fallback function
-            const serverSideFallback = async () => {
-              const token = await getIdTokenSafely();
-              const res = await axios.post(`${backend_host}/api/project/${id}/ai/summarize`, 
-                { content: data.submission.content },
-                {
-                  headers: {
-                    "Content-Type": "application/json",
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                  }
-                }
-              );
-              return {
-                summary: res.data?.result || res.data?.summary || "No summary returned.",
-                source: 'gemini'
-              };
-            };
 
-            // Try Chrome AI first, fallback to Server-side AI
-            const summaryData = await getChromeSummary(data.submission.content, serverSideFallback);
-      
-            setAiSummary( summaryData?.summary || "");
-          } catch (summaryErr) {
-            console.error("Failed to generate summary:", summaryErr);
-          }
-        }
         
         // Automatically trigger AI grading after submission data is loaded
         if (!aiGradingTriggered) {
@@ -297,7 +267,6 @@ function SubmissionSuccess() {
 
           {/* Contribution Tracker - Right Column */}
           <div className="contribution-section">
-            <h2>👥 Team Contributions</h2>
             <ContributionTracker 
               projectId={id} 
               showContributions={true} 

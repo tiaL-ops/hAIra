@@ -42,6 +42,8 @@ const resolveTeammate = (aiType) => AI_TEAMMATES[aiType] || AI_TEAMMATES.rasoa;
 export const useAITeam = (projectId, editorRef, onAddComment = null) => {
   const [loadingAIs, setLoadingAIs] = useState(new Set());
   const [taskCompletionMessages, setTaskCompletionMessages] = useState([]);
+  // AI Content Reflection state - now an array to handle multiple pending reflections
+  const [pendingAIContentReflections, setPendingAIContentReflections] = useState([]);
 
   const getIdTokenSafely = async () => {
     try {
@@ -126,25 +128,6 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     editor.commands.setHighlight({ color: highlightMap[taskType] || color + '20' });
     
     console.log('✅ Content inserted and styled successfully');
-
-    if (wordCount > 0 && projectId && taskType === 'write_section') {
-      try {
-        const token = await getIdTokenSafely();
-        if (token) {
-          console.log('📊 Tracking word count contribution...');
-          await axios.post(`${backend_host}/api/project/${projectId}/word-contributions/track`, {
-            contributorId: aiType,
-            contributorName: name,
-            contributorRole: role,
-            wordCount,
-            taskType
-          }, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
-          console.log('✅ Word count tracked successfully');
-        }
-      } catch (error) {
-        console.error('❌ Error tracking word count:', error);
-      }
-    }
   }, [editorRef, projectId, getIdTokenSafely]);
 
   const addAIComment = useCallback((text, aiType, taskType = '') => {
@@ -234,37 +217,47 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       const htmlResponse = convertMarkdownToHTML(result.content);
       console.log('🔄 Client: Converted to HTML:', htmlResponse?.substring(0, 100) + '...');
       
-      console.log('📝 Client: Inserting AI text into editor...');
-      insertAIText(htmlResponse, aiTeammate.id, 'write_section');
-      console.log('✅ Client: AI text inserted successfully');
-      
-      // Generate completion message from API
-      console.log('🔍 Debug aiTeammate:', aiTeammate);
-      console.log('🔍 Debug aiTeammate.id:', aiTeammate.id);
-      
-      // Fix: Use aiTeammate.id or fallback to the key from AI_TEAMMATES
-      const aiType = aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate);
-      console.log('🔍 Debug resolved aiType:', aiType);
-      
-      const generatedMessage = await generateCompletionMessage(aiType, 'write');
-      console.log('🔍 Debug generatedMessage:', generatedMessage);
-      const completionMessage = {
-        id: Date.now(),
-        aiType: aiType,
-        message: generatedMessage,
-        timestamp: Date.now()
-      };
-      console.log('📝 Adding completion message:', completionMessage);
-      setTaskCompletionMessages(prev => {
-        const newMessages = [...prev, completionMessage];
-        console.log('📝 New completion messages:', newMessages);
-        return newMessages;
-      });
-      
-      // Auto-dismiss after 5 seconds
-      setTimeout(() => {
-        setTaskCompletionMessages(prev => prev.filter(msg => msg.id !== completionMessage.id));
-      }, 5000);
+        // Generate AI completion message and show reflection modal
+        console.log('💬 Client: Generating AI completion message...');
+        let aiCompletionMessage = '';
+        try {
+          const token = await getIdTokenSafely();
+          if (token) {
+            const completionResponse = await axios.post(`${backend_host}/api/project/${projectId}/ai/completion-message`, 
+              {
+                aiType: aiTeammate.id,
+                taskType: 'write'
+              },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            
+            if (completionResponse.data.success) {
+              aiCompletionMessage = completionResponse.data.completionMessage;
+              console.log('✅ Client: AI completion message generated');
+            }
+          }
+        } catch (error) {
+          console.error('Error generating completion message:', error);
+          aiCompletionMessage = 'Task completed!'; // Fallback message
+        }
+
+        // Add to pending reflections array instead of replacing
+        console.log('📝 Client: Adding AI content reflection to pending list...');
+        const newReflection = {
+          id: Date.now() + Math.random(), // Unique ID
+          isOpen: true,
+          content: htmlResponse, // Show HTML content for proper display
+          aiTeammate: aiTeammate,
+          aiCompletionMessage: aiCompletionMessage, // Include AI's completion message
+          pendingResult: {
+            htmlContent: htmlResponse,
+            aiType: aiTeammate.id,
+            taskType: 'write_section'
+          }
+        };
+        
+        setPendingAIContentReflections(prev => [...prev, newReflection]);
+        console.log('✅ Client: AI content reflection added to pending list');
       
       return result;
       
@@ -275,9 +268,19 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       const htmlResponse = convertMarkdownToHTML(fallbackResult.content);
       console.log('🔄 Client: Converted fallback to HTML:', htmlResponse?.substring(0, 100) + '...');
       
-      console.log('📝 Client: Inserting fallback AI text into editor...');
-      insertAIText(htmlResponse, aiTeammate.id, 'write_section');
-      console.log('✅ Client: Fallback AI text inserted successfully');
+      // Instead of directly inserting, show reflection modal for fallback too
+      console.log('📝 Client: Showing fallback AI content reflection modal...');
+      setShowAIContentReflection({
+        isOpen: true,
+        content: fallbackResult.content, // Show original markdown content
+        aiTeammate: aiTeammate,
+        pendingResult: {
+          htmlContent: htmlResponse,
+          aiType: aiTeammate.id,
+          taskType: 'write_section'
+        }
+      });
+      console.log('✅ Client: Fallback AI content reflection modal shown');
       
       // Generate completion message from API
       const aiType = aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate);
@@ -542,6 +545,130 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
   const clearCompletionMessages = useCallback(() => setTaskCompletionMessages([]), []);
   const removeCompletionMessage = useCallback((messageId) => setTaskCompletionMessages(prev => prev.filter(msg => msg.id !== messageId)), []);
 
+  // Function to build styled content with mixed AI/user styling
+  const buildStyledContent = useCallback((differences, aiType) => {
+    if (!differences || differences.length === 0) return '';
+    
+    let styledContent = '';
+    
+    differences.forEach(diff => {
+      switch (diff.type) {
+        case 'unchanged':
+          // AI content - use AI styling
+          const { color } = resolveTeammate(aiType);
+          styledContent += `<span style="color: ${color}; background-color: ${color}20;">${diff.content}</span> `;
+          break;
+        case 'added':
+        case 'modified':
+          // User content - use black text
+          styledContent += `<span style="color: #000000; background-color: transparent;">${diff.content}</span> `;
+          break;
+        case 'removed':
+          // Don't include removed content
+          break;
+        default:
+          styledContent += `${diff.content} `;
+      }
+    });
+    
+    return styledContent.trim();
+  }, []);
+
+  // AI Content Reflection Handlers
+  const handleAcceptAIContent = useCallback(async (reflectionData, reflectionId) => {
+    try {
+      // Find the specific reflection
+      const reflection = pendingAIContentReflections.find(r => r.id === reflectionId);
+      if (!reflection) return;
+
+      // Insert AI content into editor
+      if (reflection.pendingResult) {
+        insertAIText(
+          reflection.pendingResult.htmlContent, 
+          reflection.pendingResult.aiType, 
+          reflection.pendingResult.taskType
+        );
+      }
+
+      // Save reflection data to backend
+      const token = await getIdTokenSafely();
+      if (token) {
+        await axios.post(`${backend_host}/api/project/${projectId}/ai-content-reflection`, 
+          reflectionData,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
+
+      // Remove this reflection from pending list
+      setPendingAIContentReflections(prev => prev.filter(r => r.id !== reflectionId));
+
+      // Content handled silently - no additional completion message needed
+
+    } catch (error) {
+      console.error('Error accepting AI content:', error);
+    }
+  }, [pendingAIContentReflections, projectId, insertAIText, getIdTokenSafely]);
+
+  const handleModifyAIContent = useCallback(async (reflectionData, reflectionId) => {
+    try {
+      // Find the specific reflection
+      const reflection = pendingAIContentReflections.find(r => r.id === reflectionId);
+      if (!reflection) return;
+
+      // Insert the modified content with mixed AI/user styling
+      if (reflectionData.modifiedContent && reflection.pendingResult) {
+        if (editorRef.current) {
+          const editor = editorRef.current;
+          const cursorPos = editor.state.selection.from;
+          
+          // Build content with mixed styling based on differences
+          const styledContent = buildStyledContent(reflectionData.differences, reflection.pendingResult.aiType);
+          
+          // Insert the styled content
+          editor.commands.insertContent(styledContent);
+        }
+      }
+
+      // Save reflection data to backend
+      const token = await getIdTokenSafely();
+      if (token) {
+        await axios.post(`${backend_host}/api/project/${projectId}/ai-content-reflection`, 
+          reflectionData,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
+
+      // Remove this reflection from pending list
+      setPendingAIContentReflections(prev => prev.filter(r => r.id !== reflectionId));
+
+      // Content handled silently - no additional completion message needed
+
+    } catch (error) {
+      console.error('Error modifying AI content:', error);
+    }
+  }, [pendingAIContentReflections, projectId, insertAIText, getIdTokenSafely]);
+
+  const handleDiscardAIContent = useCallback(async (reflectionData, reflectionId) => {
+    try {
+      // Don't insert content, just save reflection data
+      const token = await getIdTokenSafely();
+      if (token) {
+        await axios.post(`${backend_host}/api/project/${projectId}/ai-content-reflection`, 
+          reflectionData,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
+
+      // Remove this reflection from pending list
+      setPendingAIContentReflections(prev => prev.filter(r => r.id !== reflectionId));
+
+      // Content handled silently - no additional completion message needed
+
+    } catch (error) {
+      console.error('Error discarding AI content:', error);
+    }
+  }, [projectId, getIdTokenSafely]);
+
   return {
     write: performWriteTask,
     review: performReviewTask,
@@ -553,5 +680,10 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     taskCompletionMessages,
     clearCompletionMessages,
     removeCompletionMessage,
+    // AI Content Reflection
+    pendingAIContentReflections,
+    handleAcceptAIContent,
+    handleModifyAIContent,
+    handleDiscardAIContent
   };
 };

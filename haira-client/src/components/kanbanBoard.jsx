@@ -195,7 +195,6 @@ export default function KanbanBoard({ id }) {
 
   // Map known AI names/ids to avatars
   const avatarMap = {
-    alex: AlexAvatar,
     brown: BrownAvatar,
     elza: ElzaAvatar,
     kati: KatiAvatar,
@@ -218,7 +217,7 @@ export default function KanbanBoard({ id }) {
 
     // Try to map known display names to ids
     const nameToId = {
-      alex: 'alex', brown: 'brown', elza: 'elza', kati: 'kati', steve: 'steve', sam: 'sam', rasoa: 'rasoa', rakoto: 'rakoto'
+      brown: 'brown', elza: 'elza', kati: 'kati', steve: 'steve', sam: 'sam', rasoa: 'rasoa', rakoto: 'rakoto'
     };
     const normalized = nameToId[lookup];
     if (normalized && avatarMap[normalized]) return avatarMap[normalized];

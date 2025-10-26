@@ -18,6 +18,7 @@ import AIToolbar from "../components/TextEditor/AIToolbar";
 import EditorArea from "../components/TextEditor/EditorArea";
 import CommentSidebar from "../components/TextEditor/CommentSidebar";
 import EditorGuide from "../components/TextEditor/EditorGuide";
+import AIContentReflectionModal from "../components/AIContentReflectionModal";
 import TeamPanel from "../components/TeamPanel";
 import TaskCompletionFeedback from "../components/TaskCompletionFeedback";
 import SummarizePopup from "../components/SummarizePopup";
@@ -113,7 +114,12 @@ function Submission() {
     isLoading: aiTaskLoading, 
     loadingAIs,
     taskCompletionMessages, 
-    removeCompletionMessage 
+    removeCompletionMessage,
+    // AI Content Reflection
+    pendingAIContentReflections,
+    handleAcceptAIContent,
+    handleModifyAIContent,
+    handleDiscardAIContent
   } = useAITeam(id, editorRef, handleAddAIComment);
   
   // Text selection state
@@ -1035,6 +1041,21 @@ function Submission() {
         onApply={handleApplySuggestion}
         onDiscard={handleDiscardSuggestion}
       />
+
+      {/* AI Content Reflection Modals - Multiple modals for multiple pending reflections */}
+      {pendingAIContentReflections.map((reflection) => (
+        <AIContentReflectionModal
+          key={reflection.id}
+          isOpen={reflection.isOpen}
+          aiContent={reflection.content}
+          aiTeammate={reflection.aiTeammate}
+          aiCompletionMessage={reflection.aiCompletionMessage}
+          onAccept={(reflectionData) => handleAcceptAIContent(reflectionData, reflection.id)}
+          onModify={(reflectionData) => handleModifyAIContent(reflectionData, reflection.id)}
+          onDiscard={(reflectionData) => handleDiscardAIContent(reflectionData, reflection.id)}
+          isLoading={aiTaskLoading}
+        />
+      ))}
     </div>
   );
 }
