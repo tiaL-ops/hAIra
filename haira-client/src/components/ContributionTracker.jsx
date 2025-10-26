@@ -2,8 +2,16 @@
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
 import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
-// Using emoji from agent config instead of images
 import '../styles/ContributionTracker.css';
+
+// Import agent avatars
+import BrownAvatar from '../images/Brown.png';
+import ElzaAvatar from '../images/Elza.png';
+import KatiAvatar from '../images/Kati.png';
+import SteveAvatar from '../images/Steve.png';
+import SamAvatar from '../images/Sam.png';
+import RasoaAvatar from '../images/Rasoa.png';
+import RakotoAvatar from '../images/Rakoto.png';
 
 const backend_host = "http://localhost:3002";
 
@@ -100,14 +108,37 @@ export default function ContributionTracker({ projectId, showContributions = tru
     return colors[index % colors.length];
   };
 
+  // Avatar mapping
+  const avatarMap = {
+    brown: BrownAvatar,
+    elza: ElzaAvatar,
+    kati: KatiAvatar,
+    steve: SteveAvatar,
+    sam: SamAvatar,
+    rasoa: RasoaAvatar,
+    rakoto: RakotoAvatar
+  };
+
   //Get Avatar dynamically
   const getMemberAvatar = (member) => {
     if (member.name === 'You') {
       return '👤';
     }
-    // Check if member matches any AI teammate by name
+    
+    // Check if member matches any AI teammate by name and get their avatar
     const aiAgent = Object.values(AI_TEAMMATES).find(agent => agent.name === member.name);
     if (aiAgent) {
+      const avatarSrc = avatarMap[aiAgent.name.toLowerCase()];
+      if (avatarSrc) {
+        return (
+          <img 
+            src={avatarSrc} 
+            alt={`${member.name} avatar`}
+            className="ai-avatar-image"
+          />
+        );
+      }
+      // Fallback to emoji if no image found
       return aiAgent.emoji;
     }
     return '🤖';
@@ -152,11 +183,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
             <div className="member-info">
               <div className="member-name">
                 <div className="member-avatar">
-                    <img 
-                      src={getMemberAvatar(member)} 
-                      alt={`${member.name} avatar`}
-                      className="ai-avatar-image"
-                    />
+                  {getMemberAvatar(member)}
                 </div>
                 <div>
                   <strong>{member.name}</strong>

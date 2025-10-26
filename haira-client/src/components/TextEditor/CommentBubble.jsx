@@ -2,6 +2,12 @@
 import React, { useState } from "react";
 import AlexAvatar from "../../images/Alex.png";
 import SamAvatar from "../../images/Sam.png";
+import BrownAvatar from "../../images/Brown.png";
+import ElzaAvatar from "../../images/Elza.png";
+import KatiAvatar from "../../images/Kati.png";
+import SteveAvatar from "../../images/Steve.png";
+import RasoaAvatar from "../../images/Rasoa.png";
+import RakotoAvatar from "../../images/Rakoto.png";
 
 export default function CommentBubble({ comment, onReply, onResolve, onHighlightClick }) {
   const [replyText, setReplyText] = useState("");
@@ -42,13 +48,38 @@ export default function CommentBubble({ comment, onReply, onResolve, onHighlight
 
   // Get appropriate avatar based on author
   const getAuthorAvatar = () => {
-    if (comment.author?.includes('Alex')) {
-      return <img src={AlexAvatar} alt="Alex" className="author-avatar" />;
+    const author = comment.author?.toLowerCase();
+    
+    // Handle AI teammates with images
+    if (author?.includes('alex')) {
+      return <img src={AlexAvatar} alt="Alex" className="custom-avatar" />;
     }
-    if (comment.author?.includes('Sam')) {
-      return <img src={SamAvatar} alt="Sam" className="author-avatar" />;
+    if (author?.includes('sam')) {
+      return <img src={SamAvatar} alt="Sam" className="custom-avatar" />;
     }
+    if (author?.includes('brown')) {
+      return <img src={BrownAvatar} alt="Brown" className="custom-avatar" />;
+    }
+    if (author?.includes('elza')) {
+      return <img src={ElzaAvatar} alt="Elza" className="custom-avatar" />;
+    }
+    if (author?.includes('kati')) {
+      return <img src={KatiAvatar} alt="Kati" className="custom-avatar" />;
+    }
+    if (author?.includes('steve')) {
+      return <img src={SteveAvatar} alt="Steve" className="custom-avatar" />;
+    }
+    if (author?.includes('rasoa')) {
+      return <img src={RasoaAvatar} alt="Rasoa" className="custom-avatar" />;
+    }
+    if (author?.includes('rakoto')) {
+      return <img src={RakotoAvatar} alt="Rakoto" className="custom-avatar" />;
+    }
+    
+    // Handle user comments
     if (comment.author === 'You') return '👤';
+    
+    // Fallback for unknown authors
     return '👥';
   };
 
