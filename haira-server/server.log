@@ -1,5 +1,99 @@
-[dotenv@17.2.3] injecting env (4) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
-Firebase initialized
-[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
-[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[dotenv@17.2.3] injecting env (1) from .env -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
+🔥 Firebase Admin SDK initialized successfully
+🔥 Database Service: Using Firebase
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+🔧 AI Configuration Check:
+   - OpenAI Key Present: ❌
+   - Gemini Key Present: ✅
+🚀 Mode Local: Using Gemini API only
+📋 AI Config: Local Mode - Gemini only
 🔌 Server is running on http://localhost:3002
+POST /api/project/Z741sLXO3EOqxAK9jgJ9/init-teammates
+💾 Using mock token authentication for uid: test-user
+[Firebase] Adding document to 'userProjects/Z741sLXO3EOqxAK9jgJ9/teammates'
+[Firebase] Data type: object Data keys: [
+  'id',     'name',
+  'type',   'role',
+  'avatar', 'color',
+  'config', 'state',
+  'stats',  'joinedAt'
+]
+[Firebase] Plain data keys: [
+  'id',     'name',
+  'type',   'role',
+  'avatar', 'color',
+  'config', 'state',
+  'stats',  'joinedAt'
+]
+[Firebase] Adding document to 'userProjects/Z741sLXO3EOqxAK9jgJ9/teammates'
+[Firebase] Data type: object Data keys: [
+  'id',       'name',
+  'type',     'role',
+  'avatar',   'color',
+  'emoji',    'personality',
+  'config',   'prompt',
+  'state',    'stats',
+  'joinedAt'
+]
+[Firebase] Plain data keys: [
+  'id',       'name',
+  'type',     'role',
+  'avatar',   'color',
+  'emoji',    'personality',
+  'config',   'prompt',
+  'state',    'stats',
+  'joinedAt'
+]
+POST /api/project/Z741sLXO3EOqxAK9jgJ9/chat
+💾 Using mock token authentication for uid: test-user
+[Firebase] Counting messages for user test-user in project Z741sLXO3EOqxAK9jgJ9 in last 24 hours (since 2025-10-25T22:20:49.386Z)
+[Firebase] Found 0 user messages in last 24 hours for user test-user
+[Firebase] 24-hour window: 2025-10-25T22:20:49.386Z to 2025-10-26T22:20:49.474Z
+📊 User quota check: 0/7 messages sent in last 24 hours
+[Firebase] Adding document to 'userProjects/Z741sLXO3EOqxAK9jgJ9/chatMessages'
+[Firebase] Data type: object Data keys: [
+  'messageId',
+  'projectId',
+  'senderId',
+  'senderName',
+  'senderType',
+  'content',
+  'timestamp',
+  'type'
+]
+[Firebase] Plain data keys: [
+  'messageId',
+  'projectId',
+  'senderId',
+  'senderName',
+  'senderType',
+  'content',
+  'timestamp',
+  'type'
+]
+✅ Message saved from Test User
+📢 Mentions detected: []
+🎲 No mentions detected, checking probability-based responses...
+🎲 AI teammates in project: [ 'brown' ]
+🎲 Probability selected agents: [ 'brown' ]
+🎲 Brown responding (probability-based)...
+[AI Service] Using mock response for brown (AI APIs not configured)
+[Firebase] Adding document to 'userProjects/Z741sLXO3EOqxAK9jgJ9/chatMessages'
+[Firebase] Data type: object Data keys: [
+  'messageId',  'projectId',
+  'senderId',   'senderName',
+  'senderType', 'content',
+  'timestamp',  'type',
+  'inReplyTo'
+]
+[Firebase] Plain data keys: [
+  'messageId',  'projectId',
+  'senderId',   'senderName',
+  'senderType', 'content',
+  'timestamp',  'type',
+  'inReplyTo'
+]
+[AI Service] ✅ brown responded successfully with mock response
+✅ Brown responded (probability-based)

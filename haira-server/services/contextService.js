@@ -1,22 +1,8 @@
 // contextService.js - Enhanced context management for AI agents
 // Ensures AI agents are always aware of project, tasks, and assignments
 
-import { getProjectWithTasks } from './firebaseService.js';
-import { 
-  getConversationHistory, 
-  getConversationSummary, 
-  getMultiDayHistory,
-  getMultiDaySummary,
-  getPreviousDaysContext 
-} from '../config/conversationMemory.js';
-import { storeProjectData, formatTasksForAI, getProjectTasks } from '../config/taskMemory.js';
+import { getProjectWithTasks, querySubcollection } from './databaseService.js';
 import { AI_AGENTS } from '../config/aiAgents.js';
-import { 
-  storeDailyContext, 
-  getDailyContext, 
-  getEnhancedContextCache,
-  generateConversationSummary 
-} from './dailyContextCache.js';
 
 /**
  * Get comprehensive context for AI agents
@@ -64,21 +50,27 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
       });
     }
     
-    // 3. Store in task memory for quick access
-    storeProjectData(projectId, projectData.tasks, projectData.project);
-    console.log(`[ContextService] ✅ Stored ${projectData.tasks?.length || 0} tasks in memory`);
+    // 3. Get conversation history from database
+    const allMessages = await querySubcollection('userProjects', projectId, 'chatMessages');
+    console.log(`[ContextService] ✅ Fetched ${allMessages?.length || 0} messages from database`);
     
-    // 4. Get conversation history from memory (including previous days)
-    const conversationHistory = getConversationHistory(projectId, currentDay, 15);
-    const conversationSummary = getConversationSummary(projectId, currentDay);
+    // Get recent conversation (last 15 messages)
+    const conversationHistory = allMessages?.slice(-15) || [];
+    const conversationSummary = conversationHistory.length > 0 
+      ? conversationHistory.map(msg => `${msg.senderName || 'Unknown'}: ${msg.content || ''}`).join('\n')
+      : 'No conversation history yet.';
     
-    // Get multi-day context for continuity across days
-    const multiDayHistory = getMultiDayHistory(projectId, currentDay, 2, 20); // Last 2 days
-    const multiDaySummary = getMultiDaySummary(projectId, currentDay, 2);
-    const previousDaysContext = getPreviousDaysContext(projectId, currentDay);
+    // Multi-day context (use same recent messages)
+    const multiDayHistory = conversationHistory;
+    const multiDaySummary = conversationSummary;
+    const previousDaysContext = [];
     
-    // 5. Generate enhanced conversation summary with task extraction
-    const enhancedConversationSummary = generateConversationSummary(projectId, currentDay);
+    // Enhanced conversation summary
+    const enhancedConversationSummary = {
+      potentialTasks: [],
+      actionItems: [],
+      keyTopics: []
+    };
     
     // 4. Organize tasks by assignee
     const tasksByAssignee = organizeTasksByAssignee(projectData.tasks);
@@ -129,7 +121,7 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
       alexAvailable: AI_AGENTS.alex?.activeDays?.includes(currentDay) || false,
       
       // Formatted summaries for AI prompts
-      formattedTasks: formatTasksForAI(projectId),
+      formattedTasks: formatTasksForAI(projectData.tasks),
       taskSummary: buildTaskSummary(projectData.tasks),
       assignmentSummary: buildAssignmentSummary(tasksByAssignee, agentId)
     };
@@ -149,9 +141,6 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
         console.log(`[ContextService]    ${idx + 1}. [${task.status || 'todo'}] ${task.title || task.text} -> ${task.assignedTo || 'unassigned'}`);
       });
     }
-    
-    // Cache the context for quick access
-    storeDailyContext(projectId, currentDay, context);
     
     return context;
     
@@ -314,6 +303,59 @@ function buildAssignmentSummary(tasksByAssignee, agentId) {
   }
   
   return summary.join('\n');
+}
+
+/**
+ * Format tasks for AI context
+ * @param {Array} tasks - Array of task objects
+ * @returns {string} Formatted task list for AI context
+ */
+function formatTasksForAI(tasks) {
+  if (!tasks || tasks.length === 0) {
+    return 'TASKS: No specific tasks have been defined for this project yet.';
+  }
+  
+  const tasksByStatus = {
+    todo: [],
+    inprogress: [],
+    review: [],
+    done: []
+  };
+  
+  // Group tasks by status
+  tasks.forEach(task => {
+    const status = task.status?.toLowerCase().replace(/[\s-]/g, '') || 'todo';
+    if (tasksByStatus[status]) {
+      tasksByStatus[status].push(task);
+    } else {
+      tasksByStatus.todo.push(task);
+    }
+  });
+  
+  // Format tasks by status
+  let formattedTasks = 'TASKS:\n';
+  
+  if (tasksByStatus.todo.length > 0) {
+    formattedTasks += '📋 To Do:\n' + 
+      tasksByStatus.todo.map(t => `- ${t.text || t.description || t.title}`).join('\n') + '\n\n';
+  }
+  
+  if (tasksByStatus.inprogress.length > 0) {
+    formattedTasks += '🔄 In Progress:\n' + 
+      tasksByStatus.inprogress.map(t => `- ${t.text || t.description || t.title}`).join('\n') + '\n\n';
+  }
+  
+  if (tasksByStatus.review.length > 0) {
+    formattedTasks += '👀 In Review:\n' + 
+      tasksByStatus.review.map(t => `- ${t.text || t.description || t.title}`).join('\n') + '\n\n';
+  }
+  
+  if (tasksByStatus.done.length > 0) {
+    formattedTasks += '✅ Done:\n' + 
+      tasksByStatus.done.map(t => `- ${t.text || t.description || t.title}`).join('\n') + '\n\n';
+  }
+  
+  return formattedTasks;
 }
 
 /**

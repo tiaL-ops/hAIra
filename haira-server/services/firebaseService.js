@@ -93,13 +93,40 @@ export async function addDocument(collectionName, data) {
 }
 
 // Helper for adding documents to subcollections
-export async function addSubdocument(parentCollection, parentId, subcollection, data) {
+export async function addSubdocument(parentCollection, parentId, subcollection, docId, data) {
   try {
     console.log(`[Firebase] Adding document to '${parentCollection}/${parentId}/${subcollection}'`);
-    const docRef = await db.collection(parentCollection).doc(parentId).collection(subcollection).add(data);
-    return { id: docRef.id, ...data };
+    console.log(`[Firebase] Data type:`, typeof data, 'Data keys:', Object.keys(data || {}));
+    
+    // Create a plain JavaScript object (no special Firestore objects)
+    // Remove any functions, undefined values, or non-serializable objects
+    const plainData = {};
+    for (const [key, value] of Object.entries(data || {})) {
+      if (value !== undefined && typeof value !== 'function') {
+        try {
+          // Test if value can be serialized
+          JSON.stringify(value);
+          plainData[key] = value;
+        } catch (e) {
+          console.warn(`[Firebase] Skipping non-serializable field: ${key}`);
+        }
+      }
+    }
+    
+    console.log(`[Firebase] Plain data keys:`, Object.keys(plainData));
+    
+    if (docId) {
+      // Use set with specific docId
+      await db.collection(parentCollection).doc(parentId).collection(subcollection).doc(docId).set(plainData);
+      return { id: docId, ...plainData };
+    } else {
+      // Auto-generate docId
+      const docRef = await db.collection(parentCollection).doc(parentId).collection(subcollection).add(plainData);
+      return { id: docRef.id, ...plainData };
+    }
   } catch (error) {
     console.error(`[Firebase] Error adding document to subcollection '${parentCollection}/${parentId}/${subcollection}':`, error);
+    console.error(`[Firebase] Data that failed:`, data);
     throw error;
   }
 }
