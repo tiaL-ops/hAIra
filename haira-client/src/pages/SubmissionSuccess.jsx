@@ -147,7 +147,7 @@ function SubmissionSuccess() {
     };
 
     fetchSubmissionData();
-  }, [id, navigate, auth, aiGradingTriggered]);
+  }, [id, navigate, aiGradingTriggered]);
 
   if (loading) {
     return (

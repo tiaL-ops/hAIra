@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from 'axios';
-import { getAuth } from 'firebase/auth';
 import { useAuth } from '../App';
+import { auth } from '../../firebase';
+import { isFirebaseAvailable } from '../services/localStorageService';
 import '../styles/Chat.css'; // Your CSS (the updated one you shared)
 
 import AlexAvatar from '../images/Alex.png';
@@ -34,7 +35,6 @@ function Chat() {
   const [showQuotaWarning, setShowQuotaWarning] = useState(false);
   const [teammates, setTeammates] = useState({});
   const [userProfile, setUserProfile] = useState(null);
-  const auth = getAuth();
   
   // Ref for auto-scrolling to the bottom
   const messagesContainerRef = useRef(null);
@@ -144,7 +144,21 @@ function Chat() {
   // fetch on mount
   useEffect(() => {
     let isMounted = true;
-    if (!auth.currentUser) {
+    
+    // Check authentication with fallback
+    const checkAuth = () => {
+      const firebaseAvailable = isFirebaseAvailable();
+      if (firebaseAvailable) {
+        return auth.currentUser;
+      } else {
+        // Check localStorage for user
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        return storedUser ? JSON.parse(storedUser) : null;
+      }
+    };
+    
+    const currentUser = checkAuth();
+    if (!currentUser) {
       navigate('/login');
       return;
     }
@@ -153,7 +167,16 @@ function Chat() {
       try {
         setIsLoading(true);
         setStatusMessage('');
-        const token = await auth.currentUser.getIdToken(true);
+        
+        // Get token with fallback
+        let token;
+        const firebaseAvailable = isFirebaseAvailable();
+        if (firebaseAvailable) {
+          token = await auth.currentUser.getIdToken(true);
+        } else {
+          // Generate mock token for localStorage
+          token = `mock-token-${currentUser.uid}-${Date.now()}`;
+        }
         const [chatResp, projectResp, profileResp] = await Promise.all([
           axios.get(`http://localhost:3002/api/project/${id}/chat`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`http://localhost:3002/api/project/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -226,7 +249,17 @@ function Chat() {
     if (!newMessage.trim() || isSending) return;
     setIsSending(true);
     try {
-      const token = await auth.currentUser.getIdToken(true);
+      // Get token with fallback
+      let token;
+      const firebaseAvailable = isFirebaseAvailable();
+      if (firebaseAvailable) {
+        token = await auth.currentUser.getIdToken(true);
+      } else {
+        // Check localStorage for user
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        const currentUser = storedUser ? JSON.parse(storedUser) : null;
+        token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+      }
         const response = await axios.post(`http://localhost:3002/api/project/${id}/chat`, {
         content: newMessage
       }, { headers: { Authorization: `Bearer ${token}` } });
@@ -302,7 +335,17 @@ function Chat() {
 
   // NEW: return either message-user or message-in to match your CSS classes
   const getMessageStyle = (senderId) => {
-    if (senderId === auth.currentUser?.uid || senderId === 'user') return 'message-user';
+    // Check current user with fallback
+    let currentUserId;
+    const firebaseAvailable = isFirebaseAvailable();
+    if (firebaseAvailable) {
+      currentUserId = auth.currentUser?.uid;
+    } else {
+      const storedUser = localStorage.getItem('__localStorage_current_user__');
+      currentUserId = storedUser ? JSON.parse(storedUser).uid : null;
+    }
+    
+    if (senderId === currentUserId || senderId === 'user') return 'message-user';
     return 'message-in';
   };
 
@@ -323,9 +366,19 @@ function Chat() {
   };
   // sender info helper
   const getSenderInfo = (senderId, senderName) => {
+    // Check current user with fallback
+    let currentUserId;
+    const firebaseAvailable = isFirebaseAvailable();
+    if (firebaseAvailable) {
+      currentUserId = auth.currentUser?.uid;
+    } else {
+      const storedUser = localStorage.getItem('__localStorage_current_user__');
+      currentUserId = storedUser ? JSON.parse(storedUser).uid : null;
+    }
+    
     // Current user (human): prefer profile avatarUrl, then teammates avatar, then fallback
-    if (senderId === auth.currentUser?.uid || senderId === 'user') {
-      const human = teammates[auth.currentUser?.uid]
+    if (senderId === currentUserId || senderId === 'user') {
+      const human = teammates[currentUserId]
         || Object.values(teammates || {}).find(t => t.type === 'human');
       const avatar = userProfile?.avatarUrl || human?.avatar || YouAvatar;
       return {

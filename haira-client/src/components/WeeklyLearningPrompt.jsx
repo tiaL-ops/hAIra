@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAuth } from 'firebase/auth';
+import { auth } from '../../firebase';
 import axios from 'axios';
 import '../styles/WeeklyLearningPrompt.css';
 
@@ -20,7 +20,7 @@ export default function WeeklyLearningPrompt({
   const [availableTemplates, setAvailableTemplates] = useState([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('');
-  const auth = getAuth();
+  // Auth is imported from firebase.js which handles fallback
 
   // Fetch learning topics from server
   useEffect(() => {
@@ -56,7 +56,7 @@ export default function WeeklyLearningPrompt({
     };
 
     fetchTopics();
-  }, [auth]);
+  }, []);
 
   // Handle topic selection - show choice between generate new vs pick existing
   const handleTopicSelect = (topicId) => {

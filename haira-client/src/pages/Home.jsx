@@ -208,7 +208,7 @@ function Home() {
 
       {/* Fun Fact */}
       <section className="home-section funfact-section">
-        <h2 className="section-title">Cool fun fact</h2>
+        <h2 className="section-title">Cool fun fact ☺️</h2>
         <p className="section-text">
           The name <strong>hAIra</strong> is inspired by the Malagasy word 
           <em> "hairaha"</em>, which means 

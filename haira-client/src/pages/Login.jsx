@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
@@ -9,6 +9,7 @@ import {
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { useNavigate } from 'react-router-dom';
+import { isFirebaseAvailable } from '../services/localStorageService';
 import '../styles/Login.css';
 
 export default function Login() {
@@ -20,19 +21,98 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Create or update user document in Firestore
+  // Auto-login test user when Firebase is not available
+  useEffect(() => {
+    if (!isFirebaseAvailable()) {
+      console.log('💾 No Firebase detected - auto-logging in test user');
+      
+      // Create test user in localStorage
+      const testUser = {
+        uid: 'test-user',
+        email: 'hello@test.com',
+        displayName: 'Test User',
+        photoURL: null
+      };
+      
+      localStorage.setItem('__localStorage_current_user__', JSON.stringify(testUser));
+      
+      // Dispatch event to notify AuthProvider
+      window.dispatchEvent(new CustomEvent('localStorageAuthChange'));
+      
+      // Navigate to projects
+      navigate('/projects', { replace: true });
+    }
+  }, [navigate]);
+
+  // Create or update user document in Firestore or localStorage
   const createUserDocument = async (user, displayName) => {
     try {
-      const userRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userRef);
+      // Check if Firebase is available (db object exists and has Firestore methods)
+      const isFirebaseDb = db && typeof db.collection === 'function';
+      
+      if (isFirebaseDb) {
+        // Use Firebase Firestore
+        const userRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userRef);
 
-      // Only create if user doesn't exist, or update name if it changed
-      if (!userDoc.exists()) {
-        await setDoc(userRef, {
+        // Only create if user doesn't exist, or update name if it changed
+        if (!userDoc.exists()) {
+          await setDoc(userRef, {
+            name: displayName || user.displayName || 'Anonymous',
+            email: user.email,
+            activeProjectId: null,
+            // Add new schema fields for profile
+            summary: {
+              xp: 0,
+              level: 1,
+              totalProjectsCompleted: 0,
+              averageGrade: 0,
+              achievements: []
+            },
+            preferences: {
+              language: 'en'
+            }
+          });
+          console.log('User document created in Firestore');
+        } else {
+          // Update name if it changed
+          const currentData = userDoc.data();
+          
+          const updates = {};
+          
+          if (currentData.name !== displayName && displayName) {
+            updates.name = displayName;
+          }
+          
+          // Ensure the new schema fields exist
+          if (!currentData.summary) {
+            updates.summary = {
+              xp: 0,
+              level: 1,
+              totalProjectsCompleted: 0,
+              averageGrade: 0,
+              achievements: []
+            };
+          }
+          
+          if (!currentData.preferences) {
+            updates.preferences = {
+              language: 'en'
+            };
+          }
+          
+          // Only update if there are changes
+          if (Object.keys(updates).length > 0) {
+            await setDoc(userRef, updates, { merge: true });
+            console.log('User document updated in Firestore');
+          }
+        }
+      } else {
+        // Use localStorage fallback
+        const userData = {
           name: displayName || user.displayName || 'Anonymous',
           email: user.email,
           activeProjectId: null,
-          // Add new schema fields for profile
           summary: {
             xp: 0,
             level: 1,
@@ -43,40 +123,11 @@ export default function Login() {
           preferences: {
             language: 'en'
           }
-        });
-        console.log('User document created in Firestore');
-      } else {
-        // Update name if it changed
-        const currentData = userDoc.data();
+        };
         
-        const updates = {};
-        
-        if (currentData.name !== displayName && displayName) {
-          updates.name = displayName;
-        }
-        
-        // Ensure the new schema fields exist
-        if (!currentData.summary) {
-          updates.summary = {
-            xp: 0,
-            level: 1,
-            totalProjectsCompleted: 0,
-            averageGrade: 0,
-            achievements: []
-          };
-        }
-        
-        if (!currentData.preferences) {
-          updates.preferences = {
-            language: 'en'
-          };
-        }
-        
-        // Only update if there are changes
-        if (Object.keys(updates).length > 0) {
-          await setDoc(userRef, updates, { merge: true });
-          console.log('User document updated in Firestore');
-        }
+        // Store in localStorage
+        localStorage.setItem(`__localStorage_user_data_users_${user.uid}`, JSON.stringify(userData));
+        console.log('User document created in localStorage');
       }
     } catch (err) {
       console.error('Error creating/updating user document:', err);
@@ -103,19 +154,49 @@ export default function Login() {
     }
 
     try {
-      // Create user account
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // Check if Firebase is available (auth object exists and has Firebase methods)
+      const isFirebaseAuth = auth && typeof auth.createUserWithEmailAndPassword === 'function';
       
-      // Update display name in Firebase Auth
-      await updateProfile(userCredential.user, {
-        displayName: name
-      });
+      if (isFirebaseAuth) {
+        // Use Firebase authentication
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        
+        // Update display name in Firebase Auth
+        await updateProfile(userCredential.user, {
+          displayName: name
+        });
 
-      // Create user document in Firestore
-      await createUserDocument(userCredential.user, name);
+        // Create user document in Firestore
+        await createUserDocument(userCredential.user, name);
 
-      console.log('Sign up successful:', userCredential.user);
-      navigate('/projects'); // Redirect to project selection page
+        console.log('Sign up successful:', userCredential.user);
+        navigate('/projects'); // Redirect to project selection page
+      } else {
+        // Use localStorage fallback
+        const mockUser = {
+          uid: `user_${Date.now()}`,
+          email: email,
+          displayName: name,
+          photoURL: null
+        };
+        
+        // Store user in localStorage
+        localStorage.setItem('__localStorage_current_user__', JSON.stringify({
+          uid: mockUser.uid,
+          email: mockUser.email,
+          displayName: mockUser.displayName,
+          photoURL: mockUser.photoURL
+        }));
+        
+        // Create user document
+        await createUserDocument(mockUser, name);
+        
+        // Dispatch custom event to notify AuthProvider
+        window.dispatchEvent(new CustomEvent('localStorageAuthChange'));
+        
+        console.log('Sign up successful (localStorage):', mockUser);
+        navigate('/projects');
+      }
     } catch (err) {
       console.error('Sign up error:', err);
       switch (err.code) {
@@ -143,13 +224,44 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Check if Firebase is available (auth object exists and has Firebase methods)
+      const isFirebaseAuth = auth && typeof auth.signInWithEmailAndPassword === 'function';
       
-      // Ensure user document exists (in case it was deleted)
-      await createUserDocument(userCredential.user, userCredential.user.displayName);
+      if (isFirebaseAuth) {
+        // Use Firebase authentication
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        
+        // Ensure user document exists (in case it was deleted)
+        await createUserDocument(userCredential.user, userCredential.user.displayName);
 
-      console.log('Sign in successful:', userCredential.user);
-      navigate('/projects'); // Redirect to project selection page
+        console.log('Sign in successful:', userCredential.user);
+        navigate('/projects'); // Redirect to project selection page
+      } else {
+        // Use localStorage fallback
+        const mockUser = {
+          uid: `user_${Date.now()}`,
+          email: email,
+          displayName: email.split('@')[0],
+          photoURL: null
+        };
+        
+        // Store user in localStorage
+        localStorage.setItem('__localStorage_current_user__', JSON.stringify({
+          uid: mockUser.uid,
+          email: mockUser.email,
+          displayName: mockUser.displayName,
+          photoURL: mockUser.photoURL
+        }));
+        
+        // Create user document
+        await createUserDocument(mockUser, mockUser.displayName);
+        
+        // Dispatch custom event to notify AuthProvider
+        window.dispatchEvent(new CustomEvent('localStorageAuthChange'));
+        
+        console.log('Sign in successful (localStorage):', mockUser);
+        navigate('/projects');
+      }
     } catch (err) {
       console.error('Sign in error:', err);
       switch (err.code) {
@@ -179,14 +291,45 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
+      // Check if Firebase is available (auth object exists and has Firebase methods)
+      const isFirebaseAuth = auth && typeof auth.signInWithPopup === 'function';
       
-      // Create or update user document in Firestore
-      await createUserDocument(userCredential.user, userCredential.user.displayName);
+      if (isFirebaseAuth) {
+        // Use Firebase authentication
+        const provider = new GoogleAuthProvider();
+        const userCredential = await signInWithPopup(auth, provider);
+        
+        // Create or update user document in Firestore
+        await createUserDocument(userCredential.user, userCredential.user.displayName);
 
-      console.log('Google sign in successful:', userCredential.user);
-      navigate('/projects'); // Redirect to project selection page
+        console.log('Google sign in successful:', userCredential.user);
+        navigate('/projects'); // Redirect to project selection page
+      } else {
+        // Use localStorage fallback
+        const mockUser = {
+          uid: `google_user_${Date.now()}`,
+          email: 'user@gmail.com',
+          displayName: 'Google User',
+          photoURL: 'https://via.placeholder.com/150'
+        };
+        
+        // Store user in localStorage
+        localStorage.setItem('__localStorage_current_user__', JSON.stringify({
+          uid: mockUser.uid,
+          email: mockUser.email,
+          displayName: mockUser.displayName,
+          photoURL: mockUser.photoURL
+        }));
+        
+        // Create user document
+        await createUserDocument(mockUser, mockUser.displayName);
+        
+        // Dispatch custom event to notify AuthProvider
+        window.dispatchEvent(new CustomEvent('localStorageAuthChange'));
+        
+        console.log('Google sign in successful (localStorage):', mockUser);
+        navigate('/projects');
+      }
     } catch (err) {
       console.error('Google sign in error:', err);
       switch (err.code) {

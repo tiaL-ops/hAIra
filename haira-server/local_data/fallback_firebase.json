@@ -1,0 +1,95 @@
+{
+  "userProjects": {
+    "e34d70d1-fa96-443b-b58b-8c27f217cd09": {
+      "id": "e34d70d1-fa96-443b-b58b-8c27f217cd09",
+      "userId": "test-user",
+      "templateId": "3c3b31c5-9a07-4546-badc-7adb16fe7fa5",
+      "title": "Quest for Code: Text Adventure Game",
+      "status": "active",
+      "isActive": true,
+      "startDate": 1761508190210,
+      "deadline": 1762717790210,
+      "aiGenerated": true,
+      "topic": "development",
+      "description": "Design and code an interactive text-based adventure game from scratch. This project will teach core programming concepts like variables, control flow, functions, and user input handling through hands-on development. You will build game logic, manage states, and implement user choices to create a compelling, playable story.",
+      "team": [
+        {
+          "id": "test-user",
+          "name": "Test User",
+          "role": "owner"
+        }
+      ],
+      "tasks": {},
+      "chatMessages": {},
+      "teammates": {
+        "11dc3739-9766-47e7-b57f-05d27c6142a4": {
+          "0": "t",
+          "1": "e",
+          "2": "s",
+          "3": "t",
+          "4": "-",
+          "5": "u",
+          "6": "s",
+          "7": "e",
+          "8": "r",
+          "id": "11dc3739-9766-47e7-b57f-05d27c6142a4"
+        },
+        "a0694406-6fde-4f4c-ab89-9fd267452bf3": {
+          "0": "k",
+          "1": "a",
+          "2": "t",
+          "3": "i",
+          "id": "a0694406-6fde-4f4c-ab89-9fd267452bf3"
+        },
+        "16a45f1b-687d-4f6c-934c-5de5de049cd6": {
+          "0": "s",
+          "1": "t",
+          "2": "e",
+          "3": "v",
+          "4": "e",
+          "id": "16a45f1b-687d-4f6c-934c-5de5de049cd6"
+        }
+      },
+      "draftReport": {
+        "content": "<p>hii</p>",
+        "lastSaved": 1761509039778
+      }
+    }
+  },
+  "projectTemplates": {
+    "3c3b31c5-9a07-4546-badc-7adb16fe7fa5": {
+      "title": "Quest for Code: Text Adventure Game",
+      "description": "Design and code an interactive text-based adventure game from scratch. This project will teach core programming concepts like variables, control flow, functions, and user input handling through hands-on development. You will build game logic, manage states, and implement user choices to create a compelling, playable story.",
+      "durationDays": 14,
+      "managerName": "Alex",
+      "deliverables": [
+        "Functional Game Core: Implement room navigation, command parsing, and the main game loop.",
+        "Inventory & Interaction System: Code for managing player inventory, items, and object interaction logic.",
+        "Branching Storyline Logic: Develop conditional pathways, puzzles, and at least two distinct endings based on player choices.",
+        "Robust User Input & Error Handling: Implement clear input processing, validation, and graceful error management for invalid commands.",
+        "Well-documented & Modular Codebase: Deliver clean, commented code structured into logical functions or modules."
+      ],
+      "availableTeammates": [
+        "Rasoa",
+        "Rakoto"
+      ],
+      "topic": "development",
+      "aiGenerated": true,
+      "createdAt": 1761508190200,
+      "isReusable": true,
+      "usageCount": 1,
+      "usedBy": [
+        "test-user"
+      ],
+      "id": "3c3b31c5-9a07-4546-badc-7adb16fe7fa5",
+      "lastUsed": 1761508190206
+    }
+  },
+  "users": {
+    "test-user": {
+      "activeProjectId": "e34d70d1-fa96-443b-b58b-8c27f217cd09",
+      "id": "test-user"
+    }
+  },
+  "chats": {}
+}

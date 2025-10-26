@@ -5,7 +5,7 @@ import {
     ensureProjectExists,
     updateDocument,
     getDocumentById
-} from '../services/firebaseService.js';
+} from '../services/databaseService.js';
 import { COLLECTIONS } from '../schema/database.js';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
 import { 
@@ -19,7 +19,6 @@ import { getTeammates } from '../services/teammateService.js';
 
 
 const router = express.Router()
-const db = admin.firestore();
 
 
 /**
@@ -905,8 +904,7 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
         await ensureProjectExists(id, userId);
         
         // Get project data to fetch the actual project title
-        const projectDoc = await db.collection('userProjects').doc(id).get();
-        const projectInfo = projectDoc.data();
+        const projectInfo = await getDocumentById('userProjects', id);
         const actualProjectTitle = projectInfo?.title || 'the project';
         
         // Map agent IDs to correct teammates (support legacy IDs)
@@ -1039,8 +1037,7 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         await ensureProjectExists(id, userId);
         
         // Get project data to fetch the actual project title
-        const projectDoc = await db.collection('userProjects').doc(id).get();
-        const projectInfo = projectDoc.data();
+        const projectInfo = await getDocumentById('userProjects', id);
         const actualProjectTitle = projectInfo?.title || 'the project';
         
         // Map agent IDs to correct teammates (support legacy IDs)
@@ -1148,8 +1145,7 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         await ensureProjectExists(id, userId);
         
         // Get project data to fetch the actual project title
-        const projectDoc = await db.collection('userProjects').doc(id).get();
-        const projectInfo = projectDoc.data();
+        const projectInfo = await getDocumentById('userProjects', id);
         const actualProjectTitle = projectInfo?.title || 'the project';
         
         // Map agent IDs to correct teammates (support legacy IDs)

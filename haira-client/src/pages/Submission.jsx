@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getAuth } from "firebase/auth";
 import { useAuth } from '../App';
+import { auth } from '../../firebase';
 import axios from 'axios';
 
 // Import agent avatars
@@ -38,7 +38,6 @@ const backend_host = "http://localhost:3002";
 function Submission() {
   const { id } = useParams(); // project id
   const { currentUser } = useAuth();
-  const auth = getAuth();
   const navigate = useNavigate(); // Navigate to logging page
 
   const [reportContent, setReportContent] = useState("");
@@ -210,7 +209,7 @@ function Submission() {
     };
     
     fetchSubmission();
-  }, [id, navigate, auth]);
+  }, [id, navigate]);
 
   // Fetch pending tasks from Kanban
   const fetchPendingTasks = async (token) => {
@@ -790,9 +789,6 @@ function Submission() {
   // Utility to get token without assuming code structure; if getAuth not available it gracefully continues unauthenticated
   async function getIdTokenSafely() {
     try {
-      // eslint-disable-next-line no-undef
-      const { getAuth } = await import("firebase/auth");
-      const auth = getAuth();
       if (auth && auth.currentUser) {
         return await auth.currentUser.getIdToken();
       }

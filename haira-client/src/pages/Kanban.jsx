@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from 'axios';
-import { getAuth } from 'firebase/auth';
 import { useAuth } from '../App';
+import { isFirebaseAvailable } from '../services/localStorageService';
 import KanbanBoard from "../components/kanbanBoard";
 import TaskReviewModal from "../components/TaskReviewModal";
 import '../styles/Chat.css';
@@ -22,7 +22,7 @@ function Kanban() {
     const [kanbanBoardKey, setKanbanBoardKey] = useState(0);
     const [teammates, setTeammates] = useState([]);
     const [showReviewModal, setShowReviewModal] = useState(false);
-    const auth = getAuth();
+    // Auth will be handled through useAuth hook and localStorage fallback
 
     const rerenderKanbanBoard = () => {
       setKanbanBoardKey(prev => prev + 1);
@@ -30,15 +30,37 @@ function Kanban() {
 
     useEffect(() => {
       const fetchProjectData = async () => {
-        // Ensure user is logged in
-        if (!auth.currentUser) {
+        // Check authentication with fallback
+        let currentUser;
+        const firebaseAvailable = isFirebaseAvailable();
+        if (firebaseAvailable) {
+          try {
+            currentUser = auth.currentUser;
+          } catch (error) {
+            console.warn('Firebase Auth error, falling back to localStorage:', error);
+            // Fall through to localStorage check
+          }
+        }
+        
+        if (!currentUser) {
+          // Check localStorage for user
+          const storedUser = localStorage.getItem('__localStorage_current_user__');
+          currentUser = storedUser ? JSON.parse(storedUser) : null;
+        }
+        
+        if (!currentUser) {
             navigate('/login');
             return;
         }
 
         try {
-          // Get Firebase token and fetch project data
-          const token = await auth.currentUser.getIdToken();
+          // Get token with fallback
+          let token;
+          if (firebaseAvailable && currentUser && currentUser.getIdToken) {
+            token = await currentUser.getIdToken();
+          } else {
+            token = `mock-token-${currentUser.uid}-${Date.now()}`;
+          }
           
           const response = await axios.get(`${backend_host}/api/project/${id}/kanban`, {
               headers: {
@@ -63,7 +85,7 @@ function Kanban() {
         }
       };
       fetchProjectData();
-    }, [id, navigate, auth]);
+    }, [id, navigate]);
 
   const handleGenerate = async () => {
     const projTitle = projectData?.title || "";
@@ -74,7 +96,23 @@ function Kanban() {
 
         setLoading(true);
         try {
-            const token = await auth.currentUser.getIdToken();
+            // Get token with fallback
+            let token;
+            const firebaseAvailable = isFirebaseAvailable();
+            if (firebaseAvailable) {
+              try {
+                token = await auth.currentUser.getIdToken();
+              } catch (error) {
+                // Fall back to localStorage token
+                const storedUser = localStorage.getItem('__localStorage_current_user__');
+                const currentUser = storedUser ? JSON.parse(storedUser) : null;
+                token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+              }
+            } else {
+              const storedUser = localStorage.getItem('__localStorage_current_user__');
+              const currentUser = storedUser ? JSON.parse(storedUser) : null;
+              token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+            }
 
             const response = await axios.post(
                 `${backend_host}/api/project/kanban/generate`,
@@ -100,7 +138,23 @@ function Kanban() {
 
     const handleSaveTasks = async (editedTasks) => {
       try {
-        const token = await auth.currentUser.getIdToken();
+        // Get token with fallback
+        let token;
+        const firebaseAvailable = isFirebaseAvailable();
+        if (firebaseAvailable) {
+          try {
+            token = await auth.currentUser.getIdToken();
+          } catch (error) {
+            // Fall back to localStorage token
+            const storedUser = localStorage.getItem('__localStorage_current_user__');
+            const currentUser = storedUser ? JSON.parse(storedUser) : null;
+            token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+          }
+        } else {
+          const storedUser = localStorage.getItem('__localStorage_current_user__');
+          const currentUser = storedUser ? JSON.parse(storedUser) : null;
+          token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+        }
         
         // Transform edited tasks to match backend format
         const tasksToSave = editedTasks.map(task => ({

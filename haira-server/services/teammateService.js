@@ -1,8 +1,9 @@
 import admin from 'firebase-admin';
 import { AI_AGENTS } from '../config/aiAgents.js';
+import { db as firebaseDb, firebaseAvailable } from './firebaseService.js';
 
-const db = admin.firestore();
-const FieldValue = admin.firestore.FieldValue;
+const db = firebaseDb;
+const FieldValue = firebaseAvailable ? admin.firestore.FieldValue : null;
 
 /**
  * Initialize teammates subcollection for a new project

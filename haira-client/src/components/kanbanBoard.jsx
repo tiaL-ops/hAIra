@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { v4 as uuidv4 } from "uuid";
-import { getAuth, onAuthStateChanged  } from 'firebase/auth';
 import { useAuth } from '../App';
+import { isFirebaseAvailable } from '../services/localStorageService';
+import { auth } from '../../firebase';
 import axios from 'axios';
 import '../styles/Kanban.css';
 // Avatars
@@ -17,7 +18,7 @@ import RasoaAvatar from '../images/Rasoa.png';
 import RakotoAvatar from '../images/Rakoto.png';
 import YouAvatar from '../images/You.png';
 
-const auth = getAuth();
+// Auth will be handled through useAuth hook and localStorage fallback
 
 const COLOR = {
   dominant: "#408F8C",
@@ -59,14 +60,45 @@ export default function KanbanBoard({ id }) {
   
   useEffect(() => {
     let isMounted = true;
-    if (!auth.currentUser) {
+    
+    // Check authentication with fallback
+    const checkAuth = () => {
+      const firebaseAvailable = isFirebaseAvailable();
+      if (firebaseAvailable) {
+        try {
+          return auth.currentUser;
+        } catch (error) {
+          console.warn('Firebase Auth error, falling back to localStorage:', error);
+          // Fall through to localStorage check
+        }
+      }
+      
+      // Check localStorage for user
+      const storedUser = localStorage.getItem('__localStorage_current_user__');
+      return storedUser ? JSON.parse(storedUser) : null;
+    };
+    
+    const currentUser = checkAuth();
+    if (!currentUser) {
       navigate('/login');
       return;
     }
 
     const fetchData = async () => {
       try {
-        const token = await auth.currentUser.getIdToken(true);
+        // Get token with fallback
+        let token;
+        const firebaseAvailable = isFirebaseAvailable();
+        if (firebaseAvailable) {
+          try {
+            token = await auth.currentUser.getIdToken(true);
+          } catch (error) {
+            // Fall back to localStorage token
+            token = `mock-token-${currentUser.uid}-${Date.now()}`;
+          }
+        } else {
+          token = `mock-token-${currentUser.uid}-${Date.now()}`;
+        }
   const kanbanData = await axios.get(`http://localhost:3002/api/project/${id}/kanban`, { headers: { Authorization: `Bearer ${token}` } });
         const fetchedTasks = kanbanData.data.tasks;
         let data = {todo : [], inProgress : [], done : []};
@@ -111,7 +143,24 @@ export default function KanbanBoard({ id }) {
       name: "New task",
       assignee: teammates.length > 0 ? (teammates[0].id || teammates[0].name) : "",
     };
-    const token = await auth.currentUser.getIdToken(true);
+    
+    // Get token with fallback
+    let token;
+    const firebaseAvailable = isFirebaseAvailable();
+    if (firebaseAvailable) {
+      try {
+        token = await auth.currentUser.getIdToken(true);
+      } catch (error) {
+        // Fall back to localStorage token
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        const currentUser = storedUser ? JSON.parse(storedUser) : null;
+        token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+      }
+    } else {
+      const storedUser = localStorage.getItem('__localStorage_current_user__');
+      const currentUser = storedUser ? JSON.parse(storedUser) : null;
+      token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+    }
     const data = { title : id, taskUserId : newTask.assignee , status : column, description : newTask.name };
     const kanbanData = await axios.post(
       `http://localhost:3002/api/project/${id}/tasks`,
@@ -131,7 +180,23 @@ export default function KanbanBoard({ id }) {
   };
 
   const handleSaveTask = async (column, task, updateState = true) => {
-    const token = await auth.currentUser.getIdToken(true);
+    // Get token with fallback
+    let token;
+    const firebaseAvailable = isFirebaseAvailable();
+    if (firebaseAvailable) {
+      try {
+        token = await auth.currentUser.getIdToken(true);
+      } catch (error) {
+        // Fall back to localStorage token
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        const currentUser = storedUser ? JSON.parse(storedUser) : null;
+        token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+      }
+    } else {
+      const storedUser = localStorage.getItem('__localStorage_current_user__');
+      const currentUser = storedUser ? JSON.parse(storedUser) : null;
+      token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+    }
     const data = { taskId : task.id, title : id, status : column, userId : task.assignee , description : task.name, priority : task.priority };
     const kanbanData = await axios.put(
       `http://localhost:3002/api/project/${id}/tasks`,
@@ -153,7 +218,23 @@ export default function KanbanBoard({ id }) {
   };
 
   const handleDeleteTask = async (column, taskId) => {
-    const token = await auth.currentUser.getIdToken(true);
+    // Get token with fallback
+    let token;
+    const firebaseAvailable = isFirebaseAvailable();
+    if (firebaseAvailable) {
+      try {
+        token = await auth.currentUser.getIdToken(true);
+      } catch (error) {
+        // Fall back to localStorage token
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        const currentUser = storedUser ? JSON.parse(storedUser) : null;
+        token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+      }
+    } else {
+      const storedUser = localStorage.getItem('__localStorage_current_user__');
+      const currentUser = storedUser ? JSON.parse(storedUser) : null;
+      token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+    }
     const data = { taskId : taskId };
     const kanbanData = await axios.delete(
       `http://localhost:3002/api/project/${id}/tasks`,

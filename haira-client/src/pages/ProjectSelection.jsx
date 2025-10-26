@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAuth } from 'firebase/auth';
+import { isFirebaseAvailable } from '../services/localStorageService';
+import { auth } from '../../firebase';
 import WeeklyLearningPrompt from '../components/WeeklyLearningPrompt';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ProjectViewModal from '../components/ProjectViewModal';
@@ -36,19 +37,43 @@ export default function ProjectSelection() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [newProject, setNewProject] = useState(null);
   const navigate = useNavigate();
-  const auth = getAuth();
+  // Auth will be handled through localStorage fallback
 
 
   // Get user projects from server
   useEffect(() => {
     const fetchUserProjects = async () => {
-      if (!auth.currentUser) {
+      // Check authentication with fallback
+      let currentUser;
+      const firebaseAvailable = isFirebaseAvailable();
+      if (firebaseAvailable) {
+        try {
+          currentUser = auth.currentUser;
+        } catch (error) {
+          console.warn('Firebase Auth error, falling back to localStorage:', error);
+          // Fall through to localStorage check
+        }
+      }
+      
+      if (!currentUser) {
+        // Check localStorage for user
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        currentUser = storedUser ? JSON.parse(storedUser) : null;
+      }
+      
+      if (!currentUser) {
         navigate('/login');
         return;
       }
 
       try {
-        const token = await auth.currentUser.getIdToken();
+        // Get token with fallback
+        let token;
+        if (firebaseAvailable && currentUser && currentUser.getIdToken) {
+          token = await currentUser.getIdToken();
+        } else {
+          token = `mock-token-${currentUser.uid}-${Date.now()}`;
+        }
         const response = await axios.get(`${backend_host}/api/project`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -80,13 +105,29 @@ export default function ProjectSelection() {
     };
 
     fetchUserProjects();
-  }, [navigate, auth]);
+  }, [navigate]);
 
 
   // Open an existing project
   const handleOpenProject = async (projectId, destination, project) => {
     try {
-      const token = await auth.currentUser.getIdToken();
+      // Get token with fallback
+      let token;
+      const firebaseAvailable = isFirebaseAvailable();
+      if (firebaseAvailable) {
+        try {
+          token = await auth.currentUser.getIdToken();
+        } catch (error) {
+          // Fall back to localStorage token
+          const storedUser = localStorage.getItem('__localStorage_current_user__');
+          const currentUser = storedUser ? JSON.parse(storedUser) : null;
+          token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+        }
+      } else {
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        const currentUser = storedUser ? JSON.parse(storedUser) : null;
+        token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+      }
       
       // Update user's activeProjectId via server
       await axios.post(`${backend_host}/api/project/${projectId}/activate`, {
@@ -117,7 +158,23 @@ export default function ProjectSelection() {
     if (!projectToArchive) return;
 
     try {
-      const token = await auth.currentUser.getIdToken();
+      // Get token with fallback
+      let token;
+      const firebaseAvailable = isFirebaseAvailable();
+      if (firebaseAvailable) {
+        try {
+          token = await auth.currentUser.getIdToken();
+        } catch (error) {
+          // Fall back to localStorage token
+          const storedUser = localStorage.getItem('__localStorage_current_user__');
+          const currentUser = storedUser ? JSON.parse(storedUser) : null;
+          token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+        }
+      } else {
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        const currentUser = storedUser ? JSON.parse(storedUser) : null;
+        token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+      }
       
       const response = await axios.post(`${backend_host}/api/project/${projectToArchive}/archive`, {
       }, {
@@ -217,7 +274,23 @@ export default function ProjectSelection() {
   // Fix projects without isActive field
   const handleFixProjects = async () => {
     try {
-      const token = await auth.currentUser.getIdToken();
+      // Get token with fallback
+      let token;
+      const firebaseAvailable = isFirebaseAvailable();
+      if (firebaseAvailable) {
+        try {
+          token = await auth.currentUser.getIdToken();
+        } catch (error) {
+          // Fall back to localStorage token
+          const storedUser = localStorage.getItem('__localStorage_current_user__');
+          const currentUser = storedUser ? JSON.parse(storedUser) : null;
+          token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+        }
+      } else {
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        const currentUser = storedUser ? JSON.parse(storedUser) : null;
+        token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+      }
       
       const response = await axios.post(`${backend_host}/api/project/fix-projects`, {}, {
         headers: {
