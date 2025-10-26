@@ -21,6 +21,23 @@ export default function ContributionTracker({ projectId, showContributions = tru
   const [contributions, setContributions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalContribution, setTotalContribution] = useState(0);
+  const [aiAgents, setAiAgents] = useState({ AI_TEAMMATES: {} });
+  const [agentsLoaded, setAgentsLoaded] = useState(false);
+
+  // Load AI agents on mount
+  useEffect(() => {
+    const loadAIAgents = async () => {
+      try {
+        const agents = await getAIAgents();
+        setAiAgents(agents);
+        setAgentsLoaded(true);
+      } catch (error) {
+        console.error('Error loading AI agents:', error);
+        setAgentsLoaded(true); // Still set to true to prevent infinite loading
+      }
+    };
+    loadAIAgents();
+  }, []);
 
   // Calculate user word count from editor content
   const calculateUserWordCount = async (content) => {
@@ -141,7 +158,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
     }
     
     // Check if member matches any AI teammate by name and get their avatar
-    const aiAgent = Object.values(AI_TEAMMATES).find(agent => agent.name === member.name);
+    const aiAgent = Object.values(aiAgents.AI_TEAMMATES || {}).find(agent => agent.name === member.name);
     if (aiAgent) {
       const avatarSrc = avatarMap[aiAgent.name.toLowerCase()];
       if (avatarSrc) {
@@ -166,7 +183,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
     }
     
     // Fallback to AI teammate color lookup
-    const aiAgent = Object.values(AI_TEAMMATES).find(agent => agent.name === member.name);
+    const aiAgent = Object.values(aiAgents.AI_TEAMMATES || {}).find(agent => agent.name === member.name);
     if (aiAgent) {
       return aiAgent.color;
     }
@@ -180,7 +197,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
     return null;
   }
 
-  if (isLoading) {
+  if (isLoading || !agentsLoaded) {
     return (
       <div className="contribution-tracker-container">
         <h3>📊 Contribution Tracker</h3>

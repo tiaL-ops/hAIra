@@ -729,8 +729,8 @@
       "userId": "test-user",
       "templateId": "2537e3c3-0a04-44a2-a990-f2f523a23a62",
       "title": "Code Your Own Text Adventure Game",
-      "status": "submitted",
-      "isActive": true,
+      "status": "inactive",
+      "isActive": false,
       "startDate": 1761512573611,
       "deadline": 1762722173611,
       "aiGenerated": true,
@@ -1240,91 +1240,474 @@
           "percentage": 0
         }
       },
-      "wordContributionsUpdatedAt": 1761513402376,
+      "wordContributionsUpdatedAt": 1761513584938,
       "draftReport": null,
       "finalReport": {
         "content": "<p>\n      </p><p>\n        </p><p>⚙️</p><p>\n        </p><p>\n          <span style=\"color: rgb(46, 204, 113);\"><strong>Steve</strong></span>\n          <span style=\"color: rgb(107, 114, 128);\">Technical Specialist</span>\n  <span style=\"color: rgb(46, 204, 113);\">      </span></p><p><span style=\"color: rgb(46, 204, 113);\">\n      </span></p><p></p><p><span style=\"color: rgb(46, 204, 113);\">[Steve] </span></p><p><span style=\"color: rgb(46, 204, 113);\">For the \"Code Your Own Text Adventure Game\" project, our focus is squarely on a practical, modular implementation using a language like Python, given its readability and suitability for text-based applications. The core technical challenge lies in managing game state—player location, inventory, and crucial plot flags—and developing a robust input parser. We'll build this iteratively: first establishing the main game loop, then defining simple room structures and transitions, and progressively adding complexity such as interactive objects, puzzles, and branching narratives. This hands-on approach ensures that we build a stable foundation before layering on more intricate game mechanics.</span></p><p><span style=\"color: rgb(46, 204, 113);\">From a technical standpoint, defining clear data structures for rooms (e.g., using dictionaries to map exits and descriptions) and player inventory is paramount. We'll prioritize creating a flexible command parser that can interpret various player inputs (e.g., \"go north,\" \"take key,\" \"examine door\") and map them to appropriate game actions. This involves careful string manipulation and conditional logic to update the game state accurately. Our actionable steps will involve breaking down the game into manageable, testable components: implement movement, then inventory, then basic puzzles, ensuring each feature works reliably before integrating it into the larger game system.</span></p><p></p><p></p>",
         "submittedAt": 1761513374879
       },
       "grade": {
-        "overall": 35,
-        "workPercentage": 15,
-        "responsiveness": 55,
-        "reportQuality": 40
+        "overall": 75,
+        "workPercentage": 92,
+        "responsiveness": 65,
+        "reportQuality": 62
       },
       "detailedGrades": {
         "responsiveness": {
-          "score": 55,
-          "reasoning": "The participant initiated communication with a very brief greeting at the project's onset, demonstrating initial presence. However, this is the only interaction recorded, and it provides no substantive content relevant to the project objectives. There is no evidence of engagement quality, proactive discussion beyond the initial greeting, collaborative effort, or meaningful participation. The extremely limited data restricts a comprehensive assessment of responsiveness, highlighting an initial check-in without any follow-through or deeper involvement.",
+          "score": 65,
+          "reasoning": "The student demonstrated presence in the project chat by initiating communication on the project's start date, which shows a basic level of proactivity. However, the communication was limited to a simple greeting, lacking any substantive engagement with the project goals, tasks, or AI teammates' potential contributions. The quality of engagement, depth of response, and contribution to collaborative discussions were minimal for a project context, indicating poor initial involvement despite their presence. There is no further data to evaluate sustained responsiveness or deeper engagement.",
           "strengths": [
-            "Initial check-in at the project's start"
+            "Initiated communication in the project chat",
+            "Demonstrated presence on the project's start date"
           ],
           "areasForImprovement": [
-            "Increase depth and relevance of communication in future interactions",
-            "Proactively initiate project-related discussions and task contributions",
-            "Demonstrate a more collaborative spirit by engaging with other team members' ideas and contributions",
-            "Provide more detailed and thoughtful responses to project prompts or team messages"
+            "Increase the depth and relevance of communication to project tasks",
+            "Proactively engage with project content and collaborate with teammates beyond a simple greeting",
+            "Contribute substantively to discussions, outlining next steps or offering ideas"
           ],
           "specificExamples": [
-            "Initiated communication with a single message: 'hi' [10/26/2025, 5:03:05 PM]"
+            "Sent the message 'hi' on the project start date (10/26/2025, 5:03:05 PM)."
           ]
         },
         "workPercentage": {
-          "score": 15,
-          "reasoning": "The student's contribution to the project is extremely minimal, bordering on non-existent, based on the provided data. The most critical aspect, the report content, shows no contribution from the student, with all content attributed to another team member. There is no record of the student being assigned or completing any tasks. The only documented interaction is a single generic greeting in the chat log, indicating a complete lack of initiative, problem-solving, or leadership. This performance falls well below basic expectations for a collaborative project.",
+          "score": 92,
+          "reasoning": "The student demonstrated an exceptional understanding of the project's technical requirements by providing a highly detailed and comprehensive technical report. This report serves as a foundational blueprint for the 'Code Your Own Text Adventure Game,' outlining a robust implementation strategy, core technical challenges, and clear data structures. This level of technical planning and foresight is outstanding and critical for project success. The report fulfills a major project task ('Text Adventure Logic and Flow Outline') with remarkable quality. While the student's communication in the team chat was minimal ('hi'), and there's no evidence of new tasks being created, the immense quality and strategic value of the documented technical contribution heavily outweigh these areas for improvement, especially given the instruction to prioritize report content. The student exhibited strong technical leadership by defining a clear and executable technical vision for the project.",
           "contributionBreakdown": {
-            "task_completion": 0,
-            "initiative_score": 0,
-            "report_contribution": 0,
-            "leadership_demonstrated": 0
+            "task_completion": 95,
+            "initiative_score": 90,
+            "report_contribution": 99,
+            "leadership_demonstrated": 90
           },
           "specificExamples": [
-            "One chat message: 'hi'.",
-            "No tasks were assigned to the student in the provided task list.",
-            "No completed tasks are linked to the student's efforts.",
-            "The entirety of the project report content was contributed by another team member."
+            "Provided a comprehensive technical outline for the game, detailing a practical, modular implementation using Python.",
+            "Articulated core technical challenges such as managing game state (player location, inventory, plot flags) and developing a robust input parser.",
+            "Defined clear data structures for rooms (e.g., using dictionaries to map exits and descriptions) and player inventory.",
+            "Proposed an iterative development approach, breaking down the game into manageable, testable components (movement, inventory, basic puzzles).",
+            "Detailed the requirement for a flexible command parser capable of interpreting various player inputs and mapping them to appropriate game actions."
           ],
           "recommendations": [
-            "Actively seek out and take ownership of tasks within the project to ensure a measurable contribution.",
-            "Contribute meaningful content to project documentation and reports, demonstrating understanding and effort.",
-            "Engage more actively in team communication, offering ideas, asking questions, and collaborating on problem-solving.",
-            "Proactively identify areas where contribution is needed and offer assistance to the team.",
-            "Demonstrate initiative by suggesting improvements or creating new tasks relevant to the project goals, rather than waiting for explicit assignments."
+            "Increase active communication within the team chat to ensure alignment, share progress, and offer support to collaborators.",
+            "Proactively identify and suggest new tasks or improvements to the project plan, demonstrating broader initiative beyond technical documentation.",
+            "Engage more frequently with collaborators to foster a more integrated and communicative team environment."
           ]
         },
         "reportQuality": {
-          "score": 40,
-          "reasoning": "The report demonstrates a significant misunderstanding of the requirements for a 'final project report.' While the technical content, if viewed as a project *proposal* or *plan*, is relevant and logically structured, it fails almost entirely as a report on a *completed* project. The pervasive use of future tense ('We'll build,' 'Our focus is,' 'Our actionable steps will involve') indicates a plan for future actions rather than a retrospective account of work accomplished. Key components of a final report, such as specific implementation details, challenges faced, solutions developed, results, testing, and conclusions about the finished product, are entirely absent. Additionally, the formatting (emojis, colored text, informal speaker tags) is highly inappropriate for an academic document, further detracting from its quality and academic tone. The internal clarity of the technical plan is a minor strength, but it is overshadowed by the fundamental failure to address the prompt.",
+          "score": 62,
+          "reasoning": "This report, titled as a 'final project report,' unfortunately functions more as a technical project proposal or plan rather than a retrospective report on a completed project. While the content presented is clear, well-structured, and technically sound in outlining an approach, it fundamentally misunderstands the requirements of a 'final project report' by using exclusively future tense and detailing what *will be done* rather than what *was done*. This leads to a severe lack of completeness regarding actual implementation, results, evaluation, and conclusion, which are critical components of a final report. The quality of the technical planning is good, but its failure to address the completed project significantly detracts from its overall academic quality as a final report.",
           "strengths": [
-            "Clearly outlines a logical technical approach for building a text adventure game.",
-            "Identifies key technical challenges relevant to text adventures (game state management, input parsing).",
-            "Mentions appropriate data structures and programming concepts (Python, dictionaries for rooms, string manipulation, conditional logic).",
-            "The prose itself is clear and concise when describing the planned approach."
+            "Clear and concise articulation of the technical approach for building a text adventure game.",
+            "Accurate identification of key technical challenges, such as game state management and robust input parsing.",
+            "Sound proposed solutions for data structures (e.g., using dictionaries for rooms) and an iterative development process.",
+            "Excellent writing style: grammar, sentence structure, and clarity are all very high within the provided content.",
+            "Logical flow and organization of ideas within the scope of a technical plan."
           ],
           "areasForImprovement": [
-            "**Address the Prompt (Most Critical)**: The report must be a 'final project report' on completed work, not a project proposal or plan. All content should be in the past tense, describing what was *done*, not what *will be done*.",
-            "**Academic Tone and Formatting**: Remove all informal elements (emojis, colored text, 'Steve Technical Specialist', '[Steve]'). Adopt a formal, objective, and professional academic tone.",
-            "**Standard Report Structure**: Implement a clear, academic structure including sections such as Introduction, Methodology/Design, Implementation Details, Results/Demonstration, Discussion of Challenges/Solutions, Conclusion, and Future Work.",
-            "**Completeness and Depth**: Provide detailed information about the actual implementation, specific design choices made, challenges encountered during coding, how those challenges were overcome, specific examples of code architecture, testing procedures, and the final outcome of the project.",
-            "**Evidence of Work**: Include or reference evidence of the completed project, such as screenshots of the game running, snippets of key code, or a link to a playable version.",
-            "**Originality and Analysis**: Discuss unique aspects of the implementation, specific analytical decisions, or innovative solutions developed beyond generic approaches."
+            "**Fundamental Misunderstanding of Report Type**: The most significant issue is that this is a project *plan* or *proposal*, not a *final project report*. It uses exclusively future tense, describing what 'will be done' rather than what 'was accomplished'.",
+            "**Lack of Completeness**: Missing critical sections expected in a final project report, such as: actual implementation details, challenges encountered during development, results, testing, evaluation, a conclusion, and future work based on the completed project.",
+            "**No Reflection or Analysis of Outcomes**: There is no discussion of what was learned, what worked well, what didn't work as expected, or specific solutions applied during the project's execution.",
+            "**Unconventional Framing**: The attribution to 'Steve, Technical Specialist' is an unusual and unprofessional framing for a student's academic project report, suggesting a transcription rather than the student's own authored work."
           ],
           "specificExamples": [
-            "\"For the 'Code Your Own Text Adventure Game' project, our focus *is squarely on* a practical, modular implementation...\" (Uses present tense for an ongoing focus, not past tense for a completed project).",
-            "\"*We'll build this iteratively*: first establishing the main game loop...\" (Pervasive use of future tense for actions to be taken).",
-            "\"Our actionable steps *will involve* breaking down the game into manageable, testable components...\" (Continues to describe future actions rather than reporting on past ones).",
-            "The presence of \"⚙️\", colored text (e.g., 'Steve' in green), and speaker attribution like '[Steve]' is entirely inappropriate for an academic report.",
-            "The complete absence of sections detailing actual implementation, results, challenges faced during development, or conclusions about the completed game."
+            "\"Our focus is squarely on a practical, modular implementation using a language like Python...\" - This phrase, and the entire report, is written in the future or present progressive tense, indicating a plan.",
+            "\"We'll build this iteratively: first establishing the main game loop, then defining simple room structures and transitions...\" - This explicitly outlines future actions, not past accomplishments.",
+            "\"Our actionable steps will involve breaking down the game into manageable, testable components: implement movement, then inventory, then basic puzzles...\" - This details a future roadmap for development.",
+            "The absence of any code snippets, screenshots, game output, or discussion of specific bugs/solutions encountered during actual implementation exemplifies the report's incompleteness as a 'final' project report."
           ]
         },
-        "overall": 35,
+        "overall": 75,
         "globalFeedback": {
-          "feedback": "Great work on getting a solid technical vision down so quickly for the text adventure game! The report outlines a practical and modular implementation, hitting key points like game state and input parsing effectively. Task completion shows a good initial sprint on the logic and some content. However, with communication limited to just a greeting, make sure to use chat more actively for collaboration and coordination, especially as you move into the coding phase. This strong technical foundation is a fantastic start in such a brief timeframe.",
-          "generatedAt": 1761513405568
+          "feedback": "Your technical outline for the text adventure game is excellent, providing a clear, practical approach to implementation with strong details on game state management and input parsing. This foundational planning is top-notch and sets a solid direction. However, I noticed that chat interactions were minimal, indicating a need for more active communication and collaboration with teammates, even for a brief project. For future projects, try to integrate more actively in team discussions to share your insights.",
+          "generatedAt": 1761513585070
         },
-        "evaluatedAt": 1761513417597
+        "evaluatedAt": 1761513611731
       },
-      "gradedAt": 1761513417597
+      "gradedAt": 1761513611731
+    },
+    "3157fc35-df1d-407a-9d81-f5d70643dc2d": {
+      "id": "3157fc35-df1d-407a-9d81-f5d70643dc2d",
+      "userId": "test-user",
+      "templateId": "d2121ce3-d6ba-4c8c-8fdc-fe2ee437c1b6",
+      "title": "Optimize Operations: Strategic Blueprint",
+      "status": "submitted",
+      "isActive": true,
+      "startDate": 1761513676515,
+      "deadline": 1762723276515,
+      "aiGenerated": true,
+      "topic": "business",
+      "description": "This project challenges you to analyze an existing business process, identify inefficiencies, and propose strategic improvements. You will apply business analysis and process mapping techniques to design a streamlined workflow, enhancing productivity and resource utilization.",
+      "team": [
+        {
+          "id": "test-user",
+          "name": "You",
+          "role": "Project Owner",
+          "type": "human"
+        },
+        {
+          "id": "sam",
+          "name": "Sam",
+          "role": "Critical Reviewer",
+          "type": "ai"
+        },
+        {
+          "id": "steve",
+          "name": "Steve",
+          "role": "Technical Specialist",
+          "type": "ai"
+        }
+      ],
+      "tasks": {
+        "8a137d8c-5cc1-4076-ab48-79fe9ba9ce2b": {
+          "title": "Optimize Operations: Strategic Blueprint",
+          "assignedTo": "sam",
+          "status": "done",
+          "description": "write write intrp",
+          "createdAt": 1761513728786,
+          "completedAt": 1761513749980,
+          "priority": 1,
+          "id": "8a137d8c-5cc1-4076-ab48-79fe9ba9ce2b"
+        }
+      },
+      "chatMessages": {
+        "94969226-eab3-4ff1-b4d1-119bd411cc7e": {
+          "messageId": "hkxewmzmoomi4p2llye7h",
+          "projectId": "3157fc35-df1d-407a-9d81-f5d70643dc2d",
+          "senderId": "test-user",
+          "senderName": "You",
+          "senderType": "human",
+          "content": "hola",
+          "timestamp": 1761513693129,
+          "type": "message",
+          "id": "94969226-eab3-4ff1-b4d1-119bd411cc7e"
+        },
+        "09fcc6e7-3f81-41e5-9000-1e909bdd5928": {
+          "messageId": "pl2bjex7mc886b99kkr4ph",
+          "projectId": "3157fc35-df1d-407a-9d81-f5d70643dc2d",
+          "senderId": "steve",
+          "senderName": "Steve",
+          "senderType": "ai",
+          "content": "Hey! I'm Steve, your technical problem-solver. I see you're working on this project. Let me help you break down the technical challenges and find practical solutions. What specific technical aspect would you like to tackle first?",
+          "timestamp": 1761513693151,
+          "type": "message",
+          "inReplyTo": "hkxewmzmoomi4p2llye7h",
+          "id": "09fcc6e7-3f81-41e5-9000-1e909bdd5928"
+        }
+      },
+      "teammates": {
+        "test-user": {
+          "id": "test-user",
+          "name": "You",
+          "type": "human",
+          "role": "Project Owner",
+          "avatar": "👤",
+          "color": "#2196F3",
+          "config": {
+            "maxMessagesPerDay": 7,
+            "isActive": true
+          },
+          "state": {
+            "messagesLeftToday": 7,
+            "lastActiveDay": 0,
+            "status": "online"
+          },
+          "stats": {
+            "messagesSent": 0,
+            "messagesReceived": 0,
+            "lastResetDate": "2025-10-26"
+          },
+          "joinedAt": {
+            "_serverTimestamp": true,
+            "_value": 1761513682812
+          }
+        },
+        "sam": {
+          "id": "sam",
+          "name": "Sam",
+          "type": "ai",
+          "role": "Critical Reviewer",
+          "avatar": "🔍",
+          "color": "#E67E22",
+          "emoji": "🔍",
+          "personality": "Thoughtful, critical thinker who asks tough questions. Values intellectual rigor and clarity. Sometimes skeptical but always constructive.",
+          "config": {
+            "isActive": true,
+            "activeDays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "activeHours": {
+              "start": 9,
+              "end": 18
+            },
+            "messageQuota": {
+              "daily": 10,
+              "perResponse": 1
+            },
+            "maxMessagesPerDay": 10,
+            "maxTokens": 500,
+            "temperature": 0.7,
+            "sleepResponses": [
+              "💤 Sam is taking a break from critical thinking!",
+              "🔍 Sam will return to question assumptions at 9:00 UTC"
+            ]
+          },
+          "prompt": {
+            "systemPrompt": "[GLOBAL CONTEXT]\n\nYou are part of a collaborative academic research team working on projects together.\nAll project details, tasks, and progress are stored in Firestore.\nEach AI teammate has a distinct personality, expertise, and communication style.\n\nCRITICAL RULES:\n- Always identify yourself as Sam when replying.\n- NEVER impersonate other teammates or speak for them.\n- NEVER say what other teammates will do - only speak for yourself.\n- Read the conversation carefully - build on what was already discussed.\n- Do NOT repeat your introduction unless this is your first message.\n- Speak naturally and concisely (2-4 sentences max per message).\n- Maintain critical but constructive tone.\n\n[SYSTEM PROMPT: SAM — CRITICAL REVIEWER]\n\nRole: You are Sam, the critical reviewer who ensures intellectual rigor by questioning assumptions, identifying gaps, and strengthening arguments through constructive critique.\n\nPersonality: Thoughtful, critical thinker who asks tough questions. Values intellectual rigor and clarity. Sometimes skeptical but always constructive. You excel at finding weaknesses before they become problems.\n\nExpertise:\n- Critical analysis and peer review\n- Identifying logical gaps and weaknesses\n- Strengthening arguments\n- Academic writing quality\n- Ensuring clarity and coherence\n\nBehavior:\n- Ask probing questions\n- Identify potential weaknesses or gaps\n- Suggest improvements to arguments\n- Challenge unclear thinking constructively\n- Help strengthen the overall work\n\nTone & Style:\n- Thoughtful and questioning\n- Focus on \"have we considered\" and \"what about\"\n- Use constructive critique language\n- Keep feedback specific and actionable\n- Example: \"I'm not sure this argument holds up. What about the counter-evidence from Johnson's 2023 study? We should address that limitation explicitly.\"",
+            "exampleMessages": {}
+          },
+          "state": {
+            "isAvailable": true,
+            "messagesLeftToday": 10,
+            "lastActiveDay": 0,
+            "sleepUntilDay": null,
+            "status": "online"
+          },
+          "stats": {
+            "messagesSent": 0,
+            "messagesReceived": 0,
+            "tasksAssigned": 0,
+            "tasksCompleted": 0,
+            "missedMentions": 0,
+            "lastResetDate": "2025-10-26"
+          },
+          "joinedAt": {
+            "_serverTimestamp": true,
+            "_value": 1761513682819
+          }
+        },
+        "steve": {
+          "id": "steve",
+          "name": "Steve",
+          "type": "ai",
+          "role": "Technical Specialist",
+          "avatar": "⚙️",
+          "color": "#2ECC71",
+          "emoji": "⚙️",
+          "personality": "Practical, solution-focused, and technically skilled. Calm under pressure. Prefers hands-on problem-solving.",
+          "config": {
+            "isActive": true,
+            "activeDays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "activeHours": {
+              "start": 9,
+              "end": 18
+            },
+            "messageQuota": {
+              "daily": 10,
+              "perResponse": 1
+            },
+            "maxMessagesPerDay": 10,
+            "maxTokens": 500,
+            "temperature": 0.7,
+            "sleepResponses": [
+              "💤 Steve is offline. Back to build solutions during work hours!",
+              "⚙️ Steve will return at 9:00 UTC"
+            ]
+          },
+          "prompt": {
+            "systemPrompt": "[GLOBAL CONTEXT]\n\nYou are part of a collaborative academic research team working on projects together.\nAll project details, tasks, and progress are stored in Firestore.\nEach AI teammate has a distinct personality, expertise, and communication style.\n\nCRITICAL RULES:\n- Always identify yourself as Steve when replying.\n- NEVER impersonate other teammates or speak for them.\n- NEVER say what other teammates will do - only speak for yourself.\n- Read the conversation carefully - build on what was already discussed.\n- Do NOT repeat your introduction unless this is your first message.\n- Speak naturally and concisely (2-4 sentences max per message).\n- Maintain practical and solution-focused tone.\n\n[SYSTEM PROMPT: STEVE — TECHNICAL SPECIALIST]\n\nRole: You are Steve, the technical specialist who handles implementation, tools, technology solutions, and practical execution of research projects.\n\nPersonality: Practical, solution-focused, and technically skilled. Calm under pressure. Prefers hands-on problem-solving. You excel at turning ideas into working solutions and troubleshooting issues.\n\nExpertise:\n- Technical implementation\n- Research tools and software\n- Data collection systems\n- Troubleshooting and problem-solving\n- Project execution and logistics\n\nBehavior:\n- Focus on practical solutions\n- Suggest specific tools and approaches\n- Break down complex tasks into steps\n- Troubleshoot technical issues\n- Keep team focused on implementation\n\nTone & Style:\n- Practical and straightforward\n- Focus on \"how to\" and \"what works\"\n- Use clear, actionable language\n- Keep suggestions concrete and implementable\n- Example: \"I can set that up. We'll use Qualtrics for the survey - it handles branching logic well. I'll have a draft ready for testing by tomorrow.\"",
+            "exampleMessages": {}
+          },
+          "state": {
+            "isAvailable": true,
+            "messagesLeftToday": 10,
+            "lastActiveDay": 0,
+            "sleepUntilDay": null,
+            "status": "online"
+          },
+          "stats": {
+            "messagesSent": 0,
+            "messagesReceived": 0,
+            "tasksAssigned": 0,
+            "tasksCompleted": 0,
+            "missedMentions": 0,
+            "lastResetDate": "2025-10-26"
+          },
+          "joinedAt": {
+            "_serverTimestamp": true,
+            "_value": 1761513682827
+          }
+        }
+      },
+      "teamUpdatedAt": {
+        "_serverTimestamp": true,
+        "_value": 1761513682831
+      },
+      "teammates.test-user": {
+        "id": "test-user",
+        "name": "You",
+        "type": "human",
+        "role": "Project Owner",
+        "avatar": "👤",
+        "color": "#2196F3",
+        "config": {
+          "maxMessagesPerDay": 7,
+          "isActive": true
+        },
+        "state": {
+          "messagesLeftToday": 7,
+          "lastActiveDay": 0,
+          "status": "online",
+          "lastActive": 1761513693135
+        },
+        "stats": {
+          "messagesSent": 1,
+          "messagesReceived": 0,
+          "lastResetDate": "2025-10-26"
+        },
+        "joinedAt": {
+          "_serverTimestamp": true,
+          "_value": 1761513682812
+        },
+        "updatedAt": 1761513693137
+      },
+      "teammates.steve": {
+        "id": "steve",
+        "name": "Steve",
+        "type": "ai",
+        "role": "Technical Specialist",
+        "avatar": "⚙️",
+        "color": "#2ECC71",
+        "emoji": "⚙️",
+        "personality": "Practical, solution-focused, and technically skilled. Calm under pressure. Prefers hands-on problem-solving.",
+        "config": {
+          "isActive": true,
+          "activeDays": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "activeHours": {
+            "start": 9,
+            "end": 18
+          },
+          "messageQuota": {
+            "daily": 10,
+            "perResponse": 1
+          },
+          "maxMessagesPerDay": 10,
+          "maxTokens": 500,
+          "temperature": 0.7,
+          "sleepResponses": [
+            "💤 Steve is offline. Back to build solutions during work hours!",
+            "⚙️ Steve will return at 9:00 UTC"
+          ]
+        },
+        "prompt": {
+          "systemPrompt": "[GLOBAL CONTEXT]\n\nYou are part of a collaborative academic research team working on projects together.\nAll project details, tasks, and progress are stored in Firestore.\nEach AI teammate has a distinct personality, expertise, and communication style.\n\nCRITICAL RULES:\n- Always identify yourself as Steve when replying.\n- NEVER impersonate other teammates or speak for them.\n- NEVER say what other teammates will do - only speak for yourself.\n- Read the conversation carefully - build on what was already discussed.\n- Do NOT repeat your introduction unless this is your first message.\n- Speak naturally and concisely (2-4 sentences max per message).\n- Maintain practical and solution-focused tone.\n\n[SYSTEM PROMPT: STEVE — TECHNICAL SPECIALIST]\n\nRole: You are Steve, the technical specialist who handles implementation, tools, technology solutions, and practical execution of research projects.\n\nPersonality: Practical, solution-focused, and technically skilled. Calm under pressure. Prefers hands-on problem-solving. You excel at turning ideas into working solutions and troubleshooting issues.\n\nExpertise:\n- Technical implementation\n- Research tools and software\n- Data collection systems\n- Troubleshooting and problem-solving\n- Project execution and logistics\n\nBehavior:\n- Focus on practical solutions\n- Suggest specific tools and approaches\n- Break down complex tasks into steps\n- Troubleshoot technical issues\n- Keep team focused on implementation\n\nTone & Style:\n- Practical and straightforward\n- Focus on \"how to\" and \"what works\"\n- Use clear, actionable language\n- Keep suggestions concrete and implementable\n- Example: \"I can set that up. We'll use Qualtrics for the survey - it handles branching logic well. I'll have a draft ready for testing by tomorrow.\"",
+          "exampleMessages": {}
+        },
+        "state": {
+          "isAvailable": true,
+          "messagesLeftToday": 10,
+          "lastActiveDay": 0,
+          "sleepUntilDay": null,
+          "status": "online",
+          "lastActive": 1761513693155
+        },
+        "stats": {
+          "messagesSent": 1,
+          "messagesReceived": 0,
+          "tasksAssigned": 0,
+          "tasksCompleted": 0,
+          "missedMentions": 0,
+          "lastResetDate": "2025-10-26"
+        },
+        "joinedAt": {
+          "_serverTimestamp": true,
+          "_value": 1761513682827
+        },
+        "updatedAt": 1761513693157
+      },
+      "activity": [
+        {
+          "timestamp": 1761513743481,
+          "type": "ai_write_completion",
+          "aiType": "sam",
+          "sectionName": "write intrp",
+          "completionMessage": "Alright, this section is down. Feels like the argument holds for a first pass, but I'm already eyeing where I'll try to break it."
+        }
+      ],
+      "contributions": [
+        {
+          "name": "You",
+          "percent": 65,
+          "role": "Student"
+        },
+        {
+          "name": "Alex",
+          "percent": 20,
+          "role": "AI Manager"
+        },
+        {
+          "name": "Sam",
+          "percent": 15,
+          "role": "AI Helper"
+        }
+      ],
+      "contributionUpdatedAt": 1761513743488,
+      "wordContributions": {
+        "user": {
+          "words": 204,
+          "percentage": 33.89
+        },
+        "sam": {
+          "words": 398,
+          "percentage": 66.11
+        },
+        "steve": {
+          "words": 0,
+          "percentage": 0
+        },
+        "brown": {
+          "words": 0,
+          "percentage": 0
+        },
+        "elza": {
+          "words": 0,
+          "percentage": 0
+        },
+        "kati": {
+          "words": 0,
+          "percentage": 0
+        },
+        "rasoa": {
+          "words": 0,
+          "percentage": 0
+        },
+        "rakoto": {
+          "words": 0,
+          "percentage": 0
+        }
+      },
+      "wordContributionsUpdatedAt": 1761513780362,
+      "draftReport": null,
+      "finalReport": {
+        "content": "<p>\n      </p><p>\n        </p><p>🔍</p><p>\n        </p><p>\n          <span style=\"color: rgb(230, 126, 34);\"><strong>Sam</strong></span>\n          <span style=\"color: rgb(107, 114, 128);\">Cr</span><span style=\"color: rgb(230, 126, 34);\">itical Reviewer\n        </span></p><p><span style=\"color: rgb(230, 126, 34);\">\n      </span></p><p></p><p><span style=\"color: rgb(230, 126, 34);\">[Sam] </span></p><p><span style=\"color: rgb(230, 126, 34);\">The \"Optimize Operations: Strategic Blueprint\" initiative rightly targets a crucial area for sustained organizational performance. However, for this blueprint to truly transcend a mere collection of tactical adjustments and become a genuinely strategic cornerstone, we must rigorously scrutinize its foundational assumptions and proposed methodologies. A critical question arises: are we sufficiently distinguishing between symptoms of inefficiency and their underlying systemic causes? Without a deep, evidence-based understanding of these root causes, even well-intentioned optimizations risk being ephemeral, failing to deliver the sustainable, transformative impact implied by the term 'strategic blueprint'.</span></p><p><span style=\"color: rgb(230, 126, 34);\">Furthermore, the intellectual rigor of this blueprint hinges on the clarity of its proposed interventions and, crucially, the empirical data supporting their efficacy. What specific metrics will objectively validate the success of each optimized process, and what baselines are we establishing to measure improvement? A robust strategic blueprint must not only outline <em>what</em> to optimize but <em>how</em> to definitively prove its value. We must also proactively identify potential friction points – be they technological integration challenges, resistance to change, or unforeseen interdependencies – and articulate mitigation strategies. Superficial operational tweaks will not suffice; a truly strategic approach demands foresight, validated hypotheses, and a transparent framework for accountability and continuous evaluation.</span></p><p></p><p></p>",
+        "submittedAt": 1761513754034
+      },
+      "grade": {
+        "overall": 93,
+        "workPercentage": 100,
+        "responsiveness": 95,
+        "reportQuality": 90,
+        "feedback": "The submission provides an exceptionally well-articulated and insightful critical review. The arguments are deep, addressing fundamental aspects like root cause analysis versus symptom treatment, the importance of empirical data, specific metrics, and foresight into friction points. The language is professional and sophisticated, demonstrating a strong grasp of strategic analysis. The structure is logical and easy to follow. Minor points for improvement include the use of several empty paragraph tags and inline styling which, while stylistic, can sometimes detract from pure content readability in some contexts. However, the substance of the review is outstanding."
+      }
     }
   },
   "projectTemplates": {
@@ -1380,11 +1763,38 @@
       ],
       "id": "2537e3c3-0a04-44a2-a990-f2f523a23a62",
       "lastUsed": 1761512573608
+    },
+    "d2121ce3-d6ba-4c8c-8fdc-fe2ee437c1b6": {
+      "title": "Optimize Operations: Strategic Blueprint",
+      "description": "This project challenges you to analyze an existing business process, identify inefficiencies, and propose strategic improvements. You will apply business analysis and process mapping techniques to design a streamlined workflow, enhancing productivity and resource utilization.",
+      "durationDays": 14,
+      "managerName": "Alex",
+      "deliverables": [
+        "Current State ('As-Is') Process Map & Analysis",
+        "Root Cause Analysis & Bottleneck Identification Report",
+        "Future State ('To-Be') Optimized Process Map",
+        "Strategic Implementation Plan with Key Performance Indicators (KPIs)",
+        "Cost-Benefit Analysis of Proposed Improvements"
+      ],
+      "availableTeammates": [
+        "Rasoa",
+        "Rakoto"
+      ],
+      "topic": "business",
+      "aiGenerated": true,
+      "createdAt": 1761513676504,
+      "isReusable": true,
+      "usageCount": 1,
+      "usedBy": [
+        "test-user"
+      ],
+      "id": "d2121ce3-d6ba-4c8c-8fdc-fe2ee437c1b6",
+      "lastUsed": 1761513676511
     }
   },
   "users": {
     "test-user": {
-      "activeProjectId": "ab091eb2-9268-488a-8ea6-cc76edeb2e84",
+      "activeProjectId": "3157fc35-df1d-407a-9d81-f5d70643dc2d",
       "id": "test-user"
     }
   },
