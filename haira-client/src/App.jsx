@@ -74,7 +74,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           
           {/* Protected routes */}
-          <Route path="/dashboard" element={
+          <Route path="/projects" element={
             <ProtectedRoute>
               <ProjectSelection />
             </ProtectedRoute>

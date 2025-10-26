@@ -39,7 +39,7 @@ export default function TopBar() {
     <header className="header-top">
       <div className="inner">
         {/* Brand */}
-        <Link to={isAuthenticated ? '/projects' : '/login'} className="logo">
+        <Link to={isAuthenticated ? '/' : '/login'} className="logo">
           hAIra
         </Link>
 
