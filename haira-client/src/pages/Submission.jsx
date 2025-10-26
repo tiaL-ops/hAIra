@@ -44,6 +44,7 @@ function Submission() {
   const [reportContent, setReportContent] = useState("");
   const [message, setMessage] = useState("...");
   const [saveStatus, setSaveStatus] = useState("Auto-saving…");
+  const [commentSaveStatus, setCommentSaveStatus] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const [comments, setComments] = useState([]); // Start with empty comments
@@ -84,97 +85,7 @@ function Submission() {
     setSelectedText("");
   };
   
-  // Debug logging function
-  const addDebugLog = (message, type = 'info') => {
-    const timestamp = new Date().toLocaleTimeString();
-    const logEntry = {
-      id: Date.now() + Math.random(),
-      timestamp,
-      message,
-      type
-    };
-    setDebugLogs(prev => [logEntry, ...prev].slice(0, 50)); // Keep last 50 logs
-    console.log(`[DEBUG ${timestamp}] ${message}`);
-  };
   
-  // Enhanced debug logging for API calls
-  const logApiCall = (endpoint, data, type = 'request') => {
-    if (type === 'request') {
-      addDebugLog(`🚀 API Request: ${endpoint}`, 'info');
-      addDebugLog(`📤 Data: ${JSON.stringify(data, null, 2)}`, 'info');
-    } else if (type === 'response') {
-      addDebugLog(`✅ API Response: ${JSON.stringify(data, null, 2)}`, 'success');
-    } else if (type === 'error') {
-      addDebugLog(`❌ API Error: ${data}`, 'error');
-    }
-  };
-  
-  // Test functions for debugging
-  const testWriteSuggestion = async () => {
-    addDebugLog('🧪 Testing Write Suggestion API...', 'info');
-    addDebugLog('🔧 AI Service: Chrome Writer API first, then OpenAI fallback', 'info');
-    try {
-      const aiTeammate = AI_TEAMMATES[testTeammate];
-      if (!aiTeammate) {
-        addDebugLog(`❌ Error: Teammate '${testTeammate}' not found`, 'error');
-        return;
-      }
-      
-      // Add id property to the teammate object for API compatibility
-      const teammateWithId = { ...aiTeammate, id: testTeammate };
-      
-      addDebugLog(`👤 Using teammate: ${teammateWithId.name} (${teammateWithId.role})`, 'info');
-      addDebugLog(`⚙️ Teammate config: tone=${teammateWithId.tone}, length=${teammateWithId.length}`, 'info');
-      addDebugLog(`🆔 Teammate ID: ${teammateWithId.id}`, 'info');
-      
-      const testContent = "Write a brief introduction about the importance of research methodology in academic projects.";
-      addDebugLog(`📝 Test content: "${testContent}"`, 'info');
-      
-      logApiCall('/api/project/ai/write', { aiType: teammateWithId.id, sectionName: 'introduction', currentContent: testContent });
-      
-      await write(teammateWithId, 'introduction', testContent);
-      addDebugLog('✅ Write suggestion test completed successfully!', 'success');
-    } catch (error) {
-      addDebugLog(`❌ Write suggestion test failed: ${error.message}`, 'error');
-      logApiCall('', error.message, 'error');
-      console.error('Write test error:', error);
-    }
-  };
-  
-  const testReview = async () => {
-    addDebugLog('🧪 Testing Review API...', 'info');
-    addDebugLog('🔧 AI Service: Server-side OpenAI (GPT-4o-mini) - NOT Chrome API', 'info');
-    try {
-      const aiTeammate = AI_TEAMMATES[testTeammate];
-      if (!aiTeammate) {
-        addDebugLog(`❌ Error: Teammate '${testTeammate}' not found`, 'error');
-        return;
-      }
-      
-      // Add id property to the teammate object for API compatibility
-      const teammateWithId = { ...aiTeammate, id: testTeammate };
-      
-      addDebugLog(`👤 Using teammate: ${teammateWithId.name} (${teammateWithId.role})`, 'info');
-      addDebugLog(`🆔 Teammate ID: ${teammateWithId.id}`, 'info');
-      
-      const testContent = "This is a sample research paper that needs review. The methodology section could be improved and the conclusion needs more evidence.";
-      addDebugLog(`📝 Test content: "${testContent}"`, 'info');
-      
-      logApiCall('/api/project/ai/review', { aiType: teammateWithId.id, currentContent: testContent });
-      
-      await review(teammateWithId, testContent);
-      addDebugLog('✅ Review test completed successfully!', 'success');
-    } catch (error) {
-      addDebugLog(`❌ Review test failed: ${error.message}`, 'error');
-      logApiCall('', error.message, 'error');
-      console.error('Review test error:', error);
-    }
-  };
-  
-  const clearDebugLogs = () => {
-    setDebugLogs([]);
-    addDebugLog('Debug logs cleared', 'info');
-  };
   
   // Team collaboration state
   const [teamContext, setTeamContext] = useState(null);
@@ -256,7 +167,40 @@ function Submission() {
           setSubmitted(true);
           setSaveStatus("Report already submitted");
         }
-        
+
+        // Load comments from the main response
+        const savedComments = data.project?.comments || [];
+        if (savedComments.length > 0) {
+          setComments(savedComments);
+          
+          // Restore highlighted ranges from saved comments
+          const highlights = savedComments
+            .filter(comment => comment.selection && !comment.resolved)
+            .map(comment => ({
+              id: `highlight-${comment.id}`,
+              commentId: comment.id,
+              start: comment.selection.start,
+              end: comment.selection.end,
+              text: comment.selection.text
+            }));
+          
+          setHighlightedRanges(highlights);
+          
+          // Apply highlights to editor after a short delay
+          setTimeout(() => {
+            if (editorRef.current && highlights.length > 0) {
+              highlights.forEach(highlight => {
+                editorRef.current.commands.setTextSelection({ 
+                  from: highlight.start, 
+                  to: highlight.end 
+                });
+                editorRef.current.commands.setHighlight({ 
+                  commentId: highlight.commentId 
+                });
+              });
+            }
+          }, 500);
+        }
       } catch (err) {
         console.error("Error fetching submission info:", err);
         setMessage("Error loading submission page");
@@ -298,7 +242,39 @@ function Submission() {
     }
   };
 
-  // Autosave effect
+  // Add comment auto-save effect
+  useEffect(() => {
+    if (comments.length === 0) return; // Don't save empty comments
+    
+    const timeout = setTimeout(async () => {
+      try {
+        setCommentSaveStatus("Saving comments...");
+        const token = await getIdTokenSafely();
+        
+        await axios.post(`${backend_host}/api/project/${id}/comments`, 
+          { comments },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            }
+          }
+        );
+        
+        console.log('Comments auto-saved successfully');
+        setCommentSaveStatus("Comments saved ✓");
+        setTimeout(() => setCommentSaveStatus(""), 2000);
+      } catch (err) {
+        console.error("Comments save error", err);
+        setCommentSaveStatus("Comments save failed");
+        setTimeout(() => setCommentSaveStatus(""), 3000);
+      }
+    }, 3000); // Save comments 3 seconds after last change
+
+    return () => clearTimeout(timeout);
+  }, [comments, id]);
+
+  // Autosave Report content effect
   useEffect(() => {
     // Don't auto-save if no project ID, already submitted, or no content
     if (!id || submitted) {
@@ -379,43 +355,41 @@ function Submission() {
   }
 
   // Handle comment resolution
-  function handleCommentResolve(commentId) {
-    console.log('Resolving comment:', commentId);
-    
-    // Update comment as resolved
-    setComments(prev => 
-      prev.map(comment => 
-        comment.id === commentId 
-          ? { ...comment, resolved: true }
-          : comment
-      )
-    );
-    
-    // Remove highlight for this comment
-    setHighlightedRanges(prev => {
-      const updated = prev.filter(range => range.commentId !== commentId);
-      console.log('Removed highlight for comment:', commentId, 'Remaining highlights:', updated);
-      return updated;
-    });
-    
-    // Also remove highlight from editor immediately
-    setTimeout(() => {
-      if (editorRef.current) {
-        console.log('Removing highlight from editor for comment:', commentId);
-        
-        // Use the new command to remove highlight by commentId
-        const success = editorRef.current.commands.removeHighlightByCommentId(commentId);
-        console.log('Highlight removal success:', success);
-      }
-    }, 100);
-  }
+  // Update the existing handleCommentResolve function
+// Update the existing handleCommentResolve function
+    function handleCommentResolve(commentId) {
+      console.log('Resolving comment:', commentId);
+      
+      // Update comment as resolved
+      setComments(prev => 
+        prev.map(comment => 
+          comment.id === commentId 
+            ? { ...comment, resolved: true, updatedAt: Date.now() }
+            : comment
+        )
+      );
+      
+      // Remove highlight for this comment
+      setHighlightedRanges(prev => {
+        const updated = prev.filter(range => range.commentId !== commentId);
+        console.log('Removed highlight for comment:', commentId, 'Remaining highlights:', updated);
+        return updated;
+      });
+      
+      // Also remove highlight from editor immediately
+      setTimeout(() => {
+        if (editorRef.current) {
+          console.log('Removing highlight from editor for comment:', commentId);
+          const success = editorRef.current.commands.removeHighlightByCommentId(commentId);
+          console.log('Highlight removal success:', success);
+        }
+      }, 100);
+    }
 
   // Handle adding new comment
   function handleAddComment(text) {
     console.log('Adding comment with text:', text);
-    console.log('Current selectionRange:', selectionRange);
     
-    // Try to capture current selection if none exists
     let currentSelection = selectionRange;
     if (!currentSelection) {
       currentSelection = captureCurrentSelection();
@@ -426,10 +400,11 @@ function Submission() {
       id: Date.now().toString(),
       author: "You",
       text,
-      anchor: currentSelection?.text || null, // Use selected text if available, otherwise null
+      anchor: currentSelection?.text || null,
       createdAt: Date.now(),
+      updatedAt: Date.now(),
       resolved: false,
-      selection: currentSelection, // Store the full selection data
+      selection: currentSelection,
     };
     
     console.log('New comment:', newComment);
@@ -872,6 +847,7 @@ function Submission() {
           submitting={submitting}
           submitted={submitted}
           saveStatus={saveStatus}
+          commentSaveStatus={commentSaveStatus}
         />
         
         

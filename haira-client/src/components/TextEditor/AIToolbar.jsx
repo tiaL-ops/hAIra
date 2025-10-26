@@ -1,7 +1,7 @@
 // src/components/TextEditor/AIToolbar.jsx
 import React, { useState } from "react";
 
-export default function AIToolbar({ onSummarize, onProofread, onSubmit, submitting, submitted, saveStatus }) {
+export default function AIToolbar({ onSummarize, onProofread, onSubmit, submitting, submitted, saveStatus, commentSaveStatus }) {
   const [activeTool, setActiveTool] = useState(null);
 
   const handleToolClick = (tool, callback) => {
@@ -31,6 +31,13 @@ export default function AIToolbar({ onSummarize, onProofread, onSubmit, submitti
         <div className="submission-status">
           {saveStatus || "Ready"}
         </div>
+        
+        {/* Comment Save Status */}
+        {commentSaveStatus && (
+          <div className="comment-save-status">
+            {commentSaveStatus}
+          </div>
+        )}
         
         {/* Debug: Show if saveStatus is received */}
         {console.log('AIToolbar received saveStatus:', saveStatus)}
