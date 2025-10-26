@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getAuth } from "firebase/auth";
 import { useAuth } from '../App';
 import ContributionTracker from "../components/ContributionTracker";
+import ReflectionModal from "../components/ReflectionModal";
 import SuccessIcon from "../images/Success.png";
 import { getChromeSummary } from "../utils/chromeAPI.js";
 import "../styles/editor.css";
@@ -19,13 +20,15 @@ function SubmissionSuccess() {
 
   const [submission, setSubmission] = useState(null);
   const [grade, setGrade] = useState(null);
-  const [aiSummary, setAiSummary] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [aiGrades, setAiGrades] = useState(null);
   const [gradingLoading, setGradingLoading] = useState(false);
   const [aiGradingTriggered, setAiGradingTriggered] = useState(false);
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
+  const [showReflectionModal, setShowReflectionModal] = useState(false);
+  const [reflectionSubmitted, setReflectionSubmitted] = useState(false);
+  const [reflectionLoading, setReflectionLoading] = useState(false);
 
   // Function to trigger AI grading
   const triggerAIGrading = async () => {
@@ -101,41 +104,17 @@ function SubmissionSuccess() {
         const data = await response.json();
         setSubmission(data.submission);
         setGrade(data.grade);
-        
-        // Generate AI summary if we have content
-        if (data.submission?.content) {
-          try {
-            // Call server-side AI fallback function
-            const serverSideFallback = async () => {
-              const token = await getIdTokenSafely();
-              const res = await axios.post(`${backend_host}/api/project/${id}/ai/summarize`, 
-                { content: data.submission.content },
-                {
-                  headers: {
-                    "Content-Type": "application/json",
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                  }
-                }
-              );
-              return {
-                summary: res.data?.result || res.data?.summary || "No summary returned.",
-                source: 'gemini'
-              };
-            };
 
-            // Try Chrome AI first, fallback to Server-side AI
-            const summaryData = await getChromeSummary(data.submission.content, serverSideFallback);
-      
-            setAiSummary( summaryData?.summary || "");
-          } catch (summaryErr) {
-            console.error("Failed to generate summary:", summaryErr);
-          }
-        }
         
         // Automatically trigger AI grading after submission data is loaded
         if (!aiGradingTriggered) {
           setAiGradingTriggered(true);
           await triggerAIGrading();
+        }
+        
+        // Check if reflection has already been submitted
+        if (data.submission?.reflection) {
+          setReflectionSubmitted(true);
         }
         
       } catch (err) {
@@ -148,6 +127,56 @@ function SubmissionSuccess() {
 
     fetchSubmissionData();
   }, [id, navigate, auth, aiGradingTriggered]);
+
+  // Show reflection modal after results are loaded and grading is complete
+  useEffect(() => {
+    if (grade && aiGrades && !reflectionSubmitted && !gradingLoading) {
+      // Show reflection modal after a short delay to let user see results
+      const timer = setTimeout(() => {
+        setShowReflectionModal(true);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [grade, aiGrades, reflectionSubmitted, gradingLoading]);
+
+  // Handle reflection submission
+  const handleReflectionSubmit = async (reflectionData) => {
+    setReflectionLoading(true);
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const response = await fetch(`${backend_host}/api/project/${id}/reflection`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          reflection: reflectionData,
+          submittedAt: new Date().toISOString()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        setReflectionSubmitted(true);
+        setShowReflectionModal(false);
+        // Show success message
+        alert('Reflection submitted successfully!');
+      } else {
+        throw new Error(result.error || 'Failed to submit reflection');
+      }
+    } catch (error) {
+      console.error('Reflection submission error:', error);
+      alert(`Failed to submit reflection: ${error.message}`);
+    } finally {
+      setReflectionLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -194,7 +223,19 @@ function SubmissionSuccess() {
         <div className="results-row">
           {/* Grade Section - Left Column */}
           <div className="grade-section">
-            <h2>🎯 Final Grade</h2>
+            <div className="grade-section-header">
+              <h2>🎯 Final Grade</h2>
+              {/* Detailed Analysis Button - Top Right of Grade Section */}
+              {aiGrades && (
+                <button 
+                  className="detailed-analysis-btn-small"
+                  onClick={() => setShowDetailedAnalysis(true)}
+                  title="View detailed AI analysis"
+                >
+                   + View Details
+                </button>
+              )}
+            </div>
             {grade && Object.keys(grade).length > 0 ? (
               <div className="grade-card">
                 <div className="grade-score">
@@ -222,23 +263,10 @@ function SubmissionSuccess() {
               </div>
             )}
             
-            {/* Detailed Analysis Button */}
-            {aiGrades && (
-              <div className="detailed-analysis-button-container">
-                <button 
-                  className="detailed-analysis-btn"
-                  onClick={() => setShowDetailedAnalysis(true)}
-                >
-                  + View Detailed Analysis
-                </button>
-              </div>
-            )}
-            
           </div>
 
           {/* Contribution Tracker - Right Column */}
           <div className="contribution-section">
-            <h2>👥 Team Contributions</h2>
             <ContributionTracker 
               projectId={id} 
               showContributions={true} 
@@ -255,6 +283,18 @@ function SubmissionSuccess() {
             </div>
             <div className="feedback-content">
               <p>{grade.feedback}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Reflection Status Panel */}
+        {reflectionSubmitted && (
+          <div className="reflection-status-panel">
+            <div className="reflection-status-header">
+              <h2>🤔 Reflection Completed</h2>
+            </div>
+            <div className="reflection-status-content">
+              <p>✅ You have successfully submitted your project reflection. Thank you for sharing your thoughts on the AI feedback and your learning experience!</p>
             </div>
           </div>
         )}
@@ -382,6 +422,17 @@ function SubmissionSuccess() {
             </div>
           </div>
         )}
+        
+        {/* Reflection Modal */}
+        <ReflectionModal
+          isOpen={showReflectionModal}
+          onClose={() => {}} // Prevent closing - reflection is mandatory
+          onSubmit={handleReflectionSubmit}
+          aiFeedback={grade?.feedback}
+          aiGrades={aiGrades}
+          projectTitle={submission?.title || 'Your Project'}
+          isLoading={reflectionLoading}
+        />
         
       </div>
     </div>
