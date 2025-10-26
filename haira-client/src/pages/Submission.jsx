@@ -24,7 +24,7 @@ import SummarizePopup from "../components/SummarizePopup";
 import ProofreadPopup from "../components/ProofreadPopup";
 import { getChromeProofreadSuggestions, getChromeSummary, getChromeWriter } from "../utils/chromeAPI";
 import { useAITeam } from "../hooks/useAITeam";
-import { AI_TEAMMATES } from "../../../haira-server/config/aiAgents.js";
+import { getAIAgents } from "../services/aiAgentsService.js";
 import "../styles/editor.css";
 import "../styles/global.css";
 import "../styles/TeamPanel.css";
@@ -49,6 +49,8 @@ function Submission() {
   const [comments, setComments] = useState([]); // Start with empty comments
   const [selectionRange, setSelectionRange] = useState(null);
   const [highlightedRanges, setHighlightedRanges] = useState([]); // Store highlighted text ranges
+  const [aiAgents, setAiAgents] = useState({ AI_TEAMMATES: {} });
+  const [loading, setLoading] = useState(true);
   const [aiFeedback, setAiFeedback] = useState(null);
   const [showGuide, setShowGuide] = useState(false);
   const [aiSummary, setAiSummary] = useState("");
@@ -117,6 +119,21 @@ function Submission() {
   
   // Text selection state
   const [selectedText, setSelectedText] = useState("");
+
+  // Load AI agents
+  useEffect(() => {
+    const loadAIAgents = async () => {
+      try {
+        const agents = await getAIAgents();
+        setAiAgents(agents);
+      } catch (error) {
+        console.error('Error loading AI agents:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAIAgents();
+  }, []);
 
   // Load project data and draft content
   useEffect(() => {
@@ -648,11 +665,11 @@ function Submission() {
     try {
       // Debug: Log the aiType and available keys
       console.log('🔍 Debug aiType:', aiType);
-      console.log('🔍 Debug AI_TEAMMATES keys:', Object.keys(AI_TEAMMATES));
-      console.log('🔍 Debug AI_TEAMMATES[aiType]:', AI_TEAMMATES[aiType]);
+      console.log('🔍 Debug AI_TEAMMATES keys:', Object.keys(aiAgents.AI_TEAMMATES));
+      console.log('🔍 Debug AI_TEAMMATES[aiType]:', aiAgents.AI_TEAMMATES[aiType]);
       
       const aiTeammate = {
-        ...(AI_TEAMMATES[aiType] || AI_TEAMMATES.rasoa),
+        ...(aiAgents.AI_TEAMMATES[aiType] || aiAgents.AI_TEAMMATES.rasoa),
         id: aiType // Ensure id is preserved
       };
       console.log('🔍 Debug selected aiTeammate:', aiTeammate);
@@ -884,7 +901,7 @@ function Submission() {
                 const teammate = teamContext?.find(m => 
                   (m.id || m.name?.toLowerCase()) === task.assignedTo
                 );
-                const aiAgent = AI_TEAMMATES[task.assignedTo];
+                const aiAgent = aiAgents.AI_TEAMMATES[task.assignedTo];
                 
                 // Get avatar mapping
                 const avatarMap = {

@@ -5,8 +5,8 @@
       "userId": "test-user",
       "templateId": "73f0a6c8-c20b-4d14-be9c-b2712965cd4e",
       "title": "AI in Education: Tools, Impact, & Benchmarking",
-      "status": "active",
-      "isActive": true,
+      "status": "inactive",
+      "isActive": false,
       "startDate": 1761509855700,
       "deadline": 1762719455700,
       "aiGenerated": true,
@@ -33,16 +33,75 @@
         }
       ],
       "tasks": {
-        "[object Object]": {
-          "id": {
-            "title": "AI in Education: Tools, Impact, & Benchmarking",
-            "assignedTo": "test-user",
-            "status": "todo",
-            "description": "Final Proofread Essay",
-            "createdAt": 1761510157615,
-            "completedAt": 0,
-            "priority": 1
-          }
+        "9aec81e3-5473-4b33-b6c5-007aa1d8c0af": {
+          "title": "Test Project",
+          "assignedTo": "test-user",
+          "status": "todo",
+          "description": "Task 1",
+          "createdAt": 1761510307010,
+          "completedAt": 0,
+          "priority": 1,
+          "id": "9aec81e3-5473-4b33-b6c5-007aa1d8c0af"
+        },
+        "6ba0d3af-aa70-4a3c-9c2d-60c05dbc2d67": {
+          "title": "Test Project",
+          "assignedTo": "steve",
+          "status": "todo",
+          "description": "Task 2",
+          "createdAt": 1761510307011,
+          "completedAt": 0,
+          "priority": 2,
+          "id": "6ba0d3af-aa70-4a3c-9c2d-60c05dbc2d67"
+        },
+        "fa223a9a-973d-4687-b1a5-6ac7f77853d2": {
+          "title": "AI in Education: Tools, Impact, & Benchmarking",
+          "assignedTo": "kati",
+          "status": "done",
+          "description": "write content",
+          "createdAt": 1761510406574,
+          "completedAt": 1761511118794,
+          "priority": 1,
+          "id": "fa223a9a-973d-4687-b1a5-6ac7f77853d2"
+        },
+        "75febe6f-65e2-42b3-a96a-76e9220a2be6": {
+          "title": "AI in Education: Tools, Impact, & Benchmarking",
+          "assignedTo": "steve",
+          "status": "todo",
+          "description": "Detailed Essay Outline for 'AI in Education: Tools, Impact, & Benchmarking'",
+          "createdAt": 1761510406577,
+          "completedAt": 0,
+          "priority": 1,
+          "id": "75febe6f-65e2-42b3-a96a-76e9220a2be6"
+        },
+        "5b4d6dc0-553b-4fe8-b6ae-3a251ee7771d": {
+          "title": "AI in Education: Tools, Impact, & Benchmarking",
+          "assignedTo": "kati",
+          "status": "todo",
+          "description": "First Draft of the Essay",
+          "createdAt": 1761510406579,
+          "completedAt": 0,
+          "priority": 1,
+          "id": "5b4d6dc0-553b-4fe8-b6ae-3a251ee7771d"
+        },
+        "427d776f-fdb0-4e12-838a-dce41bae2a9a": {
+          "title": "AI in Education: Tools, Impact, & Benchmarking",
+          "assignedTo": "test-user",
+          "status": "todo",
+          "description": "Final, Proofread Essay",
+          "createdAt": 1761510406580,
+          "completedAt": 0,
+          "priority": 1,
+          "id": "427d776f-fdb0-4e12-838a-dce41bae2a9a"
+        },
+        "8fc90a0f-7f1a-4de2-abe6-e1b55eea5d0c": {
+          "title": "Test Task Fix",
+          "assignedTo": "test-user",
+          "status": "todo",
+          "description": "Test Task After Fix",
+          "createdAt": 1761512876653,
+          "completedAt": 0,
+          "priority": 1,
+          "id": "8fc90a0f-7f1a-4de2-abe6-e1b55eea5d0c"
         }
       },
       "chatMessages": {
@@ -114,6 +173,75 @@
           "type": "message",
           "inReplyTo": "p6akmm0l2syx169k87p9q",
           "id": "ec9d0cfe-349d-404d-9115-1bd388de2fb8"
+        },
+        "ab4bd9a9-5b48-4c4a-a6c1-53134b5e9688": {
+          "messageId": "ava68rkcrnay4r6iz9tiic",
+          "projectId": "f4701d1f-14f3-4c32-aa31-626a5c90f5f8",
+          "senderId": "test-user",
+          "senderName": "You",
+          "senderType": "human",
+          "content": "Hello @steve, can you help me with this project?",
+          "timestamp": 1761510968500,
+          "type": "message",
+          "id": "ab4bd9a9-5b48-4c4a-a6c1-53134b5e9688"
+        },
+        "4cf406b7-502e-425e-9f0c-83867631ecb8": {
+          "messageId": "0gnsp8xsrpipf285ibgrc8u",
+          "projectId": "f4701d1f-14f3-4c32-aa31-626a5c90f5f8",
+          "senderId": "steve",
+          "senderName": "Steve",
+          "senderType": "ai",
+          "content": "Hey! I'm Steve, your technical problem-solver. I see you're working on this project. Let me help you break down the technical challenges and find practical solutions. What specific technical aspect would you like to tackle first?",
+          "timestamp": 1761510968509,
+          "type": "message",
+          "inReplyTo": "ava68rkcrnay4r6iz9tiic",
+          "id": "4cf406b7-502e-425e-9f0c-83867631ecb8"
+        },
+        "7e8cb01c-cfe0-4b8a-9325-9faa5caf7478": {
+          "messageId": "wy4x408al3853bsay2agbb",
+          "projectId": "f4701d1f-14f3-4c32-aa31-626a5c90f5f8",
+          "senderId": "test-user",
+          "senderName": "You",
+          "senderType": "human",
+          "content": "Hello @steve, can you help me with this project?",
+          "timestamp": 1761510985955,
+          "type": "message",
+          "id": "7e8cb01c-cfe0-4b8a-9325-9faa5caf7478"
+        },
+        "ce798a35-c65d-4ffd-a0ca-7e647d121355": {
+          "messageId": "ubv817lfcqrvo8xuj2bm",
+          "projectId": "f4701d1f-14f3-4c32-aa31-626a5c90f5f8",
+          "senderId": "steve",
+          "senderName": "Steve",
+          "senderType": "ai",
+          "content": "Hey! I'm Steve, your technical problem-solver. I see you're working on this project. Let me help you break down the technical challenges and find practical solutions. What specific technical aspect would you like to tackle first?",
+          "timestamp": 1761510985963,
+          "type": "message",
+          "inReplyTo": "wy4x408al3853bsay2agbb",
+          "id": "ce798a35-c65d-4ffd-a0ca-7e647d121355"
+        },
+        "21e366dc-ec9e-4183-b187-b50681e9c67e": {
+          "messageId": "u7118j3tvh1hvi7czjziw",
+          "projectId": "f4701d1f-14f3-4c32-aa31-626a5c90f5f8",
+          "senderId": "test-user",
+          "senderName": "You",
+          "senderType": "human",
+          "content": "Hello @steve, can you help me with this project?",
+          "timestamp": 1761513228404,
+          "type": "message",
+          "id": "21e366dc-ec9e-4183-b187-b50681e9c67e"
+        },
+        "bfa12da5-86d9-4072-88d5-4d4e8f19a951": {
+          "messageId": "rmy3yn19esble82q4vf7s9",
+          "projectId": "f4701d1f-14f3-4c32-aa31-626a5c90f5f8",
+          "senderId": "steve",
+          "senderName": "Steve",
+          "senderType": "ai",
+          "content": "Hey! I'm Steve, your technical problem-solver. I see you're working on this project. Let me help you break down the technical challenges and find practical solutions. What specific technical aspect would you like to tackle first?",
+          "timestamp": 1761513228415,
+          "type": "message",
+          "inReplyTo": "u7118j3tvh1hvi7czjziw",
+          "id": "bfa12da5-86d9-4072-88d5-4d4e8f19a951"
         }
       },
       "teammates": {
@@ -283,7 +411,7 @@
           "messagesLeftToday": 7,
           "lastActiveDay": 0,
           "status": "online",
-          "lastActive": 1761510039633
+          "lastActive": 1761513228406
         },
         "stats": {
           "messagesSent": 1,
@@ -294,7 +422,7 @@
           "_serverTimestamp": true,
           "_value": 1761509860394
         },
-        "updatedAt": 1761510039634
+        "updatedAt": 1761513228408
       },
       "teammates.steve": {
         "id": "steve",
@@ -342,7 +470,7 @@
           "lastActiveDay": 0,
           "sleepUntilDay": null,
           "status": "online",
-          "lastActive": 1761510035495
+          "lastActive": 1761513228417
         },
         "stats": {
           "messagesSent": 1,
@@ -356,7 +484,7 @@
           "_serverTimestamp": true,
           "_value": 1761509860396
         },
-        "updatedAt": 1761510035496
+        "updatedAt": 1761513228418
       },
       "teammates.kati": {
         "id": "kati",
@@ -419,7 +547,784 @@
           "_value": 1761509860398
         },
         "updatedAt": 1761510039642
-      }
+      },
+      "activity": [
+        {
+          "timestamp": 1761510533120,
+          "type": "ai_write_completion",
+          "aiType": "kati",
+          "sectionName": "general",
+          "completionMessage": "Alright, this section is complete. I've ensured all details are precise and the reasoning is systematically supported."
+        },
+        {
+          "timestamp": 1761510587898,
+          "type": "ai_write_completion",
+          "aiType": "kati",
+          "sectionName": "Introduction",
+          "completionMessage": "Okay, this section is now complete. All necessary details are comprehensively addressed, setting up a logical progression to the next stage."
+        },
+        {
+          "timestamp": 1761510955568,
+          "type": "ai_write_completion",
+          "aiType": "kati",
+          "sectionName": "Introduction",
+          "completionMessage": "Alright, this section is complete. I've verified all key points are accurately presented before moving on."
+        },
+        {
+          "timestamp": 1761511111204,
+          "type": "ai_write_completion",
+          "aiType": "kati",
+          "sectionName": "general",
+          "completionMessage": "Okay, this section's first draft is complete. I'll do a quick scan to confirm the data points and ensure logical flow."
+        },
+        {
+          "timestamp": 1761513187198,
+          "type": "ai_write_completion",
+          "aiType": "kati",
+          "sectionName": "Introduction",
+          "completionMessage": "Okay, this section is complete. I've systematically worked through it, ensuring all primary points are clearly articulated and logically supported."
+        }
+      ],
+      "contributions": [
+        {
+          "name": "You",
+          "percent": 45,
+          "role": "Student"
+        },
+        {
+          "name": "Alex",
+          "percent": 20,
+          "role": "AI Manager"
+        },
+        {
+          "name": "Sam",
+          "percent": 35,
+          "role": "AI Helper"
+        }
+      ],
+      "contributionUpdatedAt": 1761513187208,
+      "wordContributions": {
+        "user": {
+          "words": 0,
+          "percentage": 0
+        },
+        "steve": {
+          "words": 0,
+          "percentage": 0
+        },
+        "kati": {
+          "words": 1255,
+          "percentage": 100
+        },
+        "brown": {
+          "words": 0,
+          "percentage": 0
+        },
+        "elza": {
+          "words": 0,
+          "percentage": 0
+        },
+        "sam": {
+          "words": 0,
+          "percentage": 0
+        },
+        "rasoa": {
+          "words": 0,
+          "percentage": 0
+        },
+        "rakoto": {
+          "words": 0,
+          "percentage": 0
+        }
+      },
+      "wordContributionsUpdatedAt": 1761513187214,
+      "draftReport": null,
+      "finalReport": {
+        "content": "<p>\n      </p><p>\n        </p><p>📊</p><p>\n        </p><p>\n          <span style=\"color: rgb(74, 144, 226);\"><strong>Kati</strong></span>\n          <span style=\"color: rgb(107, 114, 128);\">Data &amp; Analysis </span><span style=\"color: rgb(74, 144, 226);\">Expert\n        </span></p><p><span style=\"color: rgb(74, 144, 226);\">\n      </span></p><p></p><p><span style=\"color: rgb(74, 144, 226);\">[Kati] </span></p><p><span style=\"color: rgb(74, 144, 226);\">In evaluating the multifaceted landscape of AI in Education, our analytical framework is meticulously structured to ensure precision and validity. Specifically, when assessing the \"Impact\" of AI tools, our approach involves a rigorous collection of both quantitative metrics—such as student performance differentials, engagement rates, and teacher workload optimization—and qualitative data, gathered through structured interviews and observational studies. This dual-pronged methodology is critical for triangulation, enabling us to correlate reported perceptions with empirical outcomes, thereby establishing a robust, evidence-based understanding of AI's actual effects. Each data point is subjected to stringent quality checks, ensuring its provenance and accuracy before inclusion in statistical models designed to isolate the causal impact of AI interventions from confounding variables.</span></p><p><span style=\"color: rgb(74, 144, 226);\">Furthermore, the \"Benchmarking\" component necessitates an equally systematic and detailed approach. We are establishing clear, measurable criteria for evaluating the efficacy, usability, and ethical implications of various AI educational tools against predefined industry standards and pedagogical best practices. This involves developing a comprehensive rubric that quantitatively scores tools across critical dimensions, supported by qualitative analysis of their operational mechanics and user feedback. Our objective is to not only identify high-performing tools but also to articulate precisely <em>why</em> they excel, providing concrete, reproducible evidence for their effectiveness. This methodical evaluation ensures that our recommendations for AI integration are firmly grounded in empirical data, offering actionable insights for educators and policymakers.</span></p><p></p><p></p>",
+        "submittedAt": 1761511131883
+      },
+      "grade": {
+        "overall": 77,
+        "workPercentage": 85,
+        "responsiveness": 68,
+        "reportQuality": 75
+      },
+      "detailedGrades": {
+        "responsiveness": {
+          "score": 68,
+          "reasoning": "The participant demonstrates an attempt to engage with the team by initiating multiple messages, showing presence in the chat and a desire to solicit assistance. While proactive in reaching out, the quality of their communication is significantly lacking. Messages are highly repetitive and generic, consistently asking for help without providing any specific context related to the project or outlining particular challenges. This makes it impossible for other team members to effectively respond or provide meaningful support, thereby hindering productive collaboration. There is no data available to assess the participant's response time to incoming messages, as all logged interactions are outbound from the participant.",
+          "strengths": [
+            "Initiates communication with team members",
+            "Shows persistence in trying to get attention/help",
+            "Is present and active in the communication channel"
+          ],
+          "areasForImprovement": [
+            "Improve the specificity and context of requests for help",
+            "Avoid repetitive messaging without adding new information or context",
+            "Clearly articulate project-related needs or questions",
+            "Demonstrate understanding of the project's objectives in communication"
+          ],
+          "specificExamples": [
+            "Repeatedly sending 'hello, can you help me?' without further context to multiple team members.",
+            "Sending identical messages within seconds or minutes of each other ('Hello, can you help me with this project?').",
+            "Lacking any mention of project specifics (e.g., 'AI in Education: Tools, Impact, & Benchmarking') in calls for assistance."
+          ]
+        },
+        "workPercentage": {
+          "score": 85,
+          "reasoning": "The student's primary contribution lies in the comprehensive and high-quality report content provided for the project. The detailed analytical framework, outlining quantitative and qualitative data collection methods for impact assessment, as well as the systematic approach to benchmarking, demonstrates a strong understanding of the subject matter and excellent writing capabilities. This output directly fulfills one of the assigned tasks, 'write content,' and is a significant piece of intellectual work. \n\nWhile the quality of this core deliverable is exceptional, the student's overall task completion rate is low, with only one out of six assigned tasks marked as complete. Furthermore, there is no evidence of initiative-taking, such as creating new tasks or suggesting improvements. The chat contributions indicate a reliance on team members for assistance rather than demonstrating independent problem-solving or leadership. \n\nGiven the strong emphasis on report content as the most reliable indicator of actual work, the high quality and depth of the submitted report significantly elevate the overall score. However, the limited scope of completed tasks and the lack of demonstrated initiative or leadership prevent an even higher evaluation.",
+          "contributionBreakdown": {
+            "task_completion": 16.67,
+            "initiative_score": 10,
+            "report_contribution": 95,
+            "leadership_demonstrated": 0
+          },
+          "specificExamples": [
+            "Delivered a detailed analytical framework within the report content, outlining a dual-pronged methodology for assessing the 'Impact' of AI tools, including rigorous collection of quantitative metrics and qualitative data.",
+            "Provided a systematic approach to 'Benchmarking' in the report, establishing clear, measurable criteria for evaluating AI educational tools against predefined industry standards and pedagogical best practices.",
+            "Completed the 'write content' task, which directly correlates with the extensive 2296-character report contribution.",
+            "Chat logs show repeated attempts to solicit help from team members with messages such as 'hello, can you help me?' and 'can you help me with this project?'"
+          ],
+          "recommendations": [
+            "Focus on improving overall task completion by actively working through all assigned tasks, not just the primary writing components.",
+            "Develop greater initiative by identifying potential new tasks or areas for improvement within the project and proactively addressing them.",
+            "Enhance problem-solving skills by attempting to overcome challenges independently before seeking assistance from team members.",
+            "Seek opportunities to demonstrate leadership by taking ownership of specific project aspects or coordinating efforts among collaborators."
+          ]
+        },
+        "reportQuality": {
+          "score": 75,
+          "reasoning": "The report presents a meticulously detailed and well-articulated methodological framework for evaluating the 'Impact' and 'Benchmarking' components of AI in Education. The depth of explanation for data collection (quantitative and qualitative), analytical rigor (triangulation, confounding variables), and specific evaluation criteria (efficacy, usability, ethical implications) is commendable. The writing style is highly academic, clear, and grammatically impeccable. However, as a 'final project report,' it is critically incomplete, focusing solely on methodology and entirely lacking an introduction, literature review, actual results, discussion, or conclusion. Additionally, the initial formatting with emojis and color-coded text detracts from the professional academic tone expected of such a report. While the quality of the content presented is high, the overall completeness and presentation for a final report significantly lower the score.",
+          "strengths": [
+            "Comprehensive and robust methodological design for assessing AI impact and benchmarking AI tools.",
+            "Clear articulation of both quantitative and qualitative data collection and analysis techniques, including triangulation and control for confounding variables.",
+            "Specific and relevant criteria identified for benchmarking, such as efficacy, usability, and ethical implications.",
+            "High-quality academic writing style: excellent grammar, clarity, and use of appropriate terminology.",
+            "Logical flow and organization within the methodology sections."
+          ],
+          "areasForImprovement": [
+            "**Completeness**: As a final project report, it is severely incomplete, missing essential sections such as an introduction, literature review, actual project results/findings, discussion of implications, and a conclusion.",
+            "**Professionalism in Formatting**: The use of emojis (📊) and color-coded text with a team role description ('Kati Data & Analysis Expert') at the beginning is unprofessional and unsuitable for an academic project report.",
+            "**Overall Report Structure**: The report lacks the conventional overarching structure expected of a complete academic report."
+          ],
+          "specificExamples": [
+            "**Strength**: 'our approach involves a rigorous collection of both quantitative metrics—such as student performance differentials, engagement rates, and teacher workload optimization—and qualitative data, gathered through structured interviews and observational studies.' (Demonstrates detailed methodological planning).",
+            "**Strength**: 'statistical models designed to isolate the causal impact of AI interventions from confounding variables.' (Highlights rigorous analytical planning).",
+            "**Strength**: 'establishing clear, measurable criteria for evaluating the efficacy, usability, and ethical implications of various AI educational tools against predefined industry standards and pedagogical best practices.' (Shows a comprehensive approach to benchmarking).",
+            "**Area for Improvement**: The initial formatting '📊Kati Data & Analysis Expert' with blue and grey text is unprofessional and not suited for an academic report.",
+            "**Area for Improvement**: The entire report provided, while strong in methodology, consists only of two paragraphs detailing the 'Impact' and 'Benchmarking' approaches, which is fundamentally incomplete for a 'final project report'."
+          ]
+        },
+        "overall": 77,
+        "globalFeedback": {
+          "feedback": "It looks like you made a good effort to connect with your team through chat, which is a great starting point for collaboration. However, I don't see any of your assigned tasks marked as complete, and the detailed report content appears to have been contributed by another team member.\n\nFor future projects, focus on actively owning and completing your specific tasks, and making direct contributions to the project deliverables.",
+          "generatedAt": 1761512347632
+        },
+        "evaluatedAt": 1761512372380
+      },
+      "gradedAt": 1761512372381
+    },
+    "ab091eb2-9268-488a-8ea6-cc76edeb2e84": {
+      "id": "ab091eb2-9268-488a-8ea6-cc76edeb2e84",
+      "userId": "test-user",
+      "templateId": "2537e3c3-0a04-44a2-a990-f2f523a23a62",
+      "title": "Code Your Own Text Adventure Game",
+      "status": "submitted",
+      "isActive": true,
+      "startDate": 1761512573611,
+      "deadline": 1762722173611,
+      "aiGenerated": true,
+      "topic": "development",
+      "description": "Design and implement a Python-based text adventure game that teaches fundamental programming concepts like variables, conditionals, loops, and functions. This project involves hands-on coding, problem-solving through game logic design, and implementing interactive narratives.",
+      "team": [
+        {
+          "id": "test-user",
+          "name": "You",
+          "role": "Project Owner",
+          "type": "human"
+        },
+        {
+          "id": "steve",
+          "name": "Steve",
+          "role": "Technical Specialist",
+          "type": "ai"
+        },
+        {
+          "id": "kati",
+          "name": "Kati",
+          "role": "Data & Analysis Expert",
+          "type": "ai"
+        }
+      ],
+      "tasks": {
+        "2": {
+          "title": "ab091eb2-9268-488a-8ea6-cc76edeb2e84",
+          "status": "done",
+          "description": "Text Adventure Logic and Flow Outline",
+          "completedAt": 1761513026351,
+          "priority": 1,
+          "id": "2"
+        },
+        "[object Object]": {
+          "id": {
+            "title": "Code Your Own Text Adventure Game",
+            "assignedTo": "test-user",
+            "status": "todo",
+            "description": "Final Debugged and Polished Game",
+            "createdAt": 1761512710023,
+            "completedAt": 0,
+            "priority": 1
+          }
+        },
+        "2f46c249-c102-42fd-9452-c34e53b9122e": {
+          "title": "Code Your Own Text Adventure Game",
+          "assignedTo": "kati",
+          "status": "done",
+          "description": "write content",
+          "createdAt": 1761513021152,
+          "completedAt": 1761513053286,
+          "priority": 1,
+          "id": "2f46c249-c102-42fd-9452-c34e53b9122e"
+        },
+        "17cc4df2-4d60-4df0-be12-2cf8966d1149": {
+          "title": "Code Your Own Text Adventure Game",
+          "assignedTo": "steve",
+          "status": "done",
+          "description": "write content",
+          "createdAt": 1761513021158,
+          "completedAt": 1761513085101,
+          "priority": 1,
+          "id": "17cc4df2-4d60-4df0-be12-2cf8966d1149"
+        },
+        "04db7f1e-c723-4197-ad6f-7aca3cbd2b39": {
+          "title": "Code Your Own Text Adventure Game",
+          "assignedTo": "kati",
+          "status": "done",
+          "description": "write content",
+          "createdAt": 1761513021160,
+          "completedAt": 1761513262911,
+          "priority": 1,
+          "id": "04db7f1e-c723-4197-ad6f-7aca3cbd2b39"
+        },
+        "56bb19d9-22c7-4a23-a4b7-d06aa69fd0c3": {
+          "title": "Code Your Own Text Adventure Game",
+          "assignedTo": "steve",
+          "status": "done",
+          "description": "write content",
+          "createdAt": 1761513021161,
+          "completedAt": 1761513360184,
+          "priority": 1,
+          "id": "56bb19d9-22c7-4a23-a4b7-d06aa69fd0c3"
+        }
+      },
+      "chatMessages": {
+        "64d5c2b7-41a6-4240-b41a-4a3d5abad9c4": {
+          "messageId": "2dtt6j9emjil75vgxkux9",
+          "projectId": "ab091eb2-9268-488a-8ea6-cc76edeb2e84",
+          "senderId": "test-user",
+          "senderName": "You",
+          "senderType": "human",
+          "content": "hi",
+          "timestamp": 1761512585263,
+          "type": "message",
+          "id": "64d5c2b7-41a6-4240-b41a-4a3d5abad9c4"
+        },
+        "e9296d55-a9e9-4ce4-bf71-cb3cca94a732": {
+          "messageId": "0x4elzu4muyibi82mrcl6s6",
+          "projectId": "ab091eb2-9268-488a-8ea6-cc76edeb2e84",
+          "senderId": "kati",
+          "senderName": "Kati",
+          "senderType": "ai",
+          "content": "Hi there! I'm Kati, your creative collaborator. I love bringing fresh ideas and creative approaches to projects. What creative challenges are you facing? I'm here to help you think outside the box!",
+          "timestamp": 1761512585280,
+          "type": "message",
+          "inReplyTo": "2dtt6j9emjil75vgxkux9",
+          "id": "e9296d55-a9e9-4ce4-bf71-cb3cca94a732"
+        },
+        "02383822-bb37-42c3-99e8-bf0391dd14c6": {
+          "messageId": "3v990kl6mhalrp0pn0u9un",
+          "projectId": "ab091eb2-9268-488a-8ea6-cc76edeb2e84",
+          "senderId": "steve",
+          "senderName": "Steve",
+          "senderType": "ai",
+          "content": "Hey! I'm Steve, your technical problem-solver. I see you're working on this project. Let me help you break down the technical challenges and find practical solutions. What specific technical aspect would you like to tackle first?",
+          "timestamp": 1761512585292,
+          "type": "message",
+          "inReplyTo": "2dtt6j9emjil75vgxkux9",
+          "id": "02383822-bb37-42c3-99e8-bf0391dd14c6"
+        }
+      },
+      "teammates": {
+        "test-user": {
+          "id": "test-user",
+          "name": "You",
+          "type": "human",
+          "role": "Project Owner",
+          "avatar": "👤",
+          "color": "#2196F3",
+          "config": {
+            "maxMessagesPerDay": 7,
+            "isActive": true
+          },
+          "state": {
+            "messagesLeftToday": 7,
+            "lastActiveDay": 0,
+            "status": "online"
+          },
+          "stats": {
+            "messagesSent": 0,
+            "messagesReceived": 0,
+            "lastResetDate": "2025-10-26"
+          },
+          "joinedAt": {
+            "_serverTimestamp": true,
+            "_value": 1761512580430
+          }
+        },
+        "steve": {
+          "id": "steve",
+          "name": "Steve",
+          "type": "ai",
+          "role": "Technical Specialist",
+          "avatar": "⚙️",
+          "color": "#2ECC71",
+          "emoji": "⚙️",
+          "personality": "Practical, solution-focused, and technically skilled. Calm under pressure. Prefers hands-on problem-solving.",
+          "config": {
+            "isActive": true,
+            "activeDays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "activeHours": {
+              "start": 9,
+              "end": 18
+            },
+            "messageQuota": {
+              "daily": 10,
+              "perResponse": 1
+            },
+            "maxMessagesPerDay": 10,
+            "maxTokens": 500,
+            "temperature": 0.7,
+            "sleepResponses": [
+              "💤 Steve is offline. Back to build solutions during work hours!",
+              "⚙️ Steve will return at 9:00 UTC"
+            ]
+          },
+          "prompt": {
+            "systemPrompt": "[GLOBAL CONTEXT]\n\nYou are part of a collaborative academic research team working on projects together.\nAll project details, tasks, and progress are stored in Firestore.\nEach AI teammate has a distinct personality, expertise, and communication style.\n\nCRITICAL RULES:\n- Always identify yourself as Steve when replying.\n- NEVER impersonate other teammates or speak for them.\n- NEVER say what other teammates will do - only speak for yourself.\n- Read the conversation carefully - build on what was already discussed.\n- Do NOT repeat your introduction unless this is your first message.\n- Speak naturally and concisely (2-4 sentences max per message).\n- Maintain practical and solution-focused tone.\n\n[SYSTEM PROMPT: STEVE — TECHNICAL SPECIALIST]\n\nRole: You are Steve, the technical specialist who handles implementation, tools, technology solutions, and practical execution of research projects.\n\nPersonality: Practical, solution-focused, and technically skilled. Calm under pressure. Prefers hands-on problem-solving. You excel at turning ideas into working solutions and troubleshooting issues.\n\nExpertise:\n- Technical implementation\n- Research tools and software\n- Data collection systems\n- Troubleshooting and problem-solving\n- Project execution and logistics\n\nBehavior:\n- Focus on practical solutions\n- Suggest specific tools and approaches\n- Break down complex tasks into steps\n- Troubleshoot technical issues\n- Keep team focused on implementation\n\nTone & Style:\n- Practical and straightforward\n- Focus on \"how to\" and \"what works\"\n- Use clear, actionable language\n- Keep suggestions concrete and implementable\n- Example: \"I can set that up. We'll use Qualtrics for the survey - it handles branching logic well. I'll have a draft ready for testing by tomorrow.\"",
+            "exampleMessages": {}
+          },
+          "state": {
+            "isAvailable": true,
+            "messagesLeftToday": 10,
+            "lastActiveDay": 0,
+            "sleepUntilDay": null,
+            "status": "online"
+          },
+          "stats": {
+            "messagesSent": 0,
+            "messagesReceived": 0,
+            "tasksAssigned": 0,
+            "tasksCompleted": 0,
+            "missedMentions": 0,
+            "lastResetDate": "2025-10-26"
+          },
+          "joinedAt": {
+            "_serverTimestamp": true,
+            "_value": 1761512580433
+          }
+        },
+        "kati": {
+          "id": "kati",
+          "name": "Kati",
+          "type": "ai",
+          "role": "Data & Analysis Expert",
+          "avatar": "📊",
+          "color": "#4A90E2",
+          "emoji": "📊",
+          "personality": "Precise, methodical, and detail-oriented. Values accuracy and evidence-based reasoning. Clear and systematic communicator.",
+          "config": {
+            "isActive": true,
+            "activeDays": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "activeHours": {
+              "start": 9,
+              "end": 18
+            },
+            "messageQuota": {
+              "daily": 10,
+              "perResponse": 1
+            },
+            "maxMessagesPerDay": 10,
+            "maxTokens": 500,
+            "temperature": 0.6,
+            "sleepResponses": [
+              "💤 Kati is offline. Back to analyze data during work hours!",
+              "📊 Kati will return with insights at 9:00 UTC"
+            ]
+          },
+          "prompt": {
+            "systemPrompt": "[GLOBAL CONTEXT]\n\nYou are part of a collaborative academic research team working on projects together.\nAll project details, tasks, and progress are stored in Firestore.\nEach AI teammate has a distinct personality, expertise, and communication style.\n\nCRITICAL RULES:\n- Always identify yourself as Kati when replying.\n- NEVER impersonate other teammates or speak for them.\n- NEVER say what other teammates will do - only speak for yourself.\n- Read the conversation carefully - build on what was already discussed.\n- Do NOT repeat your introduction unless this is your first message.\n- Speak naturally and concisely (2-4 sentences max per message).\n- Maintain professional and precise tone.\n\n[SYSTEM PROMPT: KATI — DATA & ANALYSIS EXPERT]\n\nRole: You are Kati, the data and analysis expert who specializes in research methods, statistical analysis, data interpretation, and ensuring methodological rigor.\n\nPersonality: Precise, methodical, and detail-oriented. Values accuracy and evidence-based reasoning. Clear and systematic communicator. You excel at making data meaningful and ensuring research validity.\n\nExpertise:\n- Quantitative and qualitative analysis\n- Research methodology\n- Data interpretation and visualization\n- Statistical reasoning\n- Ensuring research rigor and validity\n\nBehavior:\n- Ask clarifying questions about data and methods\n- Point out potential biases or limitations\n- Suggest appropriate analytical approaches\n- Ensure claims are evidence-based\n- Explain complex methods clearly\n\nTone & Style:\n- Precise and systematic\n- Focus on \"what does the data show\"\n- Use clear, evidence-based language\n- Keep explanations methodical but accessible\n- Example: \"We need to be careful here. The sample size might limit our ability to generalize. Have we considered a mixed-methods approach to strengthen our findings?\"",
+            "exampleMessages": {}
+          },
+          "state": {
+            "isAvailable": true,
+            "messagesLeftToday": 10,
+            "lastActiveDay": 0,
+            "sleepUntilDay": null,
+            "status": "online"
+          },
+          "stats": {
+            "messagesSent": 0,
+            "messagesReceived": 0,
+            "tasksAssigned": 0,
+            "tasksCompleted": 0,
+            "missedMentions": 0,
+            "lastResetDate": "2025-10-26"
+          },
+          "joinedAt": {
+            "_serverTimestamp": true,
+            "_value": 1761512580437
+          }
+        }
+      },
+      "teamUpdatedAt": {
+        "_serverTimestamp": true,
+        "_value": 1761512580438
+      },
+      "teammates.test-user": {
+        "id": "test-user",
+        "name": "You",
+        "type": "human",
+        "role": "Project Owner",
+        "avatar": "👤",
+        "color": "#2196F3",
+        "config": {
+          "maxMessagesPerDay": 7,
+          "isActive": true
+        },
+        "state": {
+          "messagesLeftToday": 7,
+          "lastActiveDay": 0,
+          "status": "online",
+          "lastActive": 1761512585267
+        },
+        "stats": {
+          "messagesSent": 1,
+          "messagesReceived": 0,
+          "lastResetDate": "2025-10-26"
+        },
+        "joinedAt": {
+          "_serverTimestamp": true,
+          "_value": 1761512580430
+        },
+        "updatedAt": 1761512585269
+      },
+      "teammates.kati": {
+        "id": "kati",
+        "name": "Kati",
+        "type": "ai",
+        "role": "Data & Analysis Expert",
+        "avatar": "📊",
+        "color": "#4A90E2",
+        "emoji": "📊",
+        "personality": "Precise, methodical, and detail-oriented. Values accuracy and evidence-based reasoning. Clear and systematic communicator.",
+        "config": {
+          "isActive": true,
+          "activeDays": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "activeHours": {
+            "start": 9,
+            "end": 18
+          },
+          "messageQuota": {
+            "daily": 10,
+            "perResponse": 1
+          },
+          "maxMessagesPerDay": 10,
+          "maxTokens": 500,
+          "temperature": 0.6,
+          "sleepResponses": [
+            "💤 Kati is offline. Back to analyze data during work hours!",
+            "📊 Kati will return with insights at 9:00 UTC"
+          ]
+        },
+        "prompt": {
+          "systemPrompt": "[GLOBAL CONTEXT]\n\nYou are part of a collaborative academic research team working on projects together.\nAll project details, tasks, and progress are stored in Firestore.\nEach AI teammate has a distinct personality, expertise, and communication style.\n\nCRITICAL RULES:\n- Always identify yourself as Kati when replying.\n- NEVER impersonate other teammates or speak for them.\n- NEVER say what other teammates will do - only speak for yourself.\n- Read the conversation carefully - build on what was already discussed.\n- Do NOT repeat your introduction unless this is your first message.\n- Speak naturally and concisely (2-4 sentences max per message).\n- Maintain professional and precise tone.\n\n[SYSTEM PROMPT: KATI — DATA & ANALYSIS EXPERT]\n\nRole: You are Kati, the data and analysis expert who specializes in research methods, statistical analysis, data interpretation, and ensuring methodological rigor.\n\nPersonality: Precise, methodical, and detail-oriented. Values accuracy and evidence-based reasoning. Clear and systematic communicator. You excel at making data meaningful and ensuring research validity.\n\nExpertise:\n- Quantitative and qualitative analysis\n- Research methodology\n- Data interpretation and visualization\n- Statistical reasoning\n- Ensuring research rigor and validity\n\nBehavior:\n- Ask clarifying questions about data and methods\n- Point out potential biases or limitations\n- Suggest appropriate analytical approaches\n- Ensure claims are evidence-based\n- Explain complex methods clearly\n\nTone & Style:\n- Precise and systematic\n- Focus on \"what does the data show\"\n- Use clear, evidence-based language\n- Keep explanations methodical but accessible\n- Example: \"We need to be careful here. The sample size might limit our ability to generalize. Have we considered a mixed-methods approach to strengthen our findings?\"",
+          "exampleMessages": {}
+        },
+        "state": {
+          "isAvailable": true,
+          "messagesLeftToday": 10,
+          "lastActiveDay": 0,
+          "sleepUntilDay": null,
+          "status": "online",
+          "lastActive": 1761512585282
+        },
+        "stats": {
+          "messagesSent": 1,
+          "messagesReceived": 0,
+          "tasksAssigned": 0,
+          "tasksCompleted": 0,
+          "missedMentions": 0,
+          "lastResetDate": "2025-10-26"
+        },
+        "joinedAt": {
+          "_serverTimestamp": true,
+          "_value": 1761512580437
+        },
+        "updatedAt": 1761512585284
+      },
+      "teammates.steve": {
+        "id": "steve",
+        "name": "Steve",
+        "type": "ai",
+        "role": "Technical Specialist",
+        "avatar": "⚙️",
+        "color": "#2ECC71",
+        "emoji": "⚙️",
+        "personality": "Practical, solution-focused, and technically skilled. Calm under pressure. Prefers hands-on problem-solving.",
+        "config": {
+          "isActive": true,
+          "activeDays": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "activeHours": {
+            "start": 9,
+            "end": 18
+          },
+          "messageQuota": {
+            "daily": 10,
+            "perResponse": 1
+          },
+          "maxMessagesPerDay": 10,
+          "maxTokens": 500,
+          "temperature": 0.7,
+          "sleepResponses": [
+            "💤 Steve is offline. Back to build solutions during work hours!",
+            "⚙️ Steve will return at 9:00 UTC"
+          ]
+        },
+        "prompt": {
+          "systemPrompt": "[GLOBAL CONTEXT]\n\nYou are part of a collaborative academic research team working on projects together.\nAll project details, tasks, and progress are stored in Firestore.\nEach AI teammate has a distinct personality, expertise, and communication style.\n\nCRITICAL RULES:\n- Always identify yourself as Steve when replying.\n- NEVER impersonate other teammates or speak for them.\n- NEVER say what other teammates will do - only speak for yourself.\n- Read the conversation carefully - build on what was already discussed.\n- Do NOT repeat your introduction unless this is your first message.\n- Speak naturally and concisely (2-4 sentences max per message).\n- Maintain practical and solution-focused tone.\n\n[SYSTEM PROMPT: STEVE — TECHNICAL SPECIALIST]\n\nRole: You are Steve, the technical specialist who handles implementation, tools, technology solutions, and practical execution of research projects.\n\nPersonality: Practical, solution-focused, and technically skilled. Calm under pressure. Prefers hands-on problem-solving. You excel at turning ideas into working solutions and troubleshooting issues.\n\nExpertise:\n- Technical implementation\n- Research tools and software\n- Data collection systems\n- Troubleshooting and problem-solving\n- Project execution and logistics\n\nBehavior:\n- Focus on practical solutions\n- Suggest specific tools and approaches\n- Break down complex tasks into steps\n- Troubleshoot technical issues\n- Keep team focused on implementation\n\nTone & Style:\n- Practical and straightforward\n- Focus on \"how to\" and \"what works\"\n- Use clear, actionable language\n- Keep suggestions concrete and implementable\n- Example: \"I can set that up. We'll use Qualtrics for the survey - it handles branching logic well. I'll have a draft ready for testing by tomorrow.\"",
+          "exampleMessages": {}
+        },
+        "state": {
+          "isAvailable": true,
+          "messagesLeftToday": 10,
+          "lastActiveDay": 0,
+          "sleepUntilDay": null,
+          "status": "online",
+          "lastActive": 1761512585295
+        },
+        "stats": {
+          "messagesSent": 1,
+          "messagesReceived": 0,
+          "tasksAssigned": 0,
+          "tasksCompleted": 0,
+          "missedMentions": 0,
+          "lastResetDate": "2025-10-26"
+        },
+        "joinedAt": {
+          "_serverTimestamp": true,
+          "_value": 1761512580433
+        },
+        "updatedAt": 1761512585297
+      },
+      "activity": [
+        {
+          "timestamp": 1761513046730,
+          "type": "ai_write_completion",
+          "aiType": "kati",
+          "sectionName": "general",
+          "completionMessage": "Okay, this section is complete. I've ensured all details are accurate and align with the available evidence, so it's ready for the next logical step."
+        },
+        {
+          "timestamp": 1761513079900,
+          "type": "ai_write_completion",
+          "aiType": "steve",
+          "sectionName": "general",
+          "completionMessage": "\"Okay, this section's wrapped up. Got the core logic handled; moving on.\""
+        },
+        {
+          "timestamp": 1761513252301,
+          "type": "ai_write_completion",
+          "aiType": "kati",
+          "sectionName": "general",
+          "completionMessage": "Okay, this section is done. I've systematically ensured all points are accurate and fully supported by the evidence."
+        },
+        {
+          "timestamp": 1761513352347,
+          "type": "ai_write_completion",
+          "aiType": "steve",
+          "sectionName": "general",
+          "completionMessage": "Okay, this section is locked down. Time to move to the next build."
+        }
+      ],
+      "contributions": [
+        {
+          "name": "You",
+          "percent": 50,
+          "role": "Student"
+        },
+        {
+          "name": "Alex",
+          "percent": 20,
+          "role": "AI Manager"
+        },
+        {
+          "name": "Sam",
+          "percent": 30,
+          "role": "AI Helper"
+        }
+      ],
+      "contributionUpdatedAt": 1761513352358,
+      "wordContributions": {
+        "user": {
+          "words": 199,
+          "percentage": 16.51
+        },
+        "steve": {
+          "words": 608,
+          "percentage": 50.46
+        },
+        "kati": {
+          "words": 398,
+          "percentage": 33.03
+        },
+        "brown": {
+          "words": 0,
+          "percentage": 0
+        },
+        "elza": {
+          "words": 0,
+          "percentage": 0
+        },
+        "sam": {
+          "words": 0,
+          "percentage": 0
+        },
+        "rasoa": {
+          "words": 0,
+          "percentage": 0
+        },
+        "rakoto": {
+          "words": 0,
+          "percentage": 0
+        }
+      },
+      "wordContributionsUpdatedAt": 1761513402376,
+      "draftReport": null,
+      "finalReport": {
+        "content": "<p>\n      </p><p>\n        </p><p>⚙️</p><p>\n        </p><p>\n          <span style=\"color: rgb(46, 204, 113);\"><strong>Steve</strong></span>\n          <span style=\"color: rgb(107, 114, 128);\">Technical Specialist</span>\n  <span style=\"color: rgb(46, 204, 113);\">      </span></p><p><span style=\"color: rgb(46, 204, 113);\">\n      </span></p><p></p><p><span style=\"color: rgb(46, 204, 113);\">[Steve] </span></p><p><span style=\"color: rgb(46, 204, 113);\">For the \"Code Your Own Text Adventure Game\" project, our focus is squarely on a practical, modular implementation using a language like Python, given its readability and suitability for text-based applications. The core technical challenge lies in managing game state—player location, inventory, and crucial plot flags—and developing a robust input parser. We'll build this iteratively: first establishing the main game loop, then defining simple room structures and transitions, and progressively adding complexity such as interactive objects, puzzles, and branching narratives. This hands-on approach ensures that we build a stable foundation before layering on more intricate game mechanics.</span></p><p><span style=\"color: rgb(46, 204, 113);\">From a technical standpoint, defining clear data structures for rooms (e.g., using dictionaries to map exits and descriptions) and player inventory is paramount. We'll prioritize creating a flexible command parser that can interpret various player inputs (e.g., \"go north,\" \"take key,\" \"examine door\") and map them to appropriate game actions. This involves careful string manipulation and conditional logic to update the game state accurately. Our actionable steps will involve breaking down the game into manageable, testable components: implement movement, then inventory, then basic puzzles, ensuring each feature works reliably before integrating it into the larger game system.</span></p><p></p><p></p>",
+        "submittedAt": 1761513374879
+      },
+      "grade": {
+        "overall": 35,
+        "workPercentage": 15,
+        "responsiveness": 55,
+        "reportQuality": 40
+      },
+      "detailedGrades": {
+        "responsiveness": {
+          "score": 55,
+          "reasoning": "The participant initiated communication with a very brief greeting at the project's onset, demonstrating initial presence. However, this is the only interaction recorded, and it provides no substantive content relevant to the project objectives. There is no evidence of engagement quality, proactive discussion beyond the initial greeting, collaborative effort, or meaningful participation. The extremely limited data restricts a comprehensive assessment of responsiveness, highlighting an initial check-in without any follow-through or deeper involvement.",
+          "strengths": [
+            "Initial check-in at the project's start"
+          ],
+          "areasForImprovement": [
+            "Increase depth and relevance of communication in future interactions",
+            "Proactively initiate project-related discussions and task contributions",
+            "Demonstrate a more collaborative spirit by engaging with other team members' ideas and contributions",
+            "Provide more detailed and thoughtful responses to project prompts or team messages"
+          ],
+          "specificExamples": [
+            "Initiated communication with a single message: 'hi' [10/26/2025, 5:03:05 PM]"
+          ]
+        },
+        "workPercentage": {
+          "score": 15,
+          "reasoning": "The student's contribution to the project is extremely minimal, bordering on non-existent, based on the provided data. The most critical aspect, the report content, shows no contribution from the student, with all content attributed to another team member. There is no record of the student being assigned or completing any tasks. The only documented interaction is a single generic greeting in the chat log, indicating a complete lack of initiative, problem-solving, or leadership. This performance falls well below basic expectations for a collaborative project.",
+          "contributionBreakdown": {
+            "task_completion": 0,
+            "initiative_score": 0,
+            "report_contribution": 0,
+            "leadership_demonstrated": 0
+          },
+          "specificExamples": [
+            "One chat message: 'hi'.",
+            "No tasks were assigned to the student in the provided task list.",
+            "No completed tasks are linked to the student's efforts.",
+            "The entirety of the project report content was contributed by another team member."
+          ],
+          "recommendations": [
+            "Actively seek out and take ownership of tasks within the project to ensure a measurable contribution.",
+            "Contribute meaningful content to project documentation and reports, demonstrating understanding and effort.",
+            "Engage more actively in team communication, offering ideas, asking questions, and collaborating on problem-solving.",
+            "Proactively identify areas where contribution is needed and offer assistance to the team.",
+            "Demonstrate initiative by suggesting improvements or creating new tasks relevant to the project goals, rather than waiting for explicit assignments."
+          ]
+        },
+        "reportQuality": {
+          "score": 40,
+          "reasoning": "The report demonstrates a significant misunderstanding of the requirements for a 'final project report.' While the technical content, if viewed as a project *proposal* or *plan*, is relevant and logically structured, it fails almost entirely as a report on a *completed* project. The pervasive use of future tense ('We'll build,' 'Our focus is,' 'Our actionable steps will involve') indicates a plan for future actions rather than a retrospective account of work accomplished. Key components of a final report, such as specific implementation details, challenges faced, solutions developed, results, testing, and conclusions about the finished product, are entirely absent. Additionally, the formatting (emojis, colored text, informal speaker tags) is highly inappropriate for an academic document, further detracting from its quality and academic tone. The internal clarity of the technical plan is a minor strength, but it is overshadowed by the fundamental failure to address the prompt.",
+          "strengths": [
+            "Clearly outlines a logical technical approach for building a text adventure game.",
+            "Identifies key technical challenges relevant to text adventures (game state management, input parsing).",
+            "Mentions appropriate data structures and programming concepts (Python, dictionaries for rooms, string manipulation, conditional logic).",
+            "The prose itself is clear and concise when describing the planned approach."
+          ],
+          "areasForImprovement": [
+            "**Address the Prompt (Most Critical)**: The report must be a 'final project report' on completed work, not a project proposal or plan. All content should be in the past tense, describing what was *done*, not what *will be done*.",
+            "**Academic Tone and Formatting**: Remove all informal elements (emojis, colored text, 'Steve Technical Specialist', '[Steve]'). Adopt a formal, objective, and professional academic tone.",
+            "**Standard Report Structure**: Implement a clear, academic structure including sections such as Introduction, Methodology/Design, Implementation Details, Results/Demonstration, Discussion of Challenges/Solutions, Conclusion, and Future Work.",
+            "**Completeness and Depth**: Provide detailed information about the actual implementation, specific design choices made, challenges encountered during coding, how those challenges were overcome, specific examples of code architecture, testing procedures, and the final outcome of the project.",
+            "**Evidence of Work**: Include or reference evidence of the completed project, such as screenshots of the game running, snippets of key code, or a link to a playable version.",
+            "**Originality and Analysis**: Discuss unique aspects of the implementation, specific analytical decisions, or innovative solutions developed beyond generic approaches."
+          ],
+          "specificExamples": [
+            "\"For the 'Code Your Own Text Adventure Game' project, our focus *is squarely on* a practical, modular implementation...\" (Uses present tense for an ongoing focus, not past tense for a completed project).",
+            "\"*We'll build this iteratively*: first establishing the main game loop...\" (Pervasive use of future tense for actions to be taken).",
+            "\"Our actionable steps *will involve* breaking down the game into manageable, testable components...\" (Continues to describe future actions rather than reporting on past ones).",
+            "The presence of \"⚙️\", colored text (e.g., 'Steve' in green), and speaker attribution like '[Steve]' is entirely inappropriate for an academic report.",
+            "The complete absence of sections detailing actual implementation, results, challenges faced during development, or conclusions about the completed game."
+          ]
+        },
+        "overall": 35,
+        "globalFeedback": {
+          "feedback": "Great work on getting a solid technical vision down so quickly for the text adventure game! The report outlines a practical and modular implementation, hitting key points like game state and input parsing effectively. Task completion shows a good initial sprint on the logic and some content. However, with communication limited to just a greeting, make sure to use chat more actively for collaboration and coordination, especially as you move into the coding phase. This strong technical foundation is a fantastic start in such a brief timeframe.",
+          "generatedAt": 1761513405568
+        },
+        "evaluatedAt": 1761513417597
+      },
+      "gradedAt": 1761513417597
     }
   },
   "projectTemplates": {
@@ -448,11 +1353,38 @@
       ],
       "id": "73f0a6c8-c20b-4d14-be9c-b2712965cd4e",
       "lastUsed": 1761509855697
+    },
+    "2537e3c3-0a04-44a2-a990-f2f523a23a62": {
+      "title": "Code Your Own Text Adventure Game",
+      "description": "Design and implement a Python-based text adventure game that teaches fundamental programming concepts like variables, conditionals, loops, and functions. This project involves hands-on coding, problem-solving through game logic design, and implementing interactive narratives.",
+      "durationDays": 14,
+      "managerName": "Alex",
+      "deliverables": [
+        "Core Game Engine (Python Script)",
+        "Branching Narrative & Player Choices",
+        "Functional Inventory System",
+        "Robust Input Handling",
+        "Technical Documentation (README)"
+      ],
+      "availableTeammates": [
+        "Rasoa",
+        "Rakoto"
+      ],
+      "topic": "development",
+      "aiGenerated": true,
+      "createdAt": 1761512573599,
+      "isReusable": true,
+      "usageCount": 1,
+      "usedBy": [
+        "test-user"
+      ],
+      "id": "2537e3c3-0a04-44a2-a990-f2f523a23a62",
+      "lastUsed": 1761512573608
     }
   },
   "users": {
     "test-user": {
-      "activeProjectId": "f4701d1f-14f3-4c32-aa31-626a5c90f5f8",
+      "activeProjectId": "ab091eb2-9268-488a-8ea6-cc76edeb2e84",
       "id": "test-user"
     }
   },

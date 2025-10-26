@@ -1,5 +1,5 @@
 import { generateAIContribution as callOpenAIContribution } from './aiService.js';
-import { getDocumentById, getSubdocuments, updateDocument, getProjectWithTasks, getChatMessagesByUser } from './firebaseService.js';
+import { getDocumentById, getSubdocuments, updateDocument, getProjectWithTasks, getChatMessagesByUser } from './databaseService.js';
 import { COLLECTIONS } from '../schema/database.js';
 
 export class AIGradingService {

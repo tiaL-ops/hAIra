@@ -452,8 +452,8 @@ export async function addTasks(projectId, userId, projectTitle, status, delivera
       priority
     );
 
-    newDeliverable = newDeliverable.toFirestore();
-    return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'tasks', newDeliverable);
+    const taskData = newDeliverable.toFirestore();
+    return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'tasks', null, taskData);
   });
 
   const results = await Promise.all(promises);

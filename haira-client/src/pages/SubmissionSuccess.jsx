@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getAuth } from "firebase/auth";
+import { auth } from '../../firebase';
+import { isFirebaseAvailable } from '../services/localStorageService';
 import { useAuth } from '../App';
 import ContributionTracker from "../components/ContributionTracker";
 import SuccessIcon from "../images/Success.png";
 import { getChromeSummary } from "../utils/chromeAPI.js";
+import axios from 'axios';
 import "../styles/editor.css";
 import "../styles/global.css";
 import "../styles/SubmissionSuccess.css";
@@ -14,7 +16,6 @@ const backend_host = "http://localhost:3002";
 function SubmissionSuccess() {
   const { id } = useParams(); // project id
   const { currentUser } = useAuth();
-  const auth = getAuth();
   const navigate = useNavigate();
 
   const [submission, setSubmission] = useState(null);
@@ -27,16 +28,44 @@ function SubmissionSuccess() {
   const [aiGradingTriggered, setAiGradingTriggered] = useState(false);
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
 
+  // Helper function to get token safely
+  const getIdTokenSafely = async () => {
+    try {
+      const firebaseAvailable = isFirebaseAvailable();
+      if (firebaseAvailable) {
+        if (auth && auth.currentUser) {
+          return await auth.currentUser.getIdToken();
+        }
+      } else {
+        // Fallback to localStorage token
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        const currentUser = storedUser ? JSON.parse(storedUser) : null;
+        if (currentUser) {
+          return `mock-token-${currentUser.uid}-${Date.now()}`;
+        }
+      }
+    } catch (err) {
+      console.error('Error getting token:', err);
+      // Fallback to localStorage token on error
+      const storedUser = localStorage.getItem('__localStorage_current_user__');
+      const currentUser = storedUser ? JSON.parse(storedUser) : null;
+      if (currentUser) {
+        return `mock-token-${currentUser.uid}-${Date.now()}`;
+      }
+    }
+    return null;
+  };
+
   // Function to trigger AI grading
   const triggerAIGrading = async () => {
-    if (!auth.currentUser) {
+    if (!currentUser) {
       setError("User not authenticated");
       return;
     }
 
     setGradingLoading(true);
     try {
-      const token = await auth.currentUser.getIdToken();
+      const token = await getIdTokenSafely();
       const response = await fetch(`${backend_host}/api/project/${id}/ai/grade`, {
         method: 'POST',
         headers: {
@@ -78,14 +107,14 @@ function SubmissionSuccess() {
   useEffect(() => {
     // Fetch submission data from backend for the project
     const fetchSubmissionData = async () => {
-      if (!auth.currentUser) {
+      if (!currentUser) {
         navigate('/login');
         return;
       }
       
       try {
         setLoading(true);
-        const token = await auth.currentUser.getIdToken();
+        const token = await getIdTokenSafely();
         
         // Fetch submission data
         const response = await fetch(`${backend_host}/api/project/${id}/submission/results`, {
@@ -147,7 +176,7 @@ function SubmissionSuccess() {
     };
 
     fetchSubmissionData();
-  }, [id, navigate, aiGradingTriggered]);
+  }, [id, navigate, aiGradingTriggered, currentUser]);
 
   if (loading) {
     return (

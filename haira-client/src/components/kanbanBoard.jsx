@@ -100,11 +100,21 @@ export default function KanbanBoard({ id }) {
           token = `mock-token-${currentUser.uid}-${Date.now()}`;
         }
   const kanbanData = await axios.get(`http://localhost:3002/api/project/${id}/kanban`, { headers: { Authorization: `Bearer ${token}` } });
-        const fetchedTasks = kanbanData.data.tasks;
+        const fetchedTasks = kanbanData.data.tasks || {}; // Changed to object
         let data = {todo : [], inProgress : [], done : []};
-        fetchedTasks.map((item) => {
-          let tmp = { id: item.id, name: item.description, assignee: item.assignedTo, priority: item.priority};
-          data[item.status].push(tmp);
+        
+        // Handle the task structure - tasks are objects with id as key and task data as value
+        Object.entries(fetchedTasks).forEach(([taskId, taskData]) => {
+          let tmp = { 
+            id: taskId, 
+            name: taskData.description || taskData.title, 
+            assignee: taskData.assignedTo, 
+            priority: taskData.priority 
+          };
+          // Map status to our kanban columns, default to 'todo' if status is unknown
+          const status = taskData.status === 'inProgress' ? 'inProgress' : 
+                        taskData.status === 'done' ? 'done' : 'todo';
+          data[status].push(tmp);
         });
         setTasks(data);
         

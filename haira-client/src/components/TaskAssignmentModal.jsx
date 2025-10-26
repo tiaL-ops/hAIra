@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
+import React, { useState, useEffect } from 'react';
+import { getAIAgents } from '../services/aiAgentsService.js';
 import '../styles/TaskAssignmentModal.css';
 
 // Using emoji from agent config instead of images
