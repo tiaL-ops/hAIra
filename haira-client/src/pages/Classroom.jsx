@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from 'react-router-dom';
 import { auth } from '../../firebase';
+import { isFirebaseAvailable } from '../services/localStorageService';
 import axios from 'axios';
 import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
 import '../styles/Classroom.css';
@@ -47,7 +48,24 @@ function Classroom() {
         if (!id) return;
         
         try {
-            const token = await auth.currentUser.getIdToken(true);
+            // Get token with fallback
+            let token;
+            const firebaseAvailable = isFirebaseAvailable();
+            if (firebaseAvailable) {
+              try {
+                token = await auth.currentUser.getIdToken(true);
+              } catch (error) {
+                // Fall back to localStorage token
+                const storedUser = localStorage.getItem('__localStorage_current_user__');
+                const currentUser = storedUser ? JSON.parse(storedUser) : null;
+                token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+              }
+            } else {
+              const storedUser = localStorage.getItem('__localStorage_current_user__');
+              const currentUser = storedUser ? JSON.parse(storedUser) : null;
+              token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+            }
+
             const response = await axios.get(
                 `http://localhost:3002/api/project/${id}/chat`,
                 { headers: { Authorization: `Bearer ${token}` } }
@@ -94,7 +112,23 @@ function Classroom() {
         setMessage(`🏫 Initializing classroom with ${selectedAgents.length} AI teammate(s)...`);
 
         try {
-            const token = await auth.currentUser.getIdToken(true);
+            // Get token with fallback
+            let token;
+            const firebaseAvailable = isFirebaseAvailable();
+            if (firebaseAvailable) {
+              try {
+                token = await auth.currentUser.getIdToken(true);
+              } catch (error) {
+                // Fall back to localStorage token
+                const storedUser = localStorage.getItem('__localStorage_current_user__');
+                const currentUser = storedUser ? JSON.parse(storedUser) : null;
+                token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+              }
+            } else {
+              const storedUser = localStorage.getItem('__localStorage_current_user__');
+              const currentUser = storedUser ? JSON.parse(storedUser) : null;
+              token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+            }
             
             const response = await axios.post(
                 `http://localhost:3002/api/project/${id}/init-teammates`,

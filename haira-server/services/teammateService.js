@@ -1,6 +1,7 @@
 import admin from 'firebase-admin';
 import { AI_AGENTS } from '../config/aiAgents.js';
 import { db as firebaseDb, firebaseAvailable } from './firebaseService.js';
+import { querySubcollection, addSubdocument, updateDocument, getDocumentById } from './databaseService.js';
 
 const db = firebaseDb;
 const FieldValue = firebaseAvailable ? admin.firestore.FieldValue : null;
@@ -263,17 +264,9 @@ export async function migrateTeamToTeammates(projectId) {
  */
 export async function getTeammate(projectId, teammateId) {
   try {
-    const doc = await db.collection('userProjects')
-      .doc(projectId)
-      .collection('teammates')
-      .doc(teammateId)
-      .get();
-    
-    if (!doc.exists) {
-      return null;
-    }
-    
-    return doc.data();
+    const teammates = await querySubcollection('userProjects', projectId, 'teammates');
+    const teammate = teammates.find(t => t.id === teammateId);
+    return teammate || null;
   } catch (error) {
     console.error(`Error fetching teammate ${teammateId} from project ${projectId}:`, error);
     throw error;
@@ -288,18 +281,8 @@ export async function getTeammate(projectId, teammateId) {
  */
 export async function getTeammates(projectId) {
   try {
-    const snapshot = await db.collection('userProjects')
-      .doc(projectId)
-      .collection('teammates')
-      .get();
-    
-    if (snapshot.empty) {
-      return [];
-    }
-    
-    return snapshot.docs.map(doc => ({
-      ...doc.data()
-    }));
+    const teammates = await querySubcollection('userProjects', projectId, 'teammates');
+    return teammates || [];
   } catch (error) {
     console.error(`Error fetching teammates for project ${projectId}:`, error);
     throw error;
@@ -317,18 +300,50 @@ export async function getTeammates(projectId) {
  */
 export async function updateTeammateStats(projectId, teammateId, updates) {
   try {
-    const teammateRef = db.collection('userProjects')
-      .doc(projectId)
-      .collection('teammates')
-      .doc(teammateId);
+    // Process FieldValue objects for localStorage mode
+    const processedUpdates = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (value && typeof value === 'object' && value._increment !== undefined) {
+        // Handle increment operations
+        const currentDoc = await getDocumentById('userProjects', projectId);
+        const teammates = currentDoc?.teammates || {};
+        const teammate = teammates[teammateId] || {};
+        const currentValue = key.split('.').reduce((obj, k) => obj?.[k], teammate) || 0;
+        processedUpdates[key] = currentValue + value._increment;
+      } else if (value && typeof value === 'object' && value._serverTimestamp !== undefined) {
+        // Handle server timestamp
+        processedUpdates[key] = value._value || Date.now();
+      } else {
+        processedUpdates[key] = value;
+      }
+    }
     
     // Add updatedAt timestamp
     const updateData = {
-      ...updates,
+      ...processedUpdates,
       updatedAt: Date.now()
     };
     
-    await teammateRef.update(updateData);
+    // Update the teammate document
+    const teammateDoc = await getDocumentById('userProjects', projectId);
+    if (teammateDoc && teammateDoc.teammates && teammateDoc.teammates[teammateId]) {
+      // Update the specific fields in the teammate object
+      const updatedTeammate = { ...teammateDoc.teammates[teammateId] };
+      for (const [key, value] of Object.entries(updateData)) {
+        const keys = key.split('.');
+        let current = updatedTeammate;
+        for (let i = 0; i < keys.length - 1; i++) {
+          if (!current[keys[i]]) current[keys[i]] = {};
+          current = current[keys[i]];
+        }
+        current[keys[keys.length - 1]] = value;
+      }
+      
+      // Save the updated teammate
+      await updateDocument('userProjects', projectId, {
+        [`teammates.${teammateId}`]: updatedTeammate
+      });
+    }
     
   } catch (error) {
     console.error(`Error updating teammate ${teammateId} in project ${projectId}:`, error);

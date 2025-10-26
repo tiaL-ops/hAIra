@@ -179,10 +179,10 @@ export async function addDocument(collectionName, data) {
   return _asyncDelay({ ...doc }); // Return a copy
 }
 
-export async function addSubdocument(parentCollection, parentId, subcollection, data) {
+export async function addSubdocument(parentCollection, parentId, subcollection, docId, data) {
   console.log(`[LocalStorage] Adding document to '${parentCollection}/${parentId}/${subcollection}'`);
   const db = _getDb();
-  const id = _uuid();
+  const id = docId || _uuid();
   const doc = { ...data, id };
 
   if (!db[parentCollection] || !db[parentCollection][parentId]) {

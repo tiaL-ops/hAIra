@@ -37,7 +37,10 @@ const getFieldValue = () => {
     const admin = require('firebase-admin');
     return admin.firestore.FieldValue;
   }
-  return null;
+  return {
+    increment: (value) => ({ _increment: value }),
+    serverTimestamp: () => ({ _serverTimestamp: true, _value: Date.now() })
+  };
 };
 
 /**
@@ -49,24 +52,14 @@ router.get('/:id/chat', verifyFirebaseToken, async (req, res) => {
   const userId = req.user.uid;
 
   try {
-    let projectDoc, projectData, messages, teammates;
-    if (isLocalMode) {
-      // Local JSON mode
-      const projects = await localStorageService.getDocuments('userProjects');
-      projectData = projects.find(p => p.id === projectId);
-      if (!projectData) return res.status(404).json({ error: 'Project not found' });
-      if (projectData.userId !== userId) return res.status(403).json({ error: 'Access denied' });
-      messages = (await localStorageService.getDocuments('chatMessages')).filter(m => m.projectId === projectId).sort((a, b) => a.timestamp - b.timestamp).slice(-100);
-      teammates = (await localStorageService.getDocuments('teammates')).filter(t => t.projectId === projectId);
-    } else {
-      // Firebase mode
-      projectDoc = await getDocumentById('userProjects', projectId);
-      if (!projectDoc) return res.status(404).json({ error: 'Project not found' });
-      if (projectDoc.userId !== userId) return res.status(403).json({ error: 'Access denied' });
-      messages = await querySubcollection('userProjects', projectId, 'chatMessages');
-      teammates = await getTeammates(projectId);
-      projectData = projectDoc;
-    }
+    // Use unified approach for both Firebase and localStorage
+    const projectDoc = await getDocumentById('userProjects', projectId);
+    if (!projectDoc) return res.status(404).json({ error: 'Project not found' });
+    if (projectDoc.userId !== userId) return res.status(403).json({ error: 'Access denied' });
+    
+    const messages = await querySubcollection('userProjects', projectId, 'chatMessages');
+    const teammates = await getTeammates(projectId);
+    const projectData = projectDoc;
     // Convert to object for easy lookup { teammateId: teammateData }
     const teammatesMap = teammates.reduce((acc, teammate) => {
       acc[teammate.id] = teammate;
@@ -140,7 +133,7 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
 
     // 3.5. Check user's daily message quota (7 messages per 24 hours)
     // Use project data already fetched in step 2
-    const projectData = projectDoc.data();
+    const projectData = projectDoc; // projectDoc is already the data object in localStorage mode
     const projectStart = new Date(projectData?.startDate || Date.now());
     const currentDay = getProjectDay(projectStart);
     
@@ -228,7 +221,7 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
           console.log(`🤖 ${mentionedTeammate.name} is available, triggering response...`);
           
           try {
-            await triggerAgentResponse(projectId, mentionedId, message, db);
+            await triggerAgentResponse(projectId, mentionedId, message);
             
             // Update stats (no quota decrement for AI agents)
             await updateTeammateStats(projectId, mentionedId, {
@@ -337,7 +330,7 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
               console.log(`🎲 ${agentTeammate.name} responding (probability-based)...`);
               
               try {
-                await triggerAgentResponse(projectId, agentId, message, db);
+                await triggerAgentResponse(projectId, agentId, message);
                 
                 // Update stats (no quota decrement for AI agents)
                 await updateTeammateStats(projectId, agentId, {
