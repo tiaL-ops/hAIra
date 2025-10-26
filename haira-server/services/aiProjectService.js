@@ -1,5 +1,5 @@
 import { LEARNING_TOPICS } from '../config/projectRules.js';
-import { generateAIProject } from '../api/openaiService.js';
+import { generateAIProject } from './aiService.js';
 import { 
   getUnusedTemplatesForTopic, 
   getLeastUsedTemplatesForTopic, 
