@@ -7,8 +7,8 @@ import { getAuthService, getFirestoreService } from './src/services/localStorage
 let app, auth, db;
 
 // Check if we should force localStorage mode (for when backend has no Firebase service account)
-const forceLocalStorage = import.meta?.env?.VITE_USE_LOCAL_STORAGE === 'true' || 
-                          localStorage.getItem('__force_local_storage__') === 'true';
+// Only check environment variable, not localStorage flag
+const forceLocalStorage = import.meta?.env?.VITE_USE_LOCAL_STORAGE === 'true';
 
 if (forceLocalStorage) {
   console.log('💾 Forced localStorage mode - Firebase disabled');
