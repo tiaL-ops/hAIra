@@ -611,21 +611,56 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
 
   const handleModifyAIContent = useCallback(async (reflectionData, reflectionId) => {
     try {
+      console.log('🔄 handleModifyAIContent called with:', { reflectionData, reflectionId });
+      
       // Find the specific reflection
       const reflection = pendingAIContentReflections.find(r => r.id === reflectionId);
-      if (!reflection) return;
+      if (!reflection) {
+        console.error('❌ Reflection not found:', reflectionId);
+        return;
+      }
 
-      // Insert the modified content with mixed AI/user styling
-      if (reflectionData.modifiedContent && reflection.pendingResult) {
+      console.log('📝 Found reflection:', reflection);
+
+      // Insert the modified content
+      if (reflectionData.modifiedContent) {
         if (editorRef.current) {
           const editor = editorRef.current;
-          const cursorPos = editor.state.selection.from;
+          const aiTeammate = resolveTeammate(reflection.pendingResult.aiType);
+          const { name, role, color, emoji } = aiTeammate;
           
-          // Build content with mixed styling based on differences
-          const styledContent = buildStyledContent(reflectionData.differences, reflection.pendingResult.aiType);
+          console.log('👤 AI Teammate resolved:', { name, role, color, emoji });
           
-          // Insert the styled content
-          editor.commands.insertContent(styledContent);
+          const docSize = editor.state.doc.content.size;
+          console.log('📄 Current document size:', docSize);
+          
+          // Move cursor to end
+          editor.commands.setTextSelection({ from: docSize, to: docSize });
+
+          // Build the avatar HTML
+          const avatarHtml = `
+            <div class="ai-contribution-header" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px;background:linear-gradient(135deg,${color}20 0%,${color}10 100%);border-radius:8px;border-left:3px solid ${color};">
+              <div class="ai-contribution-avatar" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,${color} 0%,${color}CC 100%);display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,0.1);border:2px solid rgba(255,255,255,0.3);font-size:18px;">${emoji}</div>
+              <div class="ai-contribution-info" style="display:flex;flex-direction:column;gap:2px;">
+                <span style="font-weight:600;color:${color};font-size:0.9rem;">${name}</span>
+                <span style="font-size:0.75rem;color:#6b7280;">${role}</span>
+              </div>
+            </div>`;
+
+          // Convert plain text to HTML paragraphs
+          const htmlContent = reflectionData.modifiedContent
+            .split('\n')
+            .filter(line => line.trim())
+            .map(line => `<p>${line}</p>`)
+            .join('');
+
+          console.log('🎨 Inserting modified content...');
+          editor.commands.insertContent(`${avatarHtml}${htmlContent}`);
+          
+          const newDocSize = editor.state.doc.content.size;
+          console.log('📄 New document size:', newDocSize);
+          
+          console.log('✅ Modified content inserted successfully');
         }
       }
 
@@ -644,9 +679,9 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       // Content handled silently - no additional completion message needed
 
     } catch (error) {
-      console.error('Error modifying AI content:', error);
+      console.error('❌ Error modifying AI content:', error);
     }
-  }, [pendingAIContentReflections, projectId, insertAIText, getIdTokenSafely]);
+  }, [pendingAIContentReflections, projectId, buildStyledContent, getIdTokenSafely]);
 
   const handleDiscardAIContent = useCallback(async (reflectionData, reflectionId) => {
     try {
