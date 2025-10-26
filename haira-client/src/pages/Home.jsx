@@ -6,9 +6,21 @@ import '../styles/Home.css';
 function Home() {
   const [isVisible, setIsVisible] = useState(false);
   const [wordCloudWords] = useState([
-    'Cutting-edge', 'Revolutionize', 'Seamlessly integrated', 'Harnessing the power',
-    'A testament to', 'Unlock the potential', 'Real', 'Powerful', 'Critical thinking',
-    'Collaborate', 'Critique', 'Lead', 'Teamwork', 'Innovation', 'Creativity'
+    'As an AI language model...',
+    'I do not have personal opinions, beliefs, or feelings.',
+    'It is important to note that...',
+    'Based on the information provided...',
+    'Cutting-edge',
+    'Revolutionize',
+    'It\'s not just [X], it\'s [Y]',
+    'It \'s real, It \'s powerful',
+    'Seamlessly integrated',
+    'Harnessing the power of..',
+    'A testament to...',
+    'Unlock the potential of...',
+    'Dear [include the name]',
+    'I feel you...',
+    '..their eyes widened in realization'
   ]);
 
   useEffect(() => {
@@ -17,6 +29,32 @@ function Home() {
 
   return (
     <main className="home-container">
+      {/* AI Word Cloud Section - Now at the top */}
+      <section className="word-cloud-section">
+        <div className="word-cloud-container">
+          <div className="word-cloud">
+            {wordCloudWords.map((word, index) => (
+              <span 
+                key={index} 
+                className={`word-cloud-item word-${index + 1}`}
+                style={{
+                  animationDelay: `${index * 0.1}s`,
+                  '--random-x': Math.random() * 100 + '%',
+                  '--random-y': Math.random() * 100 + '%'
+                }}
+              >
+                {word}
+              </span>
+            ))}
+            {/* Centered headline in the middle of the word cloud */}
+            <div className="word-cloud-center">
+              <h1 className="center-headline">AI isn't perfect, we all know it.</h1>
+              <p className="center-subtitle">We built hAIra to help you keep what AI can't replace: your critical thinking.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Hero Section */}
       <section className="home-hero">
         <div className="hero-inner">
@@ -24,11 +62,6 @@ function Home() {
             <span className="eyebrow-text">hAIra</span>
             <div className="eyebrow-glow"></div>
           </div>
-          
-          <h1 className={`hero-title ${isVisible ? 'animate-in' : ''}`}>
-            <span className="title-line">AI isn't perfect,</span>
-            <span className="title-line">we all know it.</span>
-          </h1>
           
           <p className={`hero-sub ${isVisible ? 'animate-in' : ''}`}>
             We built hAIra to help you keep what AI can't replace: your <span className="highlight-text">critical thinking</span>.
@@ -62,28 +95,6 @@ function Home() {
                 <div key={i} className={`particle particle-${i + 1}`}></div>
               ))}
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* AI Word Cloud Section */}
-      <section className="word-cloud-section">
-        <div className="word-cloud-container">
-          <h2 className="word-cloud-title">The Language of AI Collaboration</h2>
-          <div className="word-cloud">
-            {wordCloudWords.map((word, index) => (
-              <span 
-                key={index} 
-                className={`word-cloud-item word-${index + 1}`}
-                style={{
-                  animationDelay: `${index * 0.1}s`,
-                  '--random-x': Math.random() * 100 + '%',
-                  '--random-y': Math.random() * 100 + '%'
-                }}
-              >
-                {word}
-              </span>
-            ))}
           </div>
         </div>
       </section>

@@ -333,79 +333,118 @@
 .particle-11 { top: 15%; left: 30%; animation-delay: 5s; }
 .particle-12 { top: 75%; right: 25%; animation-delay: 5.5s; }
 
-/* Word Cloud Section */
+/* Word Cloud Section - Now at the top and bigger */
 .word-cloud-section {
-  padding: 60px 20px;
-  background: linear-gradient(135deg, rgba(34,204,136,0.05), rgba(145,105,192,0.05));
+  padding: 40px 20px 80px;
+  background: linear-gradient(135deg, rgba(34,204,136,0.08), rgba(145,105,192,0.08));
   position: relative;
   overflow: hidden;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .word-cloud-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   text-align: center;
-}
-
-.word-cloud-title {
-  font-size: 2.5rem;
-  margin-bottom: 40px;
-  background: var(--gradient-text);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  font-weight: 700;
+  width: 100%;
 }
 
 .word-cloud {
   position: relative;
-  height: 400px;
+  height: 80vh;
+  min-height: 600px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
   gap: 20px;
   perspective: 1000px;
+  width: 100%;
+}
+
+.word-cloud-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+  pointer-events: none;
+  text-align: center;
+  max-width: 80%;
+}
+
+.center-headline {
+  font-size: clamp(2.5rem, 6vw + 1rem, 5rem);
+  margin: 0 0 20px 0;
+  line-height: 1.1;
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 4px 24px rgba(34, 204, 136, 0.3);
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+  animation: fadeInScale 1.2s ease-out 0.5s both;
+}
+
+.center-subtitle {
+  font-size: clamp(1.2rem, 2.5vw + 0.5rem, 1.8rem);
+  margin: 0;
+  color: var(--color-text);
+  line-height: 1.4;
+  text-align: center;
+  font-weight: 500;
+  animation: fadeInUp 1.2s ease-out 0.8s both;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .word-cloud-item {
   position: absolute;
-  padding: 8px 16px;
+  padding: 12px 20px;
   background: rgba(255,255,255,0.1);
   border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 25px;
+  border-radius: 30px;
   color: var(--color-text);
   font-weight: 600;
   backdrop-filter: blur(10px);
   cursor: pointer;
   transition: all 0.3s ease;
   animation: wordFloat 4s ease-in-out infinite;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
+  max-width: 200px;
+  text-align: center;
+  line-height: 1.3;
 }
 
 .word-cloud-item:hover {
-  transform: scale(1.1) translateZ(20px);
+  transform: scale(1.15) translateZ(20px);
   background: var(--gradient-primary);
   color: #0f2a23;
-  box-shadow: 0 8px 24px rgba(34,204,136,0.4);
+  box-shadow: 0 12px 32px rgba(34,204,136,0.5);
+  z-index: 5;
 }
 
-/* Word positioning */
-.word-1 { top: 10%; left: 20%; animation-delay: 0s; }
-.word-2 { top: 20%; right: 15%; animation-delay: 0.2s; }
-.word-3 { top: 30%; left: 10%; animation-delay: 0.4s; }
-.word-4 { top: 40%; right: 25%; animation-delay: 0.6s; }
-.word-5 { top: 50%; left: 30%; animation-delay: 0.8s; }
-.word-6 { top: 60%; right: 10%; animation-delay: 1s; }
-.word-7 { top: 70%; left: 15%; animation-delay: 1.2s; }
-.word-8 { top: 80%; right: 20%; animation-delay: 1.4s; }
-.word-9 { top: 15%; left: 50%; animation-delay: 1.6s; }
-.word-10 { top: 35%; right: 40%; animation-delay: 1.8s; }
-.word-11 { top: 55%; left: 45%; animation-delay: 2s; }
-.word-12 { top: 75%; right: 35%; animation-delay: 2.2s; }
-.word-13 { top: 25%; left: 60%; animation-delay: 2.4s; }
-.word-14 { top: 45%; right: 50%; animation-delay: 2.6s; }
-.word-15 { top: 65%; left: 70%; animation-delay: 2.8s; }
+/* Word positioning - Updated to avoid center area */
+.word-1 { top: 5%; left: 10%; animation-delay: 0s; }
+.word-2 { top: 10%; right: 8%; animation-delay: 0.2s; }
+.word-3 { top: 20%; left: 3%; animation-delay: 0.4s; }
+.word-4 { top: 30%; right: 15%; animation-delay: 0.6s; }
+.word-5 { top: 40%; left: 8%; animation-delay: 0.8s; }
+.word-6 { top: 60%; right: 3%; animation-delay: 1s; }
+.word-7 { top: 70%; left: 5%; animation-delay: 1.2s; }
+.word-8 { top: 80%; right: 10%; animation-delay: 1.4s; }
+.word-9 { top: 90%; left: 15%; animation-delay: 1.6s; }
+.word-10 { top: 8%; left: 50%; animation-delay: 1.8s; }
+.word-11 { top: 25%; right: 40%; animation-delay: 2s; }
+.word-12 { top: 75%; left: 45%; animation-delay: 2.2s; }
+.word-13 { top: 85%; right: 35%; animation-delay: 2.4s; }
+.word-14 { top: 15%; left: 70%; animation-delay: 2.6s; }
+.word-15 { top: 35%; right: 50%; animation-delay: 2.8s; }
 
 /* Enhanced Sections */
 .home-section {
@@ -825,12 +864,26 @@
 /* Enhanced Responsive Design */
 @media (max-width: 1200px) {
   .word-cloud {
-    height: 350px;
+    height: 70vh;
+    min-height: 500px;
   }
   
   .word-cloud-item {
-    font-size: 0.8rem;
-    padding: 6px 12px;
+    font-size: 1rem;
+    padding: 10px 16px;
+    max-width: 180px;
+  }
+  
+  .center-headline {
+    font-size: clamp(2rem, 5vw + 1rem, 4rem);
+  }
+  
+  .center-subtitle {
+    font-size: clamp(1rem, 2vw + 0.5rem, 1.5rem);
+  }
+  
+  .word-cloud-center {
+    max-width: 85%;
   }
 }
 
@@ -858,12 +911,26 @@
   }
   
   .word-cloud {
-    height: 300px;
+    height: 60vh;
+    min-height: 400px;
   }
   
   .word-cloud-item {
-    font-size: 0.75rem;
-    padding: 4px 8px;
+    font-size: 0.9rem;
+    padding: 8px 14px;
+    max-width: 160px;
+  }
+  
+  .center-headline {
+    font-size: clamp(1.8rem, 4vw + 1rem, 3.5rem);
+  }
+  
+  .center-subtitle {
+    font-size: clamp(0.9rem, 1.8vw + 0.5rem, 1.3rem);
+  }
+  
+  .word-cloud-center {
+    max-width: 90%;
   }
 }
 
@@ -922,12 +989,26 @@
   }
   
   .word-cloud {
-    height: 250px;
+    height: 50vh;
+    min-height: 350px;
   }
   
   .word-cloud-item {
-    font-size: 0.7rem;
-    padding: 3px 6px;
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    max-width: 140px;
+  }
+  
+  .center-headline {
+    font-size: clamp(1.5rem, 3vw + 1rem, 2.5rem);
+  }
+  
+  .center-subtitle {
+    font-size: clamp(0.8rem, 1.5vw + 0.5rem, 1.1rem);
+  }
+  
+  .word-cloud-center {
+    max-width: 95%;
   }
   
   .floating-orb {
@@ -958,11 +1039,25 @@
   }
   
   .word-cloud {
-    height: 200px;
+    height: 45vh;
+    min-height: 300px;
   }
   
   .word-cloud-item {
-    font-size: 0.65rem;
-    padding: 2px 4px;
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    max-width: 120px;
+  }
+  
+  .center-headline {
+    font-size: clamp(1.2rem, 2.5vw + 1rem, 2rem);
+  }
+  
+  .center-subtitle {
+    font-size: clamp(0.7rem, 1.2vw + 0.5rem, 1rem);
+  }
+  
+  .word-cloud-center {
+    max-width: 98%;
   }
 }
