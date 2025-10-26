@@ -630,7 +630,8 @@ router.get('/:id/submission/results', verifyFirebaseToken, async (req, res) => {
         const submission = {
             content: projectData.finalReport?.content || '',
             submittedAt: projectData.finalReport?.submittedAt || null,
-            status: projectData.status || 'draft'
+            status: projectData.status || 'draft',
+            reflection: projectData.reflection || null
         };
 
         // Get grade data (you might want to store this separately)
@@ -1883,6 +1884,115 @@ router.post('/:id/ai/grade', verifyFirebaseToken, async (req, res) => {
         
     } catch (error) {
         console.error('AI Grading Error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Reflection submission endpoint
+router.post('/:id/reflection', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const { reflection, submittedAt } = req.body;
+    const userId = req.user.uid;
+    
+    console.log('Reflection submission received:', { id, userId, reflectionKeys: Object.keys(reflection) });
+    
+    if (!reflection || typeof reflection !== 'object') {
+        return res.status(400).json({ 
+            success: false, 
+            error: 'Reflection data is required' 
+        });
+    }
+    
+    // Validate required reflection fields
+    const requiredFields = ['agreeWithFeedback', 'differentApproach', 'keyLearnings', 'futureImprovements'];
+    const missingFields = requiredFields.filter(field => !reflection[field] || !reflection[field].trim());
+    
+    if (missingFields.length > 0) {
+        return res.status(400).json({ 
+            success: false, 
+            error: `Missing required reflection fields: ${missingFields.join(', ')}` 
+        });
+    }
+    
+    try {
+        // Ensure project exists and user has access
+        await ensureProjectExists(id, userId);
+        
+        // Prepare reflection data
+        const reflectionData = {
+            ...reflection,
+            submittedAt: submittedAt || new Date().toISOString(),
+            submittedBy: userId,
+            wordCount: Object.values(reflection).reduce((total, text) => total + (text || '').split(' ').length, 0)
+        };
+        
+        // Update project with reflection
+        await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
+            reflection: reflectionData,
+            reflectionSubmittedAt: Date.now()
+        });
+        
+        // Log activity
+        const activityLog = {
+            timestamp: Date.now(),
+            type: 'reflection_submission',
+            reflectionWordCount: reflectionData.wordCount
+        };
+        
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
+        if (projectData && projectData.activityLogs) {
+            projectData.activityLogs.push(activityLog);
+            await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
+                activityLogs: projectData.activityLogs
+            });
+        }
+        
+        console.log('Reflection saved successfully for project:', id);
+        
+        res.json({
+            success: true,
+            message: 'Reflection submitted successfully',
+            reflection: reflectionData
+        });
+        
+    } catch (error) {
+        console.error('Reflection submission error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// Get reflection endpoint (for teachers/admin to view)
+router.get('/:id/reflection', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.uid;
+    
+    try {
+        // Ensure project exists and user has access
+        await ensureProjectExists(id, userId);
+        
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
+        
+        if (!projectData) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Project not found' 
+            });
+        }
+        
+        res.json({
+            success: true,
+            reflection: projectData.reflection || null,
+            hasReflection: !!projectData.reflection
+        });
+        
+    } catch (error) {
+        console.error('Get reflection error:', error);
         res.status(500).json({ 
             success: false, 
             error: error.message 
