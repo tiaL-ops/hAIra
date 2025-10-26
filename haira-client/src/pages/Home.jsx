@@ -9,21 +9,25 @@ import '../styles/Home.css';
 function Home() {
   const [isVisible, setIsVisible] = useState(false);
   const [wordCloudWords] = useState([
-    'As an AI language model...',
+    'why do i feel pain?',
     'I do not have personal opinions, beliefs, or feelings.',
-    'It is important to note that...',
-    'Based on the information provided...',
+    'chat does he love me?',
+    'Can u summarize this like i\'m a 5 year old?',
     'Cutting-edge',
+    'Draft a professional email',
+    'build this website for me',
     'Revolutionize',
     'It\'s not just [X], it\'s [Y]',
     'It \'s real, It \'s powerful',
-    'Seamlessly integrated',
+    ' i\'m lost',
     'Harnessing the power of..',
-    'A testament to...',
-    'Unlock the potential of...',
+    'Gemini generate image',
+    'FIX THE BUG I SAID!',
+    'make this look cute',
     'Dear [include the name]',
-
-    '..their eyes widened in realization'
+    'Make this sounds smarter',
+    'dnfajknfj, fix this',
+    'shoul i say yes or no?'
   ]);
 
   useEffect(() => {
@@ -151,28 +155,52 @@ function Home() {
 
       {/* How It Works */}
       <section className="home-section steps-section">
-        <h2 className="section-title">Get Started in 4 Steps</h2>
+        <h2 className="section-title">Your Journey in 4 Steps</h2>
+        <p className="steps-intro">Follow the flowing path to mastering Human-AI collaboration</p>
+        
         <div className="steps-3d-container">
-          <Suspense fallback={<div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22cc88' }}>Loading Steps...</div>}>
+          <Suspense fallback={<div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22cc88' }}>Loading Journey...</div>}>
             <Steps3D />
           </Suspense>
         </div>
-        <div className="steps-text-container">
-          <div className="step-text-item">
-            <h3>1. Choose Your Project</h3>
-            <p>Pick from a list of topics or have the AI generate a new, realistic project brief for a total of 7 days.</p>
+        
+        <div className="steps-flow-container">
+          <div className="step-flow-item">
+            <div className="step-number">1</div>
+            <div className="step-content-flow">
+              <h3>Choose Your Project</h3>
+              <p>Pick from topics or have AI generate a realistic project brief</p>
+            </div>
           </div>
-          <div className="step-text-item">
-            <h3>2. Meet Your AI Team</h3>
-            <p>Choose your teammate. Use the group chat and task board to plan your attack.</p>
+          
+          <div className="flow-arrow">→</div>
+          
+          <div className="step-flow-item">
+            <div className="step-number">2</div>
+            <div className="step-content-flow">
+              <h3>Meet Your AI Team</h3>
+              <p>Choose teammates and plan your attack together</p>
+            </div>
           </div>
-          <div className="step-text-item">
-            <h3>3. Collaborate and Co-Create</h3>
-            <p>Work together in the built-in text editor. Ask your AI teammates to draft sections, review your work, or give you feedback—just like real colleagues.</p>
+          
+          <div className="flow-arrow">→</div>
+          
+          <div className="step-flow-item">
+            <div className="step-number">3</div>
+            <div className="step-content-flow">
+              <h3>Collaborate & Co-Create</h3>
+              <p>Work together like real colleagues in the editor</p>
+            </div>
           </div>
-          <div className="step-text-item">
-            <h3>4. Submit & Get Feedback</h3>
-            <p>Submit your final project to the AI Project Manager for a detailed grade on report quality, teamwork, and contribution balance.</p>
+          
+          <div className="flow-arrow">→</div>
+          
+          <div className="step-flow-item">
+            <div className="step-number">4</div>
+            <div className="step-content-flow">
+              <h3>Submit & Get Feedback</h3>
+              <p>Get detailed grades on quality and teamwork</p>
+            </div>
           </div>
         </div>
       </section>
