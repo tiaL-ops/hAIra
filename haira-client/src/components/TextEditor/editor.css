@@ -82,6 +82,17 @@
   align-items: center;
 }
 
+.comment-save-status {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  white-space: nowrap;
+  margin-left: 0.5rem;
+}
+
 .ai-feedback-container {
   position: relative;
 }

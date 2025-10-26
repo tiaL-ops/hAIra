@@ -285,7 +285,9 @@ router.get('/:id/submission', verifyFirebaseToken, async (req, res) => {
                 status: projectData.status,
                 team: teammates, // Send teammates array
                 draftReport: projectData.draftReport || null,
-                finalReport: projectData.finalReport || null
+                finalReport: projectData.finalReport || null,
+                comments: projectData.comments || [],
+                commentsLastSaved: projectData.commentsLastSaved || null
             },
             teammates: teammatesMap // Also send as map
         });
@@ -341,6 +343,83 @@ router.post('/:id/submission/draft', verifyFirebaseToken, async (req, res) => {
             success: false,
             error: err.message 
         });
+    }
+});
+
+// Get comments for a project
+router.get('/:id/comments', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.uid;
+
+    try {
+        await ensureProjectExists(id, userId);
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
+        
+        res.json({
+            comments: projectData.comments || [],
+            lastSaved: projectData.commentsLastSaved || null
+        });
+    } catch (err) {
+        console.error('Error fetching comments:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Save comments for a project
+router.post('/:id/comments', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const { comments } = req.body;
+    const userId = req.user.uid;
+
+    try {
+        await ensureProjectExists(id, userId);
+        
+        await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
+            comments: comments || [],
+            commentsLastSaved: Date.now()
+        });
+
+        res.json({ success: true, savedAt: Date.now() });
+    } catch (err) {
+        console.error('Error saving comments:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Update a specific comment
+router.put('/:id/comments/:commentId', verifyFirebaseToken, async (req, res) => {
+    const { id, commentId } = req.params;
+    const { text, resolved } = req.body;
+    const userId = req.user.uid;
+
+    try {
+        await ensureProjectExists(id, userId);
+        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
+        
+        const comments = projectData.comments || [];
+        const commentIndex = comments.findIndex(c => c.id === commentId);
+        
+        if (commentIndex === -1) {
+            return res.status(404).json({ error: 'Comment not found' });
+        }
+
+        // Update comment
+        comments[commentIndex] = {
+            ...comments[commentIndex],
+            text: text !== undefined ? text : comments[commentIndex].text,
+            resolved: resolved !== undefined ? resolved : comments[commentIndex].resolved,
+            updatedAt: Date.now()
+        };
+
+        await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
+            comments,
+            commentsLastSaved: Date.now()
+        });
+
+        res.json({ success: true, comment: comments[commentIndex] });
+    } catch (err) {
+        console.error('Error updating comment:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -1347,6 +1426,80 @@ router.post('/:id/word-contributions/calculate-user', verifyFirebaseToken, async
         });
     }
 });
+
+// Get comments for a project
+router.get('/:id/comments', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.uid;
+  
+    try {
+      await ensureProjectExists(id, userId);
+      const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
+      
+      res.json({
+        comments: projectData.comments || [],
+        lastSaved: projectData.commentsLastSaved || null
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  
+  // Save comments for a project
+  router.post('/:id/comments', verifyFirebaseToken, async (req, res) => {
+    const { id } = req.params;
+    const { comments } = req.body;
+    const userId = req.user.uid;
+  
+    try {
+      await ensureProjectExists(id, userId);
+      
+      await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
+        comments: comments || [],
+        commentsLastSaved: Date.now()
+      });
+  
+      res.json({ success: true, savedAt: Date.now() });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  
+  // Update a specific comment
+  router.put('/:id/comments/:commentId', verifyFirebaseToken, async (req, res) => {
+    const { id, commentId } = req.params;
+    const { text, resolved } = req.body;
+    const userId = req.user.uid;
+  
+    try {
+      await ensureProjectExists(id, userId);
+      const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
+      
+      const comments = projectData.comments || [];
+      const commentIndex = comments.findIndex(c => c.id === commentId);
+      
+      if (commentIndex === -1) {
+        return res.status(404).json({ error: 'Comment not found' });
+      }
+  
+      // Update comment
+      comments[commentIndex] = {
+        ...comments[commentIndex],
+        text: text !== undefined ? text : comments[commentIndex].text,
+        resolved: resolved !== undefined ? resolved : comments[commentIndex].resolved,
+        updatedAt: Date.now()
+      };
+  
+      await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
+        comments,
+        commentsLastSaved: Date.now()
+      });
+  
+      res.json({ success: true, comment: comments[commentIndex] });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 
 // Get real-time contribution data for submission page
 router.get('/:id/contributions/realtime', verifyFirebaseToken, async (req, res) => {
