@@ -70,11 +70,11 @@ function App() {
         <TopBar />
         <Routes>
           {/* Public routes */}
+          <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/home" element={<Home />} />
           
           {/* Protected routes */}
-          <Route path="/" element={
+          <Route path="/dashboard" element={
             <ProtectedRoute>
               <ProjectSelection />
             </ProtectedRoute>

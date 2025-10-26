@@ -215,8 +215,7 @@ function Home() {
       <section className="home-cta">
         <h2 className="cta-title">Ready?</h2>
         <div className="cta-actions">
-       
-          <Link to="/projects" className="btn btn-secondary">
+          <Link to="/projects" className="btn btn-primary">
             <span className="btn-text">Start Your First Project</span>
           </Link>
         </div>
