@@ -27,7 +27,9 @@ function Home() {
     'Dear [include the name]',
     'Make this sounds smarter',
     'dnfajknfj, fix this',
-    'shoul i say yes or no?'
+    'shoul i say yes or no?',
+    'how do i become rich'
+  
   ]);
 
   useEffect(() => {
