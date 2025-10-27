@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
-import { addTasks, updateTask, deleteTask, ensureProjectExists, getProjectWithTasks } from '../services/firebaseService.js';
+import { addTasks, updateTask, deleteTask, ensureProjectExists, getProjectWithTasks } from '../services/databaseService.js';
 import { generateDeliverablesResponse } from '../services/aiService.js';
 import Task from '../models/KanbanModels.js';
 

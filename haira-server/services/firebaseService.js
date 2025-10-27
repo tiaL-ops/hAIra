@@ -35,25 +35,41 @@ function buildCredential() {
     return admin.credential.cert(json);
   }
 
-  // Last resort: application default credentials
-  return admin.credential.applicationDefault();
+  // NO application default credentials - throw error instead
+  throw new Error('No Firebase credentials found');
 }
 
 
-// Initialize Firebase Admin SDK once
+// Global flag to track Firebase availability
+let firebaseAvailable = false;
+let db = null;
+
+// Initialize Firebase Admin SDK once - auto-detect based on credentials
 if (!admin.apps.length) {
   try {
-    admin.initializeApp({ credential: buildCredential() });
-    console.log('Firebase initialized');
+    const credential = buildCredential();
+    admin.initializeApp({ credential });
+    db = admin.firestore();
+    firebaseAvailable = true;
+    console.log('🔥 Firebase Admin SDK initialized successfully');
   } catch (error) {
-    console.error('Firebase initialization error:', error.message);
+    console.error('❌ Firebase initialization failed:', error.message);
+    console.log('💾 No Firebase credentials found - using localStorage fallback for all operations');
+    console.log('💾 All data will be stored in local_data/fallback_firebase.json');
+    firebaseAvailable = false;
+  }
+} else {
+  try {
+    db = admin.firestore();
+    firebaseAvailable = true;
+  } catch (error) {
+    console.error('❌ Firebase firestore not available:', error.message);
+    firebaseAvailable = false;
   }
 }
 
-const db = admin.firestore();
-
-// Export db for reuse in other services if needed
-export { db };
+// Export Firebase availability flag and db for reuse in other services
+export { db, firebaseAvailable };
 
 // Generic helpers
 export async function addDocument(collectionName, data) {
@@ -68,13 +84,40 @@ export async function addDocument(collectionName, data) {
 }
 
 // Helper for adding documents to subcollections
-export async function addSubdocument(parentCollection, parentId, subcollection, data) {
+export async function addSubdocument(parentCollection, parentId, subcollection, docId, data) {
   try {
     console.log(`[Firebase] Adding document to '${parentCollection}/${parentId}/${subcollection}'`);
-    const docRef = await db.collection(parentCollection).doc(parentId).collection(subcollection).add(data);
-    return { id: docRef.id, ...data };
+    console.log(`[Firebase] Data type:`, typeof data, 'Data keys:', Object.keys(data || {}));
+    
+    // Create a plain JavaScript object (no special Firestore objects)
+    // Remove any functions, undefined values, or non-serializable objects
+    const plainData = {};
+    for (const [key, value] of Object.entries(data || {})) {
+      if (value !== undefined && typeof value !== 'function') {
+        try {
+          // Test if value can be serialized
+          JSON.stringify(value);
+          plainData[key] = value;
+        } catch (e) {
+          console.warn(`[Firebase] Skipping non-serializable field: ${key}`);
+        }
+      }
+    }
+    
+    console.log(`[Firebase] Plain data keys:`, Object.keys(plainData));
+    
+    if (docId) {
+      // Use set with specific docId
+      await db.collection(parentCollection).doc(parentId).collection(subcollection).doc(docId).set(plainData);
+      return { id: docId, ...plainData };
+    } else {
+      // Auto-generate docId
+      const docRef = await db.collection(parentCollection).doc(parentId).collection(subcollection).add(plainData);
+      return { id: docRef.id, ...plainData };
+    }
   } catch (error) {
     console.error(`[Firebase] Error adding document to subcollection '${parentCollection}/${parentId}/${subcollection}':`, error);
+    console.error(`[Firebase] Data that failed:`, data);
     throw error;
   }
 }
@@ -386,7 +429,7 @@ export async function addTasks(projectId, userId, projectTitle, status, delivera
     );
 
     newDeliverable = newDeliverable.toFirestore();
-    return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'tasks', newDeliverable);
+    return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'tasks', null, newDeliverable);
   });
 
   const results = await Promise.all(promises);

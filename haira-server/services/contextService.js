@@ -1,22 +1,10 @@
 // contextService.js - Enhanced context management for AI agents
 // Ensures AI agents are always aware of project, tasks, and assignments
 
-import { getProjectWithTasks } from './firebaseService.js';
-import { 
-  getConversationHistory, 
-  getConversationSummary, 
-  getMultiDayHistory,
-  getMultiDaySummary,
-  getPreviousDaysContext 
-} from '../config/conversationMemory.js';
-import { storeProjectData, formatTasksForAI, getProjectTasks } from '../config/taskMemory.js';
+import { getProjectWithTasks, querySubcollection } from './databaseService.js';
 import { AI_AGENTS } from '../config/aiAgents.js';
-import { 
-  storeDailyContext, 
-  getDailyContext, 
-  getEnhancedContextCache,
-  generateConversationSummary 
-} from './dailyContextCache.js';
+import { getConversationHistory, getPreviousDaysContext, getMultiDaySummary } from '../config/conversationMemory.js';
+import { formatTasksForAI as formatTasksFromMemory, getProjectTasks, getProjectInfo } from '../config/taskMemory.js';
 
 /**
  * Get comprehensive context for AI agents
@@ -32,14 +20,14 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
   console.log(`[ContextService] Building context for ${agentId} on project ${projectId}, day ${currentDay}`);
   
   try {
-    // 1. Check if we have cached context for today
-    const cachedContext = getDailyContext(projectId, currentDay);
-    if (cachedContext && (Date.now() - cachedContext.lastUpdated) < 300000) { // 5 minutes
-      console.log(`[ContextService] ⚠️ Using cached context for ${agentId} - tasks: ${cachedContext.allTasks?.length || 0}`);
-      // TEMPORARILY DISABLED CACHE TO DEBUG
-      // return getEnhancedContextCache(projectId, currentDay, agentId);
-      console.log(`[ContextService] 🔧 Cache DISABLED - fetching fresh from Firestore`);
-    }
+    // 1. Check if we have cached context for today (DISABLED - function not implemented)
+    // const cachedContext = getDailyContext(projectId, currentDay);
+    // if (cachedContext && (Date.now() - cachedContext.lastUpdated) < 300000) { // 5 minutes
+    //   console.log(`[ContextService] ⚠️ Using cached context for ${agentId} - tasks: ${cachedContext.allTasks?.length || 0}`);
+    //   return getEnhancedContextCache(projectId, currentDay, agentId);
+    // }
+    console.log(`[ContextService] 🔧 Fetching fresh context (caching disabled)`);
+    
     
     // 2. Get project data and tasks from Firebase
     const projectData = await getProjectWithTasks(projectId, userId);
@@ -64,24 +52,41 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
       });
     }
     
-    // 3. Store in task memory for quick access
-    storeProjectData(projectId, projectData.tasks, projectData.project);
-    console.log(`[ContextService] ✅ Stored ${projectData.tasks?.length || 0} tasks in memory`);
-    
-    // 4. Get conversation history from memory (including previous days)
+    // 3. Get conversation history from memory (enhanced context)
     const conversationHistory = getConversationHistory(projectId, currentDay, 15);
-    const conversationSummary = getConversationSummary(projectId, currentDay);
-    
-    // Get multi-day context for continuity across days
-    const multiDayHistory = getMultiDayHistory(projectId, currentDay, 2, 20); // Last 2 days
-    const multiDaySummary = getMultiDaySummary(projectId, currentDay, 2);
     const previousDaysContext = getPreviousDaysContext(projectId, currentDay);
+    const multiDaySummary = getMultiDaySummary(projectId, currentDay, 2);
     
-    // 5. Generate enhanced conversation summary with task extraction
-    const enhancedConversationSummary = generateConversationSummary(projectId, currentDay);
+    console.log(`[ContextService] ✅ Memory-based conversation context:`);
+    console.log(`[ContextService]    - Current day messages: ${conversationHistory.length}`);
+    console.log(`[ContextService]    - Previous days context: ${previousDaysContext.length}`);
     
-    // 4. Organize tasks by assignee
+    const conversationSummary = conversationHistory.length > 0 
+      ? conversationHistory.map(msg => `${msg.senderName || 'Unknown'}: ${msg.content || ''}`).join('\n')
+      : 'No conversation history yet.';
+    
+    // Multi-day context includes previous days
+    const multiDayHistory = [...previousDaysContext, ...conversationHistory];
+    
+    // Enhanced conversation summary
+    const enhancedConversationSummary = {
+      potentialTasks: [],
+      actionItems: [],
+      keyTopics: []
+    };
+    
+    // 4. Organize tasks by assignee (enhanced with memory)
     const tasksByAssignee = organizeTasksByAssignee(projectData.tasks);
+    
+    // Get additional task context from memory
+    const memoryTasks = getProjectTasks(projectId);
+    const memoryProjectInfo = getProjectInfo(projectId);
+    const formattedTasksForAI = formatTasksFromMemory(projectId);
+    
+    console.log(`[ContextService] ✅ Task memory context:`);
+    console.log(`[ContextService]    - Memory tasks: ${memoryTasks.length}`);
+    console.log(`[ContextService]    - Memory project: ${memoryProjectInfo.title || 'Unknown'}`);
+    console.log(`[ContextService]    - Formatted for AI: ${formattedTasksForAI.length} chars`);
     
     // Debug logging for tasks
     console.log(`[ContextService] Project ${projectId} - Total tasks: ${projectData.tasks.length}`);
@@ -129,7 +134,8 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
       alexAvailable: AI_AGENTS.alex?.activeDays?.includes(currentDay) || false,
       
       // Formatted summaries for AI prompts
-      formattedTasks: formatTasksForAI(projectId),
+      formattedTasks: formatTasksForAI(projectData.tasks),
+      memoryFormattedTasks: formattedTasksForAI, // Enhanced memory-based task formatting
       taskSummary: buildTaskSummary(projectData.tasks),
       assignmentSummary: buildAssignmentSummary(tasksByAssignee, agentId)
     };
@@ -149,9 +155,6 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
         console.log(`[ContextService]    ${idx + 1}. [${task.status || 'todo'}] ${task.title || task.text} -> ${task.assignedTo || 'unassigned'}`);
       });
     }
-    
-    // Cache the context for quick access
-    storeDailyContext(projectId, currentDay, context);
     
     return context;
     
@@ -317,6 +320,59 @@ function buildAssignmentSummary(tasksByAssignee, agentId) {
 }
 
 /**
+ * Format tasks for AI context
+ * @param {Array} tasks - Array of task objects
+ * @returns {string} Formatted task list for AI context
+ */
+function formatTasksForAI(tasks) {
+  if (!tasks || tasks.length === 0) {
+    return 'TASKS: No specific tasks have been defined for this project yet.';
+  }
+  
+  const tasksByStatus = {
+    todo: [],
+    inprogress: [],
+    review: [],
+    done: []
+  };
+  
+  // Group tasks by status
+  tasks.forEach(task => {
+    const status = task.status?.toLowerCase().replace(/[\s-]/g, '') || 'todo';
+    if (tasksByStatus[status]) {
+      tasksByStatus[status].push(task);
+    } else {
+      tasksByStatus.todo.push(task);
+    }
+  });
+  
+  // Format tasks by status
+  let formattedTasks = 'TASKS:\n';
+  
+  if (tasksByStatus.todo.length > 0) {
+    formattedTasks += '📋 To Do:\n' + 
+      tasksByStatus.todo.map(t => `- ${t.text || t.description || t.title}`).join('\n') + '\n\n';
+  }
+  
+  if (tasksByStatus.inprogress.length > 0) {
+    formattedTasks += '🔄 In Progress:\n' + 
+      tasksByStatus.inprogress.map(t => `- ${t.text || t.description || t.title}`).join('\n') + '\n\n';
+  }
+  
+  if (tasksByStatus.review.length > 0) {
+    formattedTasks += '👀 In Review:\n' + 
+      tasksByStatus.review.map(t => `- ${t.text || t.description || t.title}`).join('\n') + '\n\n';
+  }
+  
+  if (tasksByStatus.done.length > 0) {
+    formattedTasks += '✅ Done:\n' + 
+      tasksByStatus.done.map(t => `- ${t.text || t.description || t.title}`).join('\n') + '\n\n';
+  }
+  
+  return formattedTasks;
+}
+
+/**
  * Build empty context when project data is not available
  * @param {string} agentId - Agent ID
  * @param {number} currentDay - Current day
@@ -439,12 +495,18 @@ When responding:
 - Don't pretend to have expertise outside your assigned tasks
 - If asked about something unrelated to your tasks, offer to help or suggest who might know better`;
   
+  // Add memory-based task context if available
+  let memoryTasksSection = '';
+  if (context.memoryFormattedTasks && context.memoryFormattedTasks.length > 50) {
+    memoryTasksSection = `\n📋 PROJECT TASK OVERVIEW (from memory):\n${context.memoryFormattedTasks}\n`;
+  }
+
   return `
 ${taskFocusedPrompt}
 
 Team Members: ${teammateList}
 ${context.alexAvailable ? '' : '(Alex is only available on Days 1, 3, 6)'}
-${myTasksSection}${projectStatusSection}${previousDaysSection}${insightsSection}
+${myTasksSection}${projectStatusSection}${memoryTasksSection}${previousDaysSection}${insightsSection}
 Recent conversation:
 ${context.conversationSummary}
 

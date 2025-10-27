@@ -1,7 +1,8 @@
 // src/components/ContributionTracker.jsx
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
-import { AI_TEAMMATES } from '../utils/teammateConfig.js';
+import { auth, serverFirebaseAvailable } from '../../firebase';
+import { getAIAgents } from '../services/aiAgentsService.js';
 import '../styles/ContributionTracker.css';
 
 import BrownAvatar from '../images/Brown.png';
@@ -29,6 +30,23 @@ export default function ContributionTracker({ projectId, showContributions = tru
   const [contributions, setContributions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalContribution, setTotalContribution] = useState(0);
+  const [aiAgents, setAiAgents] = useState({ AI_TEAMMATES: {} });
+  const [agentsLoaded, setAgentsLoaded] = useState(false);
+
+  // Load AI agents on mount
+  useEffect(() => {
+    const loadAIAgents = async () => {
+      try {
+        const agents = await getAIAgents();
+        setAiAgents(agents);
+        setAgentsLoaded(true);
+      } catch (error) {
+        console.error('Error loading AI agents:', error);
+        setAgentsLoaded(true); // Still set to true to prevent infinite loading
+      }
+    };
+    loadAIAgents();
+  }, []);
   const [showDetails, setShowDetails] = useState(false);
 
 
@@ -79,13 +97,25 @@ export default function ContributionTracker({ projectId, showContributions = tru
   // Utility to get token
   async function getIdTokenSafely() {
     try {
-      const { getAuth } = await import("firebase/auth");
-      const auth = getAuth();
-      if (auth && auth.currentUser) {
-        return await auth.currentUser.getIdToken();
+      if (serverFirebaseAvailable) {
+        if (auth && auth.currentUser) {
+          return await auth.currentUser.getIdToken();
+        }
+      } else {
+        // Fallback to localStorage token
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        const currentUser = storedUser ? JSON.parse(storedUser) : null;
+        if (currentUser) {
+          return `mock-token-${currentUser.uid}-${Date.now()}`;
+        }
       }
     } catch (err) {
-      // ignore; return null
+      // Fallback to localStorage token on error
+      const storedUser = localStorage.getItem('__localStorage_current_user__');
+      const currentUser = storedUser ? JSON.parse(storedUser) : null;
+      if (currentUser) {
+        return `mock-token-${currentUser.uid}-${Date.now()}`;
+      }
     }
     return null;
   }
@@ -102,7 +132,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
     }
     
     // Check if member matches any AI teammate by name and get their avatar
-    const aiAgent = Object.values(AI_TEAMMATES).find(agent => agent.name === member.name);
+    const aiAgent = Object.values(aiAgents.AI_TEAMMATES || {}).find(agent => agent.name === member.name);
     if (aiAgent) {
       // Use the avatar from the AI agent configuration
       const avatarSrc = avatarMap[aiAgent.name.toLowerCase()];
@@ -128,7 +158,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
     }
     
     // Fallback to AI teammate color lookup
-    const aiAgent = Object.values(AI_TEAMMATES).find(agent => agent.name === member.name);
+    const aiAgent = Object.values(aiAgents.AI_TEAMMATES || {}).find(agent => agent.name === member.name);
     if (aiAgent) {
       return aiAgent.color;
     }
@@ -142,7 +172,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
     return null;
   }
 
-  if (isLoading) {
+  if (isLoading || !agentsLoaded) {
     return (
       <div className="contribution-tracker-container">
         <div className="loading-state">Loading contributions...</div>

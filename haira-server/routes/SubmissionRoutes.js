@@ -3,9 +3,8 @@ import {
     updateUserProject,
     ensureProjectExists,
     updateDocument,
-    getDocumentById,
-    getSubdocuments
-} from '../services/firebaseService.js';
+    getDocumentById
+} from '../services/databaseService.js';
 import { COLLECTIONS } from '../schema/database.js';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
 
@@ -26,6 +25,144 @@ import {
 
 
 const router = express.Router()
+
+
+/**
+ * Parses the raw string response from the AI model into a JSON object.
+ * It cleans up common markdown formatting like ```json and handles parsing errors.
+ * @param {string} aiResponse - The raw string response from the Gemini API.
+ * @returns {object} The parsed JSON object or an error object if parsing fails.
+ */
+function parseAIResponseToJson(aiResponse) {
+  try {
+    // Remove markdown code fences (```json, ```) and trim whitespace
+    const cleanedJsonString = aiResponse
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim();
+    
+    return JSON.parse(cleanedJsonString);
+  } catch (parseError) {
+    console.error("[AI PARSE ERROR] Failed to parse AI response:", aiResponse);
+    // Return a default error structure that matches the expected grade format
+    return { 
+        error: 'Invalid AI response format', 
+        raw: aiResponse,
+        overall: 0,
+        workPercentage: 0,
+        responsiveness: 0,
+        reportQuality: 0,
+        feedback: "Critical Error: Failed to get AI Response"
+    };
+  }
+}
+
+// This is to clean AI output from gemini
+function cleanAIResponse(text) {
+    if (!text) return '';
+    return text
+      .replace(/```[\s\S]*?```/g, (match) => {
+        // If it's a fenced code block, strip the fences but keep inner text
+        return match.replace(/```[a-zA-Z]*\n?/, '').replace(/```$/, '');
+      })
+      .replace(/^```[a-zA-Z]*\s*/gm, '') // remove starting ```html or ```json
+      .replace(/```$/gm, '') // remove ending ```
+      .trim();
+}
+
+function convertMarkdownToHTML(markdown) {
+    if (!markdown) return '';
+    
+    return markdown
+        // Convert headers first
+        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+        // Convert bold text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        // Convert italic text
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        // Convert numbered lists
+        .replace(/^\d+\.\s+(.*)$/gm, '<li>$1</li>')
+        // Convert bullet points
+        .replace(/^[-*]\s+(.*)$/gm, '<li>$1</li>')
+        // Wrap consecutive list items in ul/ol tags
+        .replace(/(<li>.*<\/li>)/gs, (match) => {
+            const lines = match.split('\n');
+            const listItems = lines.filter(line => line.trim().startsWith('<li>'));
+            if (listItems.length > 0) {
+                const isNumbered = lines.some(line => /^\d+\./.test(line.trim()));
+                const tag = isNumbered ? 'ol' : 'ul';
+                return `<${tag}>${listItems.join('')}</${tag}>`;
+            }
+            return match;
+        })
+        // Convert double line breaks to paragraph breaks
+        .replace(/\n\n/g, '</p><p>')
+        // Wrap text blocks in paragraphs (but not headers or lists)
+        .replace(/^(?!<[h1-6]|<[uo]l|<li)(.*)$/gm, (match, content) => {
+            if (content.trim() === '') return '';
+            return `<p>${content}</p>`;
+        })
+        // Clean up empty paragraphs and fix paragraph wrapping around headers
+        .replace(/<p><\/p>/g, '')
+        .replace(/<p>\s*<\/p>/g, '')
+        .replace(/<p>(<h[1-6]>.*<\/h[1-6]>)<\/p>/g, '$1')
+        .replace(/<p><\/p>/g, '');
+}
+
+function convertMarkdownToPlainText(markdown) {
+    if (!markdown) return '';
+    return markdown
+      .replace(/^#{1,6}\s+(.*)$/gm, '$1')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/^\d+\.\s+(.*)$/gm, '• $1')
+      .replace(/^[-*]\s+(.*)$/gm, '• $1')
+      .replace(/\n\s*\n/g, '\n\n')
+      .trim();
+}
+  
+// Generate AI-specific completion messages
+async function generateCompletionMessage(aiType, taskType) {
+    // Get the correct AI teammate
+    let aiTeammate;
+    if (['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'].includes(aiType)) {
+        aiTeammate = AI_TEAMMATES[aiType];
+    } else if (aiType === 'ai_manager') {
+        aiTeammate = AI_TEAMMATES.rasoa; // Legacy ai_manager maps to rasoa
+    } else if (aiType === 'ai_helper') {
+        aiTeammate = AI_TEAMMATES.rakoto; // Legacy ai_helper maps to rakoto
+    } else {
+        aiTeammate = AI_TEAMMATES.rasoa; // Default fallback
+    }
+    
+    const completionPrompts = {
+        write: `Generate a short, casual completion message (1-2 sentences max) for when you finish writing a section. Be true to your personality: ${aiTeammate.personality}. Make it sound natural and in character.`,
+        review: `Generate a short, casual completion message (1-2 sentences max) for when you finish reviewing content. Be true to your personality: ${aiTeammate.personality}. Make it sound natural and in character.`,
+        suggest: `Generate a short, casual completion message (1-2 sentences max) for when you finish suggesting improvements. Be true to your personality: ${aiTeammate.personality}. Make it sound natural and in character.`
+    };
+    
+    const prompt = completionPrompts[taskType] || completionPrompts.write;
+    
+    try {
+        // Create proper config object from teammate properties
+        const config = {
+            max_tokens: aiTeammate.maxTokens || 500,
+            temperature: aiTeammate.temperature || 0.7
+        };
+        
+        const systemInstruction = `You are ${aiTeammate.name}, ${aiTeammate.role}. ${aiTeammate.personality}`;
+        
+        const aiResponse = await generateAIContribution(prompt, config, systemInstruction);
+        return cleanAIResponse(aiResponse);
+    } catch (error) {
+        console.error('Error generating completion message:', error);
+        // Fallback to default messages
+        return aiType === 'ai_manager' ? '✅ Done — anything else to assign?' : '😴 I did something… kind of.';
+    }
+}
+
 
 
 // Get submission page data (including draft content)
@@ -259,6 +396,8 @@ Respond with JSON format:
 }
 `;
         const proofreadContext = `You are a grammar expert. Provide clear, helpful corrections.`;
+        
+        let aiResponse;
         try {
             console.log('🚀 Making Gemini API call...');
             aiResponse = await callGemini(grammarPrompt, proofreadContext);
@@ -315,6 +454,8 @@ Respond with JSON format:
 `;
 
         const summarizeContext ="You are a summarization expert. Create concise, accurate summaries.";
+        
+        let aiResponse;
         try {
             console.log('🚀 Making Gemini API call...');
             aiResponse = await callGemini(summaryPrompt, summarizeContext);
@@ -472,8 +613,7 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
         await ensureProjectExists(id, userId);
         
         // Get project data to fetch the actual project title
-        const projectDoc = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
-        const projectInfo = projectDoc.data();
+        const projectInfo = await getDocumentById('userProjects', id);
         const actualProjectTitle = projectInfo?.title || 'the project';
         
         // Map agent IDs to correct teammates (support legacy IDs)
@@ -599,8 +739,7 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         await ensureProjectExists(id, userId);
         
         // Get project data to fetch the actual project title
-        const projectDoc = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
-        const projectInfo = projectDoc.data();
+        const projectInfo = await getDocumentById('userProjects', id);
         const actualProjectTitle = projectInfo?.title || 'the project';
         
         // Map agent IDs to correct teammates (support legacy IDs)
@@ -626,6 +765,7 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         // const aiResponse = await generateAIContribution(taskPrompt, aiConfig, reviewContext);
         const reviewContext = `You are ${aiTeammate.name}, a ${aiTeammate.role}. ${aiTeammate.personality}`;
 
+        let aiResponse;
         try {
             console.log('🚀 Making AI call with centralized service...');
             aiResponse = await generateAIContribution(taskPrompt, aiConfig, reviewContext);
@@ -701,8 +841,7 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         await ensureProjectExists(id, userId);
         
         // Get project data to fetch the actual project title
-        const projectDoc = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
-        const projectInfo = projectDoc.data();
+        const projectInfo = await getDocumentById('userProjects', id);
         const actualProjectTitle = projectInfo?.title || 'the project';
         
         // Map agent IDs to correct teammates (support legacy IDs)
@@ -728,6 +867,7 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         // const aiResponse = await generateAIContribution(taskPrompt, aiConfig, suggestionContext);
         const suggestionContext = `You are ${aiTeammate.name}, a ${aiTeammate.role}. ${aiTeammate.personality}`;
         
+        let aiResponse;
         try {
             console.log('🚀 Making AI call with centralized service...');
             aiResponse = await generateAIContribution(taskPrompt, aiConfig, suggestionContext);

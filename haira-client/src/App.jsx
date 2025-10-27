@@ -1,6 +1,6 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { auth, db, serverFirebaseAvailable } from '../firebase';
 import Home from './pages/Home';
 import TopBar from './components/TopBar';
 import Profile from './pages/Profile';
@@ -25,21 +25,142 @@ export function useAuth() {
 function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const auth = getAuth();
+  const [storageMode, setStorageMode] = useState('firebase');
 
   useEffect(() => {
-    // Subscribe to auth state changes
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setLoading(false);
-    });
+    const initializeAuth = () => {
+      // Check if server has Firebase available
+      if (serverFirebaseAvailable) {
+        // Use Firebase auth
+        setStorageMode('firebase');
+        console.log('🔥 Using Firebase authentication');
+        
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+          setCurrentUser(user);
+          setLoading(false);
+        });
+        return unsubscribe;
+      } else {
+        // Use localStorage fallback
+        setStorageMode('localStorage');
+        console.log('💾 Using localStorage fallback for authentication');
+        
+        // Check localStorage for existing user
+        const checkLocalStorageUser = () => {
+          try {
+            const storedUser = localStorage.getItem('__localStorage_current_user__');
+            if (storedUser) {
+              const userData = JSON.parse(storedUser);
+              // Create a mock user object that matches Firebase user structure
+              const mockUser = {
+                uid: userData.uid,
+                email: userData.email,
+                displayName: userData.displayName,
+                photoURL: userData.photoURL,
+                emailVerified: true,
+                isAnonymous: false,
+                getIdToken: async () => `mock-token-${userData.uid}-${Date.now()}`,
+                getIdTokenResult: async () => ({
+                  token: `mock-token-${userData.uid}-${Date.now()}`,
+                  authTime: Date.now(),
+                  issuedAtTime: Date.now(),
+                  expirationTime: Date.now() + (60 * 60 * 1000),
+                  signInProvider: 'local',
+                  signInSecondFactor: null,
+                  claims: {
+                    aud: 'local',
+                    auth_time: Math.floor(Date.now() / 1000),
+                    exp: Math.floor((Date.now() + (60 * 60 * 1000)) / 1000),
+                    iat: Math.floor(Date.now() / 1000),
+                    iss: 'local',
+                    sub: userData.uid
+                  }
+                })
+              };
+              return mockUser;
+            }
+            
+            // AUTO-LOGIN: If no user exists in localStorage, create default test user
+            console.log('💾 No user found - auto-creating test user');
+            const defaultUser = {
+              uid: 'test-user',
+              email: 'hello@test.com',
+              displayName: 'Test User',
+              photoURL: null
+            };
+            localStorage.setItem('__localStorage_current_user__', JSON.stringify(defaultUser));
+            
+            const mockUser = {
+              uid: defaultUser.uid,
+              email: defaultUser.email,
+              displayName: defaultUser.displayName,
+              photoURL: defaultUser.photoURL,
+              emailVerified: true,
+              isAnonymous: false,
+              getIdToken: async () => `mock-token-${defaultUser.uid}-${Date.now()}`,
+              getIdTokenResult: async () => ({
+                token: `mock-token-${defaultUser.uid}-${Date.now()}`,
+                authTime: Date.now(),
+                issuedAtTime: Date.now(),
+                expirationTime: Date.now() + (60 * 60 * 1000),
+                signInProvider: 'local',
+                signInSecondFactor: null,
+                claims: {
+                  aud: 'local',
+                  auth_time: Math.floor(Date.now() / 1000),
+                  exp: Math.floor((Date.now() + (60 * 60 * 1000)) / 1000),
+                  iat: Math.floor(Date.now() / 1000),
+                  iss: 'local',
+                  sub: defaultUser.uid
+                }
+              })
+            };
+            return mockUser;
+          } catch (error) {
+            console.error('Error reading from localStorage:', error);
+            return null;
+          }
+        };
+        
+        // Set up localStorage listener
+        const handleStorageChange = (e) => {
+          if (e.key === '__localStorage_current_user__') {
+            const user = checkLocalStorageUser();
+            setCurrentUser(user);
+          }
+        };
+        
+        // Set up custom event listener for same-tab changes
+        const handleAuthChange = () => {
+          const user = checkLocalStorageUser();
+          setCurrentUser(user);
+        };
+        
+        // Initial check
+        const user = checkLocalStorageUser();
+        setCurrentUser(user);
+        setLoading(false);
+        
+        // Listen for changes
+        window.addEventListener('storage', handleStorageChange);
+        window.addEventListener('localStorageAuthChange', handleAuthChange);
+        
+        // Return cleanup function
+        return () => {
+          window.removeEventListener('storage', handleStorageChange);
+          window.removeEventListener('localStorageAuthChange', handleAuthChange);
+        };
+      }
+    };
 
+    const unsubscribe = initializeAuth();
     return unsubscribe; // Unsubscribe on cleanup
-  }, [auth]);
+  }, []);
 
   const value = {
     currentUser,
-    isAuthenticated: !!currentUser
+    isAuthenticated: !!currentUser,
+    storageMode
   };
 
   return (
@@ -51,16 +172,23 @@ function AuthProvider({ children }) {
 
 // Protected route component
 function ProtectedRoute({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, storageMode } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
+    // If using localStorage (no Firebase), auto-login is enabled - allow access
+    if (storageMode === 'localStorage') {
+      return; // Skip authentication check
+    }
+    
+    // If using Firebase, require authentication
     if (!isAuthenticated) {
       navigate('/login');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, storageMode, navigate]);
 
-  return isAuthenticated ? children : null;
+  // Allow access if localStorage mode OR authenticated
+  return (storageMode === 'localStorage' || isAuthenticated) ? children : null;
 }
 
 function App() {

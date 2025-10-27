@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
 import { AI_TEAMMATES } from '../utils/teammateConfig.js';
+import React, { useState, useEffect } from 'react';
+import { getAIAgents } from '../services/aiAgentsService.js';
 import '../styles/TaskAssignmentModal.css';
 
 // Import agent avatars
