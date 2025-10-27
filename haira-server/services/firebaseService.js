@@ -429,7 +429,7 @@ export async function addTasks(projectId, userId, projectTitle, status, delivera
     );
 
     newDeliverable = newDeliverable.toFirestore();
-    return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'tasks', newDeliverable);
+    return addSubdocument(COLLECTIONS.USER_PROJECTS, projectId, 'tasks', null, newDeliverable);
   });
 
   const results = await Promise.all(promises);

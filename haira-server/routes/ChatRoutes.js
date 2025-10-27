@@ -25,11 +25,9 @@ import {
   updateDocument,
   queryDocuments
 } from '../services/databaseService.js';
-import * as localStorageService from '../services/localStorageService.js';
 import { getProjectDay } from '../utils/chatUtils.js';
 
 const router = express.Router();
-const isLocalMode = !firebaseAvailable; // true when using localStorage, false when using Firebase
 
 // Handle FieldValue for Firebase operations
 const getFieldValue = () => {

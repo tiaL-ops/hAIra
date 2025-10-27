@@ -10,6 +10,25 @@ import '../styles/Kanban.css';
 
 const backend_host = "http://localhost:3002";
 
+// Helper function to retry axios requests on network errors
+const axiosWithRetry = async (config, maxRetries = 3, delay = 1000) => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await axios(config);
+    } catch (error) {
+      const isLastRetry = i === maxRetries - 1;
+      const isNetworkError = error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED';
+      
+      if (isNetworkError && !isLastRetry) {
+        console.log(`[Retry ${i + 1}/${maxRetries}] Network error, retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+};
+
 function Kanban() {
     const { id } = useParams();
     const { currentUser } = useAuth();
@@ -45,10 +64,13 @@ function Kanban() {
             token = `mock-token-${currentUser.uid}-${Date.now()}`;
           }
           
-          const response = await axios.get(`${backend_host}/api/project/${id}/kanban`, {
+          const response = await axiosWithRetry({
+              method: 'get',
+              url: `${backend_host}/api/project/${id}/kanban`,
               headers: {
                   'Authorization': `Bearer ${token}`
-              }
+              },
+              timeout: 10000
           });
 
           if (response.data.project) {
@@ -87,17 +109,17 @@ function Kanban() {
               token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
             }
 
-            const response = await axios.post(
-                `${backend_host}/api/project/kanban/generate`,
-                {
-          title: projTitle,
+            const response = await axiosWithRetry({
+                method: 'post',
+                url: `${backend_host}/api/project/kanban/generate`,
+                data: {
+                    title: projTitle,
                 },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                }
-            );
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                timeout: 10000
+            });
 
             setDeliverables(response.data.deliverables);
             setShowReviewModal(true); // Show modal instead of just displaying deliverables
@@ -129,18 +151,18 @@ function Kanban() {
         console.log('[Kanban] Saving tasks:', tasksToSave);
         console.log('[Kanban] Project title:', projectData.title);
         
-        const response = await axios.post(
-          `${backend_host}/api/project/${id}/kanban`,
-          {
+        const response = await axiosWithRetry({
+          method: 'post',
+          url: `${backend_host}/api/project/${id}/kanban`,
+          data: {
             title: projectData.title,
             deliverables: tasksToSave
           },
-          {
-              headers: {
-                  'Authorization': `Bearer ${token}`
-              }
-          }
-        );
+          headers: {
+              'Authorization': `Bearer ${token}`
+          },
+          timeout: 10000
+        });
 
         if (!response.data.success)
           throw new Error('data could not be stored to database')
