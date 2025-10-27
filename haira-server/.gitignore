@@ -1,5 +1,8 @@
 node_modules
 .env
+.env.local
+.env.production
+.env.production.local
 config/serviceAccountKey.json
-.env
+config/serviceAccountKeyProd.json
 local_data/
