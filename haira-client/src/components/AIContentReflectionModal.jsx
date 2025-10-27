@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import '../styles/AIContentReflectionModal.css';
 
+// Import agent avatars
+import BrownAvatar from '../images/Brown.png';
+import ElzaAvatar from '../images/Elza.png';
+import KatiAvatar from '../images/Kati.png';
+import SteveAvatar from '../images/Steve.png';
+import SamAvatar from '../images/Sam.png';
+import RasoaAvatar from '../images/Rasoa.png';
+import RakotoAvatar from '../images/Rakoto.png';
+
 function AIContentReflectionModal({ 
   isOpen, 
   aiContent, 
@@ -14,6 +23,39 @@ function AIContentReflectionModal({
   const [error, setError] = useState('');
   const [showModifyArea, setShowModifyArea] = useState(false);
   const [modifiedContent, setModifiedContent] = useState('');
+
+  // Avatar mapping
+  const avatarMap = {
+    brown: BrownAvatar,
+    elza: ElzaAvatar,
+    kati: KatiAvatar,
+    steve: SteveAvatar,
+    sam: SamAvatar,
+    rasoa: RasoaAvatar,
+    rakoto: RakotoAvatar
+  };
+
+  // Get appropriate avatar for AI teammate
+  const getAIAvatar = (teammate) => {
+    const avatarSrc = avatarMap[teammate?.id];
+    if (avatarSrc) {
+      return (
+        <img 
+          src={avatarSrc} 
+          alt={teammate?.name || 'AI Teammate'}
+          className="avatar-image"
+          style={{ 
+            width: '100%', 
+            height: '100%', 
+            borderRadius: '50%',
+            objectFit: 'cover'
+          }}
+        />
+      );
+    }
+    // Fallback to emoji if no image found
+    return <span className="avatar-emoji">{teammate?.avatar || teammate?.emoji || '🤖'}</span>;
+  };
 
   const handleModifyClick = () => {
     setShowModifyArea(true);
@@ -76,15 +118,7 @@ function AIContentReflectionModal({
           <div className="ai-completion-message">
             <div className="completion-avatar-section">
               <div className="completion-avatar">
-                {aiTeammate?.avatar?.startsWith('http') ? (
-                  <img 
-                    src={aiTeammate.avatar} 
-                    alt={aiTeammate?.name} 
-                    className="avatar-image"
-                  />
-                ) : (
-                  <span className="avatar-emoji">{aiTeammate?.avatar || '🤖'}</span>
-                )}
+                {getAIAvatar(aiTeammate)}
               </div>
               <span className="ai-name">{aiTeammate?.name}</span>
             </div>
