@@ -1,5 +1,4 @@
 import express from 'express'
-import admin from 'firebase-admin';
 import { 
     updateUserProject,
     ensureProjectExists,
@@ -12,154 +11,21 @@ import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
 
 import { 
     generateGradeResponse,
-    generateAIResponse,
-    generateAIContribution
+    generateAIContribution,
+    generateCompletionMessage
 } from '../services/aiService.js';
-import { AI_TEAMMATES, TASK_TYPES } from '../config/aiAgents.js';
+import { AI_TEAMMATES } from '../config/aiAgents.js';
 import { AIGradingService } from '../services/aiGradingService.js';
 import { getTeammates } from '../services/teammateService.js';
+import { 
+    convertMarkdownToHTML,
+    convertMarkdownToPlainText ,
+    cleanAIResponse,
+    parseAIResponseToJson
+} from '../utils/editorTextUtils.js';
 
 
 const router = express.Router()
-const db = admin.firestore();
-
-
-/**
- * Parses the raw string response from the AI model into a JSON object.
- * It cleans up common markdown formatting like ```json and handles parsing errors.
- * @param {string} aiResponse - The raw string response from the Gemini API.
- * @returns {object} The parsed JSON object or an error object if parsing fails.
- */
-function parseAIResponseToJson(aiResponse) {
-  try {
-    // Remove markdown code fences (```json, ```) and trim whitespace
-    const cleanedJsonString = aiResponse
-      .replace(/```json/g, '')
-      .replace(/```/g, '')
-      .trim();
-    
-    return JSON.parse(cleanedJsonString);
-  } catch (parseError) {
-    console.error("[AI PARSE ERROR] Failed to parse AI response:", aiResponse);
-    // Return a default error structure that matches the expected grade format
-    return { 
-        error: 'Invalid AI response format', 
-        raw: aiResponse,
-        overall: 0,
-        workPercentage: 0,
-        responsiveness: 0,
-        reportQuality: 0,
-        feedback: "Critical Error: Failed to get AI Response"
-    };
-  }
-}
-
-// This is to clean AI output from gemini
-function cleanAIResponse(text) {
-    if (!text) return '';
-    return text
-      .replace(/```[\s\S]*?```/g, (match) => {
-        // If it's a fenced code block, strip the fences but keep inner text
-        return match.replace(/```[a-zA-Z]*\n?/, '').replace(/```$/, '');
-      })
-      .replace(/^```[a-zA-Z]*\s*/gm, '') // remove starting ```html or ```json
-      .replace(/```$/gm, '') // remove ending ```
-      .trim();
-}
-
-function convertMarkdownToHTML(markdown) {
-    if (!markdown) return '';
-    
-    return markdown
-        // Convert headers first
-        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-        // Convert bold text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        // Convert italic text
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        // Convert numbered lists
-        .replace(/^\d+\.\s+(.*)$/gm, '<li>$1</li>')
-        // Convert bullet points
-        .replace(/^[-*]\s+(.*)$/gm, '<li>$1</li>')
-        // Wrap consecutive list items in ul/ol tags
-        .replace(/(<li>.*<\/li>)/gs, (match) => {
-            const lines = match.split('\n');
-            const listItems = lines.filter(line => line.trim().startsWith('<li>'));
-            if (listItems.length > 0) {
-                const isNumbered = lines.some(line => /^\d+\./.test(line.trim()));
-                const tag = isNumbered ? 'ol' : 'ul';
-                return `<${tag}>${listItems.join('')}</${tag}>`;
-            }
-            return match;
-        })
-        // Convert double line breaks to paragraph breaks
-        .replace(/\n\n/g, '</p><p>')
-        // Wrap text blocks in paragraphs (but not headers or lists)
-        .replace(/^(?!<[h1-6]|<[uo]l|<li)(.*)$/gm, (match, content) => {
-            if (content.trim() === '') return '';
-            return `<p>${content}</p>`;
-        })
-        // Clean up empty paragraphs and fix paragraph wrapping around headers
-        .replace(/<p><\/p>/g, '')
-        .replace(/<p>\s*<\/p>/g, '')
-        .replace(/<p>(<h[1-6]>.*<\/h[1-6]>)<\/p>/g, '$1')
-        .replace(/<p><\/p>/g, '');
-}
-
-function convertMarkdownToPlainText(markdown) {
-    if (!markdown) return '';
-    return markdown
-      .replace(/^#{1,6}\s+(.*)$/gm, '$1')
-      .replace(/\*\*(.*?)\*\*/g, '$1')
-      .replace(/\*(.*?)\*/g, '$1')
-      .replace(/^\d+\.\s+(.*)$/gm, '• $1')
-      .replace(/^[-*]\s+(.*)$/gm, '• $1')
-      .replace(/\n\s*\n/g, '\n\n')
-      .trim();
-}
-  
-// Generate AI-specific completion messages
-async function generateCompletionMessage(aiType, taskType) {
-    // Get the correct AI teammate
-    let aiTeammate;
-    if (['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'].includes(aiType)) {
-        aiTeammate = AI_TEAMMATES[aiType];
-    } else if (aiType === 'ai_manager') {
-        aiTeammate = AI_TEAMMATES.rasoa; // Legacy ai_manager maps to rasoa
-    } else if (aiType === 'ai_helper') {
-        aiTeammate = AI_TEAMMATES.rakoto; // Legacy ai_helper maps to rakoto
-    } else {
-        aiTeammate = AI_TEAMMATES.rasoa; // Default fallback
-    }
-    
-    const completionPrompts = {
-        write: `Generate a short, casual completion message (1-2 sentences max) for when you finish writing a section. Be true to your personality: ${aiTeammate.personality}. Make it sound natural and in character.`,
-        review: `Generate a short, casual completion message (1-2 sentences max) for when you finish reviewing content. Be true to your personality: ${aiTeammate.personality}. Make it sound natural and in character.`,
-        suggest: `Generate a short, casual completion message (1-2 sentences max) for when you finish suggesting improvements. Be true to your personality: ${aiTeammate.personality}. Make it sound natural and in character.`
-    };
-    
-    const prompt = completionPrompts[taskType] || completionPrompts.write;
-    
-    try {
-        // Create proper config object from teammate properties
-        const config = {
-            max_tokens: aiTeammate.maxTokens || 500,
-            temperature: aiTeammate.temperature || 0.7
-        };
-        
-        const systemInstruction = `You are ${aiTeammate.name}, ${aiTeammate.role}. ${aiTeammate.personality}`;
-        
-        const aiResponse = await generateAIContribution(prompt, config, systemInstruction);
-        return cleanAIResponse(aiResponse);
-    } catch (error) {
-        console.error('Error generating completion message:', error);
-        // Fallback to default messages
-        return aiType === 'ai_manager' ? '✅ Done — anything else to assign?' : '😴 I did something… kind of.';
-    }
-}
-
 
 
 // Get submission page data (including draft content)
@@ -482,49 +348,6 @@ Respond with JSON format:
 });
 
 
-// AI Reflection endpoint
-router.post('/:id/ai/reflect', verifyFirebaseToken, async (req, res) => {
-    const { content } = req.body;
-    
-    if (!content) {
-        return res.status(400).json({ error: 'Content is required' });
-    }
-
-    try {
-        const reflectionPrompt = `
-Analyze this project report and generate a thoughtful reflection. Focus on:
-- Lessons learned from the project
-- Challenges faced and how they were overcome
-- Skills developed or improved
-- Areas for future improvement
-- Key insights gained
-- What you would do differently next time
-
-Text: ${content}
-
-Respond with a comprehensive reflection in paragraph format that shows deep thinking about the project experience.
-`;
-
-        const aiResponse = await generateAIResponse(reflectionPrompt, "You are an educational mentor. Generate insightful, personal reflections that help students learn from their project experience.");
-        
-        // For reflection, we expect plain text, not JSON
-        // Clean up the response but don't try to parse as JSON
-        const cleanedReflection = aiResponse.trim();
-
-        res.json({
-            success: true,
-            reflection: cleanedReflection,
-            result: cleanedReflection
-        });
-
-    } catch (err) {
-        console.error('Reflection error:', err);
-        res.status(500).json({ 
-            success: false,
-            error: err.message 
-        });
-    }
-});
 
 // Get submission results
 router.get('/:id/submission/results', verifyFirebaseToken, async (req, res) => {
@@ -565,6 +388,7 @@ router.get('/:id/submission/results', verifyFirebaseToken, async (req, res) => {
 });
 
 
+// AI Grade Submission endpoint
 router.post('/:id/submission', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;
     const { content } = req.body;
@@ -648,7 +472,7 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
         await ensureProjectExists(id, userId);
         
         // Get project data to fetch the actual project title
-        const projectDoc = await db.collection('userProjects').doc(id).get();
+        const projectDoc = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
         const projectInfo = projectDoc.data();
         const actualProjectTitle = projectInfo?.title || 'the project';
         
@@ -775,7 +599,7 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         await ensureProjectExists(id, userId);
         
         // Get project data to fetch the actual project title
-        const projectDoc = await db.collection('userProjects').doc(id).get();
+        const projectDoc = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
         const projectInfo = projectDoc.data();
         const actualProjectTitle = projectInfo?.title || 'the project';
         
@@ -795,7 +619,7 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
             .replace('{reportContent}', currentContent || 'No content available');
         
         const aiConfig = {
-            max_tokens: 600,
+            max_tokens: 60,
             temperature: 0.7
         };
         
@@ -877,7 +701,7 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         await ensureProjectExists(id, userId);
         
         // Get project data to fetch the actual project title
-        const projectDoc = await db.collection('userProjects').doc(id).get();
+        const projectDoc = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
         const projectInfo = projectDoc.data();
         const actualProjectTitle = projectInfo?.title || 'the project';
         
@@ -897,7 +721,7 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
             .replace('{reportContent}', currentContent || 'No content available');
         
         const aiConfig = {
-            max_tokens: 500,
+            max_tokens: 50,
             temperature: 0.7
         };
         
@@ -951,247 +775,6 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
 });
 
 
-// Get word contributions
-router.get('/:id/word-contributions', verifyFirebaseToken, async (req, res) => {
-    try {
-        const { id: projectId } = req.params;
-        const userId = req.user.uid;
-
-        // Ensure project exists
-        await ensureProjectExists(projectId, userId);
-
-        // Get project data
-        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
-        if (!projectData) {
-            return res.status(404).json({ error: 'Project not found' });
-        }
-
-        // Initialize wordContributions if it doesn't exist
-        let wordContributions = projectData.wordContributions || {
-            user: { words: 0, percentage: 0 }
-        };
-        
-        // Ensure all current AI teammates are initialized
-        const currentAgents = ['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'];
-        currentAgents.forEach(agentId => {
-            if (!wordContributions[agentId]) {
-                wordContributions[agentId] = { words: 0, percentage: 0 };
-            }
-        });
-
-        // Calculate current percentages
-        let totalWords = wordContributions.user.words;
-        currentAgents.forEach(agentId => {
-            totalWords += (wordContributions[agentId]?.words || 0);
-        });
-        
-        if (totalWords > 0) {
-            wordContributions.user.percentage = Math.round((wordContributions.user.words / totalWords) * 100 * 100) / 100;
-            currentAgents.forEach(agentId => {
-                if (wordContributions[agentId]) {
-                    wordContributions[agentId].percentage = Math.round((wordContributions[agentId].words / totalWords) * 100 * 100) / 100;
-                }
-            });
-        }
-
-        res.json({
-            success: true,
-            wordContributions: wordContributions,
-            totalWords: totalWords
-        });
-
-    } catch (error) {
-        console.error('Error getting word contributions:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
-    }
-});
-
-// Calculate user word count from final report content
-router.post('/:id/word-contributions/calculate-user', verifyFirebaseToken, async (req, res) => {
-    try {
-        const { id: projectId } = req.params;
-        const { content } = req.body;
-        const userId = req.user.uid;
-
-        console.log('Calculating user word count from content');
-
-        // Ensure project exists
-        await ensureProjectExists(projectId, userId);
-
-        // Get current project data
-        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
-        if (!projectData) {
-            return res.status(404).json({ error: 'Project not found' });
-        }
-
-        // Calculate user word count by removing AI contributions
-        let userContent = content || '';
-        
-        // Remove AI contribution patterns
-        // Pattern 1: [AI Name - AI Role]: content
-        userContent = userContent.replace(/\[(Brown|Elza|Kati|Steve|Sam|Rasoa|Rakoto)\s*-\s*[^\]]*\]:[^[]*/g, '');
-        
-        // Pattern 2: Legacy AI contribution headers
-        userContent = userContent.replace(/<div class="ai-contribution-header"[^>]*>.*?<\/div>/gs, '');
-        userContent = userContent.replace(/\[Alex\][^<]*/g, '');
-        userContent = userContent.replace(/\[Sam\][^<]*/g, '');
-        
-        // Pattern 3: Remove AI emoji markers and their content
-        userContent = userContent.replace(/🧪[^✨]*✨/g, '');
-        userContent = userContent.replace(/✨[^🧪]*🧪/g, '');
-        
-        // Remove HTML tags for word counting
-        userContent = userContent.replace(/<[^>]*>/g, ' ');
-        
-        // Calculate word count
-        const userWordCount = userContent.trim().split(/\s+/).filter(word => word.length > 0).length;
-
-        // Get current word contributions
-        let wordContributions = projectData.wordContributions || {
-            user: { words: 0, percentage: 100 }
-        };
-        
-        // Get project teammates to determine which AI agents are participating
-        const projectTeammates = projectData.team || [];
-        const participatingAgents = projectTeammates
-            .filter(teammate => teammate.type === 'ai')
-            .map(teammate => teammate.id || teammate.name?.toLowerCase())
-            .filter(agentId => agentId);
-
-        // Ensure participating AI agents are initialized
-        participatingAgents.forEach(agentId => {
-            if (!wordContributions[agentId]) {
-                wordContributions[agentId] = { words: 0, percentage: 0 };
-            }
-        });
-
-        // Update user word count
-        wordContributions.user.words = userWordCount;
-
-        // Calculate total words and percentages
-        let totalWords = wordContributions.user.words;
-        participatingAgents.forEach(agentId => {
-            totalWords += (wordContributions[agentId]?.words || 0);
-        });
-        
-        if (totalWords > 0) {
-            wordContributions.user.percentage = Math.round((wordContributions.user.words / totalWords) * 100 * 100) / 100;
-            participatingAgents.forEach(agentId => {
-                if (wordContributions[agentId]) {
-                    wordContributions[agentId].percentage = Math.round((wordContributions[agentId].words / totalWords) * 100 * 100) / 100;
-                }
-            });
-        } else {
-            // Default to 100% human if no content yet
-            wordContributions.user.percentage = 100;
-            participatingAgents.forEach(agentId => {
-                if (wordContributions[agentId]) {
-                    wordContributions[agentId].percentage = 0;
-                }
-            });
-        }
-
-        // Save updated word contributions
-        await updateDocument(COLLECTIONS.USER_PROJECTS, projectId, {
-            wordContributions: wordContributions,
-            wordContributionsUpdatedAt: Date.now()
-        });
-
-        console.log(`Updated user word count: ${userWordCount} words`);
-
-        res.json({ 
-            success: true, 
-            message: 'User word count calculated successfully',
-            userWordCount: userWordCount,
-            wordContributions: wordContributions,
-            totalWords: totalWords
-        });
-
-    } catch (error) {
-        console.error('Error calculating user word count:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
-    }
-});
-
-// Get comments for a project
-router.get('/:id/comments', verifyFirebaseToken, async (req, res) => {
-    const { id } = req.params;
-    const userId = req.user.uid;
-  
-    try {
-      await ensureProjectExists(id, userId);
-      const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
-      
-      res.json({
-        comments: projectData.comments || [],
-        lastSaved: projectData.commentsLastSaved || null
-      });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-  
-  // Save comments for a project
-  router.post('/:id/comments', verifyFirebaseToken, async (req, res) => {
-    const { id } = req.params;
-    const { comments } = req.body;
-    const userId = req.user.uid;
-  
-    try {
-      await ensureProjectExists(id, userId);
-      
-      await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
-        comments: comments || [],
-        commentsLastSaved: Date.now()
-      });
-  
-      res.json({ success: true, savedAt: Date.now() });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-  
-  // Update a specific comment
-  router.put('/:id/comments/:commentId', verifyFirebaseToken, async (req, res) => {
-    const { id, commentId } = req.params;
-    const { text, resolved } = req.body;
-    const userId = req.user.uid;
-  
-    try {
-      await ensureProjectExists(id, userId);
-      const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
-      
-      const comments = projectData.comments || [];
-      const commentIndex = comments.findIndex(c => c.id === commentId);
-      
-      if (commentIndex === -1) {
-        return res.status(404).json({ error: 'Comment not found' });
-      }
-  
-      // Update comment
-      comments[commentIndex] = {
-        ...comments[commentIndex],
-        text: text !== undefined ? text : comments[commentIndex].text,
-        resolved: resolved !== undefined ? resolved : comments[commentIndex].resolved,
-        updatedAt: Date.now()
-      };
-  
-      await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
-        comments,
-        commentsLastSaved: Date.now()
-      });
-  
-      res.json({ success: true, comment: comments[commentIndex] });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
 
 
 // Get data-driven contributions based on existing project data
@@ -1373,10 +956,10 @@ function analyzeContributionsFromData(projectData) {
             percentage: Math.round(userPercentage * 100) / 100,
             color: "#4CAF50",
             details: {
-                tasksCompleted: `${completedUserTasks.length} done/${userTasks.length} assigned tasks`,
+                tasksCompleted: `${completedUserTasks.length} done/${userTasks.length} assigned`,
                 chatParticipation: `${userChatMessages.length} chats/${totalChatMessages} messages`,
-                completionRate: `${Math.round(userTaskCompletionRate)}% completed tasks / assigned tasks`,
-                chatRate: `${Math.round(userChatParticipation)}% chat participation`
+                completionRate: `${Math.round(userPercentage)}% of total completed tasks`,
+                chatRate: `${Math.round(userChatParticipation)}% of total chat participation`
             }
         }
     ];
@@ -1421,9 +1004,9 @@ function analyzeContributionsFromData(projectData) {
                 percentage: Math.round(individualPercentage * 100) / 100,
                 color: agent.color,
                 details: {
-                    tasksCompleted: `${taskData.completed} done/${taskData.total} assigned tasks`,
+                    tasksCompleted: `${taskData.completed} done/${taskData.total} assigned`,
                     chatParticipation: `${chatCount} chats/${totalChatMessages} messages`,
-                    completionRate: taskData.total > 0 ? `${Math.round((taskData.completed / taskData.total) * 100)}% completed tasks / assigned tasks` : '0% completed tasks / assigned tasks',
+                    completionRate: `${Math.round(individualPercentage)}% of total completed tasks`,
                     chatRate: `${Math.round((chatCount / totalChatMessages) * 100)}% chat participation`
                 }
             });
@@ -1442,127 +1025,6 @@ function analyzeContributionsFromData(projectData) {
     return { formatted, analysis };
 }
 
-// Get real-time contribution data for submission page
-router.get('/:id/contributions/realtime', verifyFirebaseToken, async (req, res) => {
-    try {
-        const { id: projectId } = req.params;
-        const userId = req.user.uid;
-
-        console.log('Getting real-time contributions for submission page');
-
-        // Ensure project exists
-        await ensureProjectExists(projectId, userId);
-
-        // Get current project data
-        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
-        if (!projectData) {
-            return res.status(404).json({ error: 'Project not found' });
-        }
-
-        // Get current word contributions
-        let wordContributions = projectData.wordContributions || {
-            user: { words: 0, percentage: 100 }
-        };
-
-        // Get project teammates to determine which AI agents are participating
-        const projectTeammates = projectData.team || [];
-        const participatingAgents = projectTeammates
-            .filter(teammate => teammate.type === 'ai')
-            .map(teammate => teammate.id || teammate.name?.toLowerCase())
-            .filter(agentId => agentId); // Remove any undefined values
-
-        console.log('Project teammates:', projectTeammates);
-        console.log('Participating AI agents:', participatingAgents);
-
-        // Ensure participating AI agents are initialized
-        participatingAgents.forEach(agentId => {
-            if (!wordContributions[agentId]) {
-                wordContributions[agentId] = { words: 0, percentage: 0 };
-            }
-        });
-
-        // Calculate total words and percentages
-        let totalWords = wordContributions.user.words;
-        participatingAgents.forEach(agentId => {
-            totalWords += (wordContributions[agentId]?.words || 0);
-        });
-        
-        if (totalWords > 0) {
-            wordContributions.user.percentage = Math.round((wordContributions.user.words / totalWords) * 100 * 100) / 100;
-            participatingAgents.forEach(agentId => {
-                if (wordContributions[agentId]) {
-                    wordContributions[agentId].percentage = Math.round((wordContributions[agentId].words / totalWords) * 100 * 100) / 100;
-                }
-            });
-        } else {
-            // Default to 100% human if no content yet
-            wordContributions.user.percentage = 100;
-            participatingAgents.forEach(agentId => {
-                if (wordContributions[agentId]) {
-                    wordContributions[agentId].percentage = 0;
-                }
-            });
-        }
-
-        // Format for frontend with participating AI agents only
-        const contributions = [
-            {
-                name: "You",
-                role: "Student", 
-                words: wordContributions.user.words,
-                percentage: wordContributions.user.percentage,
-                color: "#4CAF50"
-            }
-        ];
-
-        // Import AI agents configuration for colors
-        const { AI_AGENTS } = await import('../config/aiAgents.js');
-        
-        // Add participating AI agents that have contributed
-        const aiColors = {
-            'brown': AI_AGENTS.brown.color,
-            'elza': AI_AGENTS.elza.color, 
-            'kati': AI_AGENTS.kati.color,
-            'steve': AI_AGENTS.steve.color,
-            'sam': AI_AGENTS.sam.color,
-            'rasoa': AI_AGENTS.rasoa.color,
-            'rakoto': AI_AGENTS.rakoto.color
-        };
-
-        participatingAgents.forEach(agentId => {
-            if (wordContributions[agentId] && wordContributions[agentId].words > 0) {
-                // Get agent name from project teammates or capitalize agentId
-                const teammate = projectTeammates.find(t => (t.id || t.name?.toLowerCase()) === agentId);
-                const agentName = teammate?.name || agentId.charAt(0).toUpperCase() + agentId.slice(1);
-                const agentRole = teammate?.role || "AI Assistant";
-                
-                contributions.push({
-                    name: agentName,
-                    role: agentRole,
-                    words: wordContributions[agentId].words,
-                    percentage: wordContributions[agentId].percentage,
-                    color: aiColors[agentId] || '#607D8B'
-                });
-            }
-        });
-
-        console.log('Real-time contributions:', contributions);
-
-        res.json({
-            success: true,
-            contributions: contributions,
-            totalWords: totalWords,
-            lastUpdated: projectData.wordContributionsUpdatedAt || Date.now()
-        });
-
-    } catch (error) {
-        console.error('Error getting real-time contributions:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
-    }
-});
 
 
 // Generate completion message endpoint
@@ -1863,38 +1325,6 @@ router.post('/:id/ai-content-reflection', verifyFirebaseToken, async (req, res) 
     }
 });
 
-// Get AI Content Reflections endpoint (for analytics/teacher review)
-router.get('/:id/ai-content-reflections', verifyFirebaseToken, async (req, res) => {
-    const { id } = req.params;
-    const userId = req.user.uid;
-    
-    try {
-        // Ensure project exists and user has access
-        await ensureProjectExists(id, userId);
-        
-        const projectData = await getDocumentById(COLLECTIONS.USER_PROJECTS, id);
-        
-        if (!projectData) {
-            return res.status(404).json({ 
-                success: false, 
-                error: 'Project not found' 
-            });
-        }
-        
-        res.json({
-            success: true,
-            aiContentReflections: projectData.aiContentReflections || [],
-            totalReflections: (projectData.aiContentReflections || []).length
-        });
-        
-    } catch (error) {
-        console.error('Get AI Content Reflections error:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
-    }
-});
 
 export default router;
 

@@ -324,30 +324,6 @@ function Submission() {
   }, [reportContent, id, submitted, saveStatus]);
 
 
-  // Add Comment for selected text
-  function addCommentForSelection(author = "You", text = "") {
-    // Try to capture current selection if none exists
-    let currentSelection = selectionRange;
-    if (!currentSelection) {
-      currentSelection = captureCurrentSelection();
-    }
-    
-    if (!currentSelection || !currentSelection.text) return;
-    
-    const newComment = {
-      id: Date.now().toString(),
-      author,
-      text,
-      anchor: currentSelection.text,
-      createdAt: Date.now(),
-      resolved: false,
-    };
-    setComments((c) => [newComment, ...c]);
-    // clear selection after adding
-    setSelectionRange(null);
-    setSelectedText("");
-    if (editorRef.current) editorRef.current.focus();
-  }
 
   // Handle text selection from text editor
   function handleTextSelection(selectionData) {
@@ -643,10 +619,6 @@ function Submission() {
   }
 
 
-  // Handle clearing AI feedback
-  function handleClearFeedback() {
-    setAiFeedback(null);
-  }
 
   // Handle AI task assignment
   async function handleAssignAITask(aiType, taskType, sectionName, isExistingTask = false, existingTaskId = null) {

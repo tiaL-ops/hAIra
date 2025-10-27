@@ -1,6 +1,26 @@
 import React, { useState } from 'react';
-import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
+import { AI_TEAMMATES } from '../utils/teammateConfig.js';
 import '../styles/TaskAssignmentModal.css';
+
+// Import agent avatars
+import BrownAvatar from '../images/Brown.png';
+import ElzaAvatar from '../images/Elza.png';
+import KatiAvatar from '../images/Kati.png';
+import SteveAvatar from '../images/Steve.png';
+import SamAvatar from '../images/Sam.png';
+import RasoaAvatar from '../images/Rasoa.png';
+import RakotoAvatar from '../images/Rakoto.png';
+
+ // Avatar mapping
+ const avatarMap = {
+  brown: BrownAvatar,
+  elza: ElzaAvatar,
+  kati: KatiAvatar,
+  steve: SteveAvatar,
+  sam: SamAvatar,
+  rasoa: RasoaAvatar,
+  rakoto: RakotoAvatar
+};
 
 // Using emoji from agent config instead of images
 
@@ -14,10 +34,29 @@ const TaskAssignmentModal = ({
   const [sectionName, setSectionName] = useState('');
   const [selectedTaskType, setSelectedTaskType] = useState('write');
 
-  // Get the correct avatar based on AI teammate
-  const getAvatar = (aiTeammate) => {
-    // Use emoji from teammate config
-    return aiTeammate.emoji || aiTeammate.avatar || '🤖';
+  //Get Avatar dynamically
+const getMemberAvatar = (member) => {
+  if (member.name === 'You') {
+    return '👤';
+  }
+  
+  // Check if member matches any AI teammate by name and get their avatar
+  const aiAgent = Object.values(AI_TEAMMATES).find(agent => agent.name === member.name);
+    if (aiAgent) {
+      const avatarSrc = avatarMap[aiAgent.name.toLowerCase()];
+      if (avatarSrc) {
+        return (
+          <img 
+            src={avatarSrc} 
+            alt={`${member.name} avatar`}
+            className="ai-avatar-image"
+          />
+        );
+      }
+      // Fallback to emoji if no image found
+      return aiAgent.emoji;
+    }
+    return '🤖';
   };
 
   const handleSubmit = (e) => {
@@ -67,7 +106,7 @@ const TaskAssignmentModal = ({
         <div className="task-modal-body">
           <div className="ai-teammate-info">
             <div className="ai-teammate-avatar" style={{ backgroundColor: aiTeammate.color }}>
-              <span className="ai-avatar-emoji">{getAvatar(aiTeammate)}</span>
+              <div className="ai-avatar">{getMemberAvatar(aiTeammate)}</div>
             </div>
             <div className="ai-teammate-details">
               <h4>{aiTeammate.name}</h4>

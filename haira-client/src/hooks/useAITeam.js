@@ -3,39 +3,13 @@ import { getAuth } from 'firebase/auth';
 import axios from 'axios';
 import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
 import { getChromeWriter } from '../utils/chromeAPI.js';
+import { 
+  convertMarkdownToHTML,
+  convertMarkdownToPlainText 
+} from '../../../haira-server/utils/editorTextUtils.js';
 
 const backend_host = "http://localhost:3002";
 
-const convertMarkdownToHTML = (markdown) => {
-  if (!markdown) return '';
-  return markdown
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/^\d+\.\s+(.*)$/gm, '<li>$1</li>')
-    .replace(/^[-*]\s+(.*)$/gm, '<li>$1</li>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/^(?!<[h1-6]|<[uo]l|<li)(.*)$/gm, (match, content) => {
-      if (content.trim() === '') return '';
-      return `<p>${content}</p>`;
-    })
-    .replace(/<p><\/p>/g, '')
-    .replace(/<p>\s*<\/p>/g, '');
-};
-
-const convertMarkdownToPlainText = (markdown) => {
-  if (!markdown) return '';
-  return markdown
-    .replace(/^#{1,6}\s+(.*)$/gm, '$1')
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/\*(.*?)\*/g, '$1')
-    .replace(/^\d+\.\s+(.*)$/gm, '• $1')
-    .replace(/^[-*]\s+(.*)$/gm, '• $1')
-    .replace(/\n\s*\n/g, '\n\n')
-    .trim();
-};
 
 const resolveTeammate = (aiType) => AI_TEAMMATES[aiType] || AI_TEAMMATES.rasoa;
 
@@ -269,18 +243,22 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       console.log('🔄 Client: Converted fallback to HTML:', htmlResponse?.substring(0, 100) + '...');
       
       // Instead of directly inserting, show reflection modal for fallback too
-      console.log('📝 Client: Showing fallback AI content reflection modal...');
-      setShowAIContentReflection({
+      console.log('📝 Client: Adding fallback AI content reflection to pending list...');
+      const fallbackReflection = {
+        id: Date.now() + Math.random(), // Unique ID
         isOpen: true,
-        content: fallbackResult.content, // Show original markdown content
+        content: htmlResponse, // Show HTML content for proper display
         aiTeammate: aiTeammate,
+        aiCompletionMessage: 'Task completed!', // Fallback message
         pendingResult: {
           htmlContent: htmlResponse,
           aiType: aiTeammate.id,
           taskType: 'write_section'
         }
-      });
-      console.log('✅ Client: Fallback AI content reflection modal shown');
+      };
+      
+      setPendingAIContentReflections(prev => [...prev, fallbackReflection]);
+      console.log('✅ Client: Fallback AI content reflection added to pending list');
       
       // Generate completion message from API
       const aiType = aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate);

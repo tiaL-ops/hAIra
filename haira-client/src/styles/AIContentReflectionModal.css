@@ -355,79 +355,117 @@
   font-weight: 500;
 }
 
-/* Action Buttons */
+/* Action Buttons - Pixel Art Gaming Style */
 .reflection-actions {
   background: #2c3e50;
   padding: 20px 24px;
   border-top: 1px solid #4a4f5a;
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
 }
 
 .action-btn {
   flex: 1;
-  padding: 12px 16px;
+  padding: 16px 20px;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: 4px; /* Sharp corners for pixel art look */
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   font-family: 'Jersey 10', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  /* 3D effect with box-shadow */
+  box-shadow: 
+    0 4px 0 rgba(0, 0, 0, 0.3),
+    0 2px 0 rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .action-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none !important;
+  box-shadow: 
+    0 2px 0 rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .discard-btn {
-  background: #e06969;
-  color: white;
-  border: 2px solid #dc2626;
-  box-shadow: 0 3px 0 #dc2626;
+  background: #8B5A3C; /* Muted brown/tan like the image */
+  color: #2D1B0E; /* Dark brown text */
+  border: 2px solid #6B4423;
 }
 
 .discard-btn:hover:not(:disabled) {
-  background: #f56565;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 0 #dc2626;
+  background: #9D6B4A;
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 0 rgba(0, 0, 0, 0.3),
+    0 4px 0 rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .modify-btn {
-  background: #f6ad55;
-  color: #1a202c;
-  border: 2px solid #ed8936;
-  box-shadow: 0 3px 0 #ed8936;
+  background: #6B7C93; /* Muted blue-grey like the image */
+  color: #2D2D2D; /* Dark grey text */
+  border: 2px solid #5A6B7A;
 }
 
 .modify-btn:hover:not(:disabled) {
-  background: #fbb6ce;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 0 #ed8936;
+  background: #7A8B9A;
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 0 rgba(0, 0, 0, 0.3),
+    0 4px 0 rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .accept-btn {
-  background: #68d391;
-  color: #1a202c;
-  border: 2px solid #38a169;
-  box-shadow: 0 3px 0 #38a169;
+  background: #8B6B9D; /* Muted reddish-brown like the image */
+  color: #2D1B0E; /* Dark brown text */
+  border: 2px solid #7A5A8A;
 }
 
 .accept-btn:hover:not(:disabled) {
-  background: #4ade80;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 0 #38a169;
+  background: #9A7BAA;
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 0 rgba(0, 0, 0, 0.3),
+    0 4px 0 rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .action-btn:active {
   transform: translateY(2px);
+  box-shadow: 
+    0 2px 0 rgba(0, 0, 0, 0.3),
+    0 1px 0 rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
+
+/* Button icons - pixel art style */
+.action-btn .btn-icon {
+  font-size: 18px;
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.3));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-btn .btn-text {
+  font-size: 14px;
+  font-weight: 700;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.2);
+}
+
 
 /* Responsive Design */
 @media (max-width: 768px) {

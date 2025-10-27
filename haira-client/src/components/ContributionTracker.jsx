@@ -1,10 +1,9 @@
 // src/components/ContributionTracker.jsx
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
-import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
+import { AI_TEAMMATES } from '../utils/teammateConfig.js';
 import '../styles/ContributionTracker.css';
 
-// Import agent avatars
 import BrownAvatar from '../images/Brown.png';
 import ElzaAvatar from '../images/Elza.png';
 import KatiAvatar from '../images/Kati.png';
@@ -12,6 +11,17 @@ import SteveAvatar from '../images/Steve.png';
 import SamAvatar from '../images/Sam.png';
 import RasoaAvatar from '../images/Rasoa.png';
 import RakotoAvatar from '../images/Rakoto.png';
+
+ // Avatar mapping
+ const avatarMap = {
+  brown: BrownAvatar,
+  elza: ElzaAvatar,
+  kati: KatiAvatar,
+  steve: SteveAvatar,
+  sam: SamAvatar,
+  rasoa: RasoaAvatar,
+  rakoto: RakotoAvatar
+};
 
 const backend_host = "http://localhost:3002";
 
@@ -21,28 +31,6 @@ export default function ContributionTracker({ projectId, showContributions = tru
   const [totalContribution, setTotalContribution] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
 
-  // Calculate user word count from editor content
-  const calculateUserWordCount = async (content) => {
-    if (!projectId || !content) return;
-    
-    try {
-      const token = await getIdTokenSafely();
-      if (!token) return;
-      
-      await axios.post(`${backend_host}/api/project/${projectId}/word-contributions/calculate-user`, {
-        content: content
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log("User word count calculated successfully");
-    } catch (err) {
-      console.error("Error calculating user word count:", err);
-    }
-  };
 
   // Load interaction-based contributions from backend API
   useEffect(() => {
@@ -107,17 +95,6 @@ export default function ContributionTracker({ projectId, showContributions = tru
     return colors[index % colors.length];
   };
 
-  // Avatar mapping
-  const avatarMap = {
-    brown: BrownAvatar,
-    elza: ElzaAvatar,
-    kati: KatiAvatar,
-    steve: SteveAvatar,
-    sam: SamAvatar,
-    rasoa: RasoaAvatar,
-    rakoto: RakotoAvatar
-  };
-
   //Get Avatar dynamically
   const getMemberAvatar = (member) => {
     if (member.name === 'You') {
@@ -127,6 +104,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
     // Check if member matches any AI teammate by name and get their avatar
     const aiAgent = Object.values(AI_TEAMMATES).find(agent => agent.name === member.name);
     if (aiAgent) {
+      // Use the avatar from the AI agent configuration
       const avatarSrc = avatarMap[aiAgent.name.toLowerCase()];
       if (avatarSrc) {
         return (
@@ -205,7 +183,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
                 </div>
                 <div className="interaction-count">
                   <span className="interaction-count-label">
-                    {member.details?.tasksCompleted || '0 done/0 assigned tasks'} • {member.details?.chatParticipation || '0/0 chats'}
+                    {member.details?.tasksCompleted || '0 done/0 assigned'} • {member.details?.chatParticipation || '0/0 chats'}
                   </span>
                 </div>
               </div>

@@ -4,6 +4,7 @@ import { generateAIResponse as callGemini, generateGradeResponse as callGeminiGr
 import { AI_AGENTS } from '../config/aiAgents.js';
 import { getAgentContext, buildEnhancedPrompt } from './contextService.js';
 import { getAIConfig, getPrimaryAPI, getFallbackAPI, isAPIAvailable } from './aiConfigService.js';
+import { cleanAIResponse } from '../utils/editorTextUtils.js';
 
 // In-memory cache for conversation summaries
 const summaryCache = new Map();
@@ -624,5 +625,51 @@ export async function triggerAgentResponse(projectId, agentId, triggerMessage, d
   } catch (error) {
     console.error(`[AI Service] ❌ Error triggering agent response for ${agentId}:`, error);
     throw error;
+  }
+}
+
+
+/**
+ * Generate AI-specific completion messages
+ * @param {string} aiType - The AI teammate ID (alex, rasoa, rakoto)
+ * @param {string} taskType - The task type (write, review, suggest)
+ * @returns {Promise<string>} The completion message
+ */
+export async function generateCompletionMessage(aiType, taskType) {
+  // Get the correct AI teammate
+  let aiTeammate;
+  if (['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'].includes(aiType)) {
+      aiTeammate = AI_AGENTS[aiType];
+  } else if (aiType === 'ai_manager') {
+      aiTeammate = AI_AGENTS.rasoa; // Legacy ai_manager maps to rasoa
+  } else if (aiType === 'ai_helper') {
+      aiTeammate = AI_AGENTS.rakoto; // Legacy ai_helper maps to rakoto
+  } else {
+      aiTeammate = AI_AGENTS.rasoa; // Default fallback
+  }
+  
+  const completionPrompts = {
+      write: `Generate a short, casual completion message (1-2 sentences max) for when you finish writing a section. Be true to your personality: ${aiTeammate.personality}. Make it sound natural and in character.`,
+      review: `Generate a short, casual completion message (1-2 sentences max) for when you finish reviewing content. Be true to your personality: ${aiTeammate.personality}. Make it sound natural and in character.`,
+      suggest: `Generate a short, casual completion message (1-2 sentences max) for when you finish suggesting improvements. Be true to your personality: ${aiTeammate.personality}. Make it sound natural and in character.`
+  };
+  
+  const prompt = completionPrompts[taskType] || completionPrompts.write;
+  
+  try {
+      // Create proper config object from teammate properties
+      const config = {
+          max_tokens: aiTeammate.maxTokens || 500,
+          temperature: aiTeammate.temperature || 0.7
+      };
+      
+      const systemInstruction = `You are ${aiTeammate.name}, ${aiTeammate.role}. ${aiTeammate.personality}`;
+      
+      const aiResponse = await generateAIContribution(prompt, config, systemInstruction);
+      return cleanAIResponse(aiResponse);
+  } catch (error) {
+      console.error('[AI Service]: Error generating completion message:', error);
+      // Fallback to default messages
+      return aiType === 'ai_manager' ? '✅ Done — anything else to assign?' : '😴 I did something… kind of.';
   }
 }

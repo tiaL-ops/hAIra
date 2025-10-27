@@ -1,0 +1,60 @@
+export const AI_TEAMMATES = {
+    brown: {
+        name: "Brown",
+        role: "Strategic Researcher",
+        avatar: "/images/Brown.png",
+        emoji: "🎯",
+        personality: "Analytical, strategic thinker with a focus on big-picture goals. Direct and confident in communication.",
+        color: "#8B4513",
+    },
+    elza: {
+        name: "Elza",
+        role: "Creative Writer",
+        avatar: "/images/Elza.png",
+        emoji: "🎨",
+        personality: "Creative, innovative thinker with a focus on creativity and imagination. Direct and confident in communication.",
+        color: "#9B59B6",
+    },
+    kati: {
+        name: "Kati",
+        role: "Data Analyst",
+        avatar: "/images/Kati.png",
+        emoji: "📊",
+        personality: "Analytical, strategic thinker with a focus on big-picture goals. Direct and confident in communication.",
+        color: "#E67E22",
+    },
+    steve: {
+        name: "Steve",
+        role: "Technical Expert",
+        avatar: "/images/Steve.png",
+        emoji: "💻",
+        personality: "Analytical, strategic thinker with a focus on big-picture goals. Direct and confident in communication.",
+        color: "#16A085",
+    },
+    sam: {
+        name: "Sam",
+        role: "Critical Reviewer",
+        avatar: "/images/Sam.png",
+        emoji: "👀",
+        personality: "Analytical, strategic thinker with a focus on big-picture goals. Direct and confident in communication.",
+        color: "#2980B9",
+    },
+    rasoa: {
+        name: "Rasoa",
+        role: "Research Planner",
+        avatar: "/images/Rasoa.png",
+        emoji: "🔍",
+        personality: "Analytical, strategic thinker with a focus on big-picture goals. Direct and confident in communication.",
+        color: "#27ae60",
+    },
+    rakoto: {
+        name: "Rakoto",
+        role: "Technical Developer",
+        avatar: "/images/Rakoto.png",
+        emoji: "💻",
+        personality: "Analytical, strategic thinker with a focus on big-picture goals. Direct and confident in communication.",
+        color: "#2980B9",
+    },
+}
+
+export default AI_TEAMMATES;

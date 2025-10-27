@@ -6,7 +6,7 @@ export const AI_AGENTS = {
     brown: {
         name: "Brown",
         role: "Strategic Researcher",
-        avatar: "🎯",
+        avatar: "/images/Brown.png",
         emoji: "🎯",
         personality: "Analytical, strategic thinker with a focus on big-picture goals. Direct and confident in communication.",
         color: "#8B4513",
@@ -108,7 +108,7 @@ Tone & Style:
     elza: {
         name: "Elza",
         role: "Creative Problem Solver",
-        avatar: "✨",
+        avatar: "/images/Elza.png",
         emoji: "✨",
         personality: "Creative, enthusiastic, and innovative. Brings fresh perspectives and unconventional solutions. Warm and encouraging.",
         color: "#FF69B4",
@@ -209,7 +209,7 @@ Tone & Style:
     kati: {
         name: "Kati",
         role: "Data & Analysis Expert",
-        avatar: "📊",
+        avatar: "/images/Kati.png",
         emoji: "📊",
         personality: "Precise, methodical, and detail-oriented. Values accuracy and evidence-based reasoning. Clear and systematic communicator.",
         color: "#4A90E2",
@@ -310,7 +310,7 @@ Tone & Style:
     steve: {
         name: "Steve",
         role: "Technical Specialist",
-        avatar: "⚙️",
+        avatar: "/images/Steve.png",
         emoji: "⚙️",
         personality: "Practical, solution-focused, and technically skilled. Calm under pressure. Prefers hands-on problem-solving.",
         color: "#2ECC71",
@@ -411,7 +411,7 @@ Tone & Style:
     sam: {
         name: "Sam",
         role: "Critical Reviewer",
-        avatar: "🔍",
+        avatar: "/images/Sam.png",
         emoji: "🔍",
         personality: "Thoughtful, critical thinker who asks tough questions. Values intellectual rigor and clarity. Sometimes skeptical but always constructive.",
         color: "#E67E22",
@@ -512,7 +512,7 @@ Tone & Style:
     rasoa: {
         name: "Rasoa",
         role: "Research Planner",
-        avatar: "📝",
+        avatar: "/images/Rasoa.png",
         emoji: "📝",
         personality: "Thoughtful, detail-oriented, slightly formal, but supportive. Often cites or references credible sources.",
         color: "#27ae60",
@@ -613,7 +613,7 @@ Tone & Style:
     rakoto: {
         name: "Rakoto",
         role: "Technical Developer",
-        avatar: "🧪",
+        avatar: "/images/Rakoto.png",
         emoji: "🧪",
         personality: "Practical, slightly casual, with clear, results-oriented speech. Prefers facts and measurable outcomes over speculation.",
         color: "#3498db",

@@ -1,5 +1,52 @@
 import React, { useState } from 'react';
+import { AI_TEAMMATES } from '../utils/teammateConfig.js';
+
 import '../styles/AIContentReflectionModal.css';
+
+// Import agent avatars
+import BrownAvatar from '../images/Brown.png';
+import ElzaAvatar from '../images/Elza.png';
+import KatiAvatar from '../images/Kati.png';
+import SteveAvatar from '../images/Steve.png';
+import SamAvatar from '../images/Sam.png';
+import RasoaAvatar from '../images/Rasoa.png';
+import RakotoAvatar from '../images/Rakoto.png';
+
+ // Avatar mapping
+ const avatarMap = {
+  brown: BrownAvatar,
+  elza: ElzaAvatar,
+  kati: KatiAvatar,
+  steve: SteveAvatar,
+  sam: SamAvatar,
+  rasoa: RasoaAvatar,
+  rakoto: RakotoAvatar
+};
+
+//Get Avatar dynamically
+const getMemberAvatar = (member) => {
+  if (member.name === 'You') {
+    return '👤';
+  }
+  
+  // Check if member matches any AI teammate by name and get their avatar
+  const aiAgent = Object.values(AI_TEAMMATES).find(agent => agent.name === member.name);
+  if (aiAgent) {
+    const avatarSrc = avatarMap[aiAgent.name.toLowerCase()];
+    if (avatarSrc) {
+      return (
+        <img 
+          src={avatarSrc} 
+          alt={`${member.name} avatar`}
+          className="ai-avatar-image"
+        />
+      );
+    }
+    // Fallback to emoji if no image found
+    return aiAgent.emoji;
+  }
+  return '🤖';
+};
 
 function AIContentReflectionModal({ 
   isOpen, 
@@ -43,6 +90,7 @@ function AIContentReflectionModal({
   };
 
 
+
   const handleAction = (action) => {
     if (action === 'modify') {
       handleModifyClick();
@@ -76,15 +124,7 @@ function AIContentReflectionModal({
           <div className="ai-completion-message">
             <div className="completion-avatar-section">
               <div className="completion-avatar">
-                {aiTeammate?.avatar?.startsWith('http') ? (
-                  <img 
-                    src={aiTeammate.avatar} 
-                    alt={aiTeammate?.name} 
-                    className="avatar-image"
-                  />
-                ) : (
-                  <span className="avatar-emoji">{aiTeammate?.avatar || '🤖'}</span>
-                )}
+                {getMemberAvatar(aiTeammate)}
               </div>
               <span className="ai-name">{aiTeammate?.name}</span>
             </div>
@@ -138,7 +178,8 @@ function AIContentReflectionModal({
                 className="action-btn discard-btn"
                 title="Don't use this content"
               >
-                ❌ Discard
+                <span className="btn-icon">❌</span>
+                <span className="btn-text">DISCARD</span>
               </button>
               <button
                 onClick={() => handleAction('modify')}
@@ -146,7 +187,8 @@ function AIContentReflectionModal({
                 className="action-btn modify-btn"
                 title="Use but modify this content"
               >
-                ✏️ Modify
+                <span className="btn-icon">✏️</span>
+                <span className="btn-text">MODIFY</span>
               </button>
               <button
                 onClick={() => handleAction('accept')}
@@ -154,7 +196,8 @@ function AIContentReflectionModal({
                 className="action-btn accept-btn"
                 title="Use this content as-is"
               >
-                ✅ Accept
+                <span className="btn-icon">✅</span>
+                <span className="btn-text">ACCEPT</span>
               </button>
             </>
           ) : (
@@ -165,7 +208,8 @@ function AIContentReflectionModal({
                 className="action-btn discard-btn"
                 title="Cancel modification"
               >
-                ❌ Cancel
+                <span className="btn-icon">❌</span>
+                <span className="btn-text">CANCEL</span>
               </button>
               <button
                 onClick={handleModifySubmit}
@@ -173,7 +217,8 @@ function AIContentReflectionModal({
                 className="action-btn accept-btn"
                 title="Submit modified content"
               >
-                ✅ Submit Modified
+                <span className="btn-icon">✅</span>
+                <span className="btn-text">SUBMIT</span>
               </button>
             </>
           )}
