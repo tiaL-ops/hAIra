@@ -255,7 +255,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
               <div className="interaction-details">
                 <h4>Contribution Breakdown:</h4>
                 <div className="interaction-detail">
-                  <span className="interaction-type">Task Completion Rate</span>
+                  <span className="interaction-type">Task Participation</span>
                   <span className="interaction-points">{member.details.completionRate}</span>
                 </div>
                 <div className="interaction-detail">

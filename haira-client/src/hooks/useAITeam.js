@@ -253,37 +253,10 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       const htmlResponse = convertMarkdownToHTML(result.content);
       console.log('🔄 Client: Converted to HTML:', htmlResponse?.substring(0, 100) + '...');
       
-      console.log('📝 Client: Inserting AI text into editor...');
-      insertAIText(htmlResponse, aiTeammate.id, 'write_section');
-      console.log('✅ Client: AI text inserted successfully');
+      // Don't insert text automatically - wait for user reflection
+      console.log('📝 Client: AI text generated, waiting for user reflection...');
       
-      // Generate completion message from API
-      console.log('🔍 Debug aiTeammate:', aiTeammate);
-      console.log('🔍 Debug aiTeammate.id:', aiTeammate.id);
-      
-      // Fix: Use aiTeammate.id or fallback to the key from AI_TEAMMATES
-      const aiType = aiTeammate.id || Object.keys(aiAgents.AI_TEAMMATES || {}).find(key => aiAgents.AI_TEAMMATES[key] === aiTeammate);
-      console.log('🔍 Debug resolved aiType:', aiType);
-      
-      const generatedMessage = await generateCompletionMessage(aiType, 'write');
-      console.log('🔍 Debug generatedMessage:', generatedMessage);
-      const completionMessage = {
-        id: Date.now(),
-        aiType: aiType,
-        message: generatedMessage,
-        timestamp: Date.now()
-      };
-      console.log('📝 Adding completion message:', completionMessage);
-      setTaskCompletionMessages(prev => {
-        const newMessages = [...prev, completionMessage];
-        console.log('📝 New completion messages:', newMessages);
-        return newMessages;
-      });
-      
-      // Auto-dismiss after 5 seconds
-      setTimeout(() => {
-        setTaskCompletionMessages(prev => prev.filter(msg => msg.id !== completionMessage.id));
-      }, 5000);
+      // Completion message will be shown in the reflection modal instead of as a popup
         // Generate AI completion message and show reflection modal
         console.log('💬 Client: Generating AI completion message...');
         let aiCompletionMessage = '';
@@ -337,33 +310,49 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       
       // Instead of directly inserting, show reflection modal for fallback too
       console.log('📝 Client: Showing fallback AI content reflection modal...');
-      setShowAIContentReflection({
+      
+      // Generate AI completion message for fallback
+      let aiCompletionMessage = '';
+      try {
+        const token = await getIdTokenSafely();
+        if (token) {
+          const completionResponse = await axios.post(`${backend_host}/api/project/${projectId}/ai/completion-message`, 
+            {
+              aiType: aiTeammate.id,
+              taskType: 'write'
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          
+          if (completionResponse.data.success) {
+            aiCompletionMessage = completionResponse.data.completionMessage;
+            console.log('✅ Client: Fallback AI completion message generated');
+          }
+        }
+      } catch (error) {
+        console.error('Error generating fallback completion message:', error);
+        aiCompletionMessage = 'Task completed!'; // Fallback message
+      }
+
+      // Add to pending reflections array instead of using non-existent function
+      console.log('📝 Client: Adding fallback AI content reflection to pending list...');
+      const newReflection = {
+        id: Date.now() + Math.random(), // Unique ID
         isOpen: true,
-        content: fallbackResult.content, // Show original markdown content
+        content: htmlResponse, // Show HTML content for proper display
         aiTeammate: aiTeammate,
+        aiCompletionMessage: aiCompletionMessage, // Include AI's completion message
         pendingResult: {
           htmlContent: htmlResponse,
           aiType: aiTeammate.id,
           taskType: 'write_section'
         }
-      });
-      console.log('✅ Client: Fallback AI content reflection modal shown');
-      
-      // Generate completion message from API
-      const aiType = aiTeammate.id || Object.keys(aiAgents.AI_TEAMMATES || {}).find(key => aiAgents.AI_TEAMMATES[key] === aiTeammate);
-      const generatedMessage = await generateCompletionMessage(aiType, 'write');
-      const completionMessage = {
-        id: Date.now(),
-        aiType: aiType,
-        message: generatedMessage,
-        timestamp: Date.now()
       };
-      setTaskCompletionMessages(prev => [...prev, completionMessage]);
       
-      // Auto-dismiss after 5 seconds
-      setTimeout(() => {
-        setTaskCompletionMessages(prev => prev.filter(msg => msg.id !== completionMessage.id));
-      }, 5000);
+      setPendingAIContentReflections(prev => [...prev, newReflection]);
+      console.log('✅ Client: Fallback AI content reflection added to pending list');
+      
+      // Completion message is already included in the reflection modal
       
       return fallbackResult;
     } finally {

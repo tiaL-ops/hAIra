@@ -4,7 +4,8 @@ import {
     updateUserProject,
     ensureProjectExists,
     updateDocument,
-    getDocumentById
+    getDocumentById,
+    getSubdocuments
 } from '../services/databaseService.js';
 import { COLLECTIONS } from '../schema/database.js';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
@@ -1301,8 +1302,9 @@ function analyzeContributionsFromData(projectData) {
     
     // Calculate contribution percentages
     const totalTasks = tasks.length;
-    const userTaskCompletionRate = totalTasks > 0 ? (completedUserTasks.length / totalTasks) * 100 : 0;
-    const aiTaskCompletionRate = totalTasks > 0 ? (completedAITasks.length / totalTasks) * 100 : 0;
+    const totalCompletedTasks = completedUserTasks.length + completedAITasks.length;
+    const userTaskCompletionRate = totalCompletedTasks > 0 ? (completedUserTasks.length / totalCompletedTasks) * 100 : 0;
+    const aiTaskCompletionRate = totalCompletedTasks > 0 ? (completedAITasks.length / totalCompletedTasks) * 100 : 0;
     
     const userChatParticipation = totalChatMessages > 0 ? (userChatMessages.length / totalChatMessages) * 100 : 0;
     
@@ -1317,6 +1319,7 @@ function analyzeContributionsFromData(projectData) {
     const analysis = {
         tasks: {
             total: totalTasks,
+            totalCompleted: totalCompletedTasks,
             userAssigned: userTasks.length,
             userCompleted: completedUserTasks.length,
             aiAssigned: aiTasks.length,
@@ -1376,7 +1379,7 @@ function analyzeContributionsFromData(projectData) {
             details: {
                 tasksCompleted: `${completedUserTasks.length} done/${userTasks.length} assigned tasks`,
                 chatParticipation: `${userChatMessages.length} chats/${totalChatMessages} messages`,
-                completionRate: `${Math.round(userTaskCompletionRate)}% completed tasks / assigned tasks`,
+                completionRate: `${Math.round(userTaskCompletionRate)}% task participation`,
                 chatRate: `${Math.round(userChatParticipation)}% chat participation`
             }
         }
@@ -1389,7 +1392,7 @@ function analyzeContributionsFromData(projectData) {
     
     aiAgentNames.forEach(agentId => {
         const agent = AI_TEAMMATES[agentId];
-        if (agent && (aiTaskBreakdown[agentId] || aiChatBreakdown[agentId])) {
+        if (agent) {
             const taskData = aiTaskBreakdown[agentId] || { total: 0, completed: 0 };
             const chatCount = aiChatBreakdown[agentId] || 0;
             
@@ -1403,10 +1406,19 @@ function analyzeContributionsFromData(projectData) {
         }
     });
     
+    // If no AI has any activity, distribute the AI percentage equally among all AI teammates
+    if (totalAiWeight === 0 && aiPercentage > 0) {
+        const equalWeight = 1 / aiAgentNames.length;
+        aiAgentNames.forEach(agentId => {
+            aiWeights[agentId] = equalWeight;
+        });
+        totalAiWeight = 1;
+    }
+    
     // Add individual AI teammates with proportional percentages
     aiAgentNames.forEach(agentId => {
         const agent = AI_TEAMMATES[agentId];
-        if (agent && (aiTaskBreakdown[agentId] || aiChatBreakdown[agentId])) {
+        if (agent) {
             const taskData = aiTaskBreakdown[agentId] || { total: 0, completed: 0 };
             const chatCount = aiChatBreakdown[agentId] || 0;
             
@@ -1414,30 +1426,46 @@ function analyzeContributionsFromData(projectData) {
             let individualPercentage = 0;
             if (totalAiWeight > 0 && aiPercentage > 0) {
                 individualPercentage = (aiWeights[agentId] / totalAiWeight) * aiPercentage;
+            } else if (aiPercentage > 0) {
+                // Fallback: distribute equally if no weights calculated
+                individualPercentage = aiPercentage / aiAgentNames.length;
             }
             
-            formatted.push({
-                name: agent.name,
-                role: agent.role,
-                percentage: Math.round(individualPercentage * 100) / 100,
-                color: agent.color,
-                details: {
-                    tasksCompleted: `${taskData.completed} done/${taskData.total} assigned tasks`,
-                    chatParticipation: `${chatCount} chats/${totalChatMessages} messages`,
-                    completionRate: taskData.total > 0 ? `${Math.round((taskData.completed / taskData.total) * 100)}% completed tasks / assigned tasks` : '0% completed tasks / assigned tasks',
-                    chatRate: `${Math.round((chatCount / totalChatMessages) * 100)}% chat participation`
-                }
-            });
+            // Only include AI teammates that have some activity or if they're part of the project team
+            if (aiTaskBreakdown[agentId] || aiChatBreakdown[agentId] || individualPercentage > 0) {
+                formatted.push({
+                    name: agent.name,
+                    role: agent.role,
+                    percentage: Math.round(individualPercentage * 100) / 100,
+                    color: agent.color,
+                    details: {
+                        tasksCompleted: `${taskData.completed} done/${taskData.total} assigned tasks`,
+                        chatParticipation: `${chatCount} chats/${totalChatMessages} messages`,
+                        completionRate: totalCompletedTasks > 0 ? `${Math.round((taskData.completed / totalCompletedTasks) * 100)}% task participation` : '0% task participation',
+                        chatRate: `${Math.round((chatCount / totalChatMessages) * 100)}% chat participation`
+                    }
+                });
+            }
         }
     });
     
     // Normalize percentages to ensure they add up to exactly 100%
     const totalPercentage = formatted.reduce((sum, contributor) => sum + contributor.percentage, 0);
-    if (totalPercentage !== 100 && totalPercentage > 0) {
+    if (Math.abs(totalPercentage - 100) > 0.01 && totalPercentage > 0) {
         const normalizationFactor = 100 / totalPercentage;
         formatted.forEach(contributor => {
             contributor.percentage = Math.round(contributor.percentage * normalizationFactor * 100) / 100;
         });
+    }
+    
+    // Final check: if total is still not 100%, adjust the largest contributor
+    const finalTotal = formatted.reduce((sum, contributor) => sum + contributor.percentage, 0);
+    if (Math.abs(finalTotal - 100) > 0.01 && formatted.length > 0) {
+        const adjustment = 100 - finalTotal;
+        const largestContributor = formatted.reduce((max, contributor) => 
+            contributor.percentage > max.percentage ? contributor : max
+        );
+        largestContributor.percentage = Math.round((largestContributor.percentage + adjustment) * 100) / 100;
     }
     
     return { formatted, analysis };

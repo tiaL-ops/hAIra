@@ -48,6 +48,7 @@ function SubmissionSuccess() {
   const [showReflectionModal, setShowReflectionModal] = useState(false);
   const [reflectionSubmitted, setReflectionSubmitted] = useState(false);
   const [reflectionLoading, setReflectionLoading] = useState(false);
+  const [aiSummary, setAiSummary] = useState(null);
 
   // Helper function to get token safely
   const getIdTokenSafely = async () => {
