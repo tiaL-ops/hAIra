@@ -148,7 +148,7 @@ function Classroom() {
             }
             
             const response = await axios.post(
-                `http://${backend_host}/api/project/${id}/init-teammates`,
+                `${backend_host}/api/project/${id}/init-teammates`,
                 { selectedAgents },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

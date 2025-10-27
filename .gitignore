@@ -16,3 +16,5 @@ haira-server/.env
 haira-server/.env.local
 haira-server/.env.production
 haira-server/.env.production.local
+.firebase
+.firebase/*
