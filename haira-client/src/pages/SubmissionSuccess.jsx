@@ -170,7 +170,14 @@ function SubmissionSuccess() {
               };
             };
 
-        
+            // Execute the server-side fallback
+            const result = await serverSideFallback();
+            setAiSummary(result.summary);
+          } catch (summaryError) {
+            console.error("Error generating AI summary:", summaryError);
+            setAiSummary("Unable to generate AI summary at this time.");
+          }
+        }
         // Automatically trigger AI grading after submission data is loaded
         if (!aiGradingTriggered) {
           setAiGradingTriggered(true);
