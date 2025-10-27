@@ -3,6 +3,8 @@
 
 import { getProjectWithTasks, querySubcollection } from './databaseService.js';
 import { AI_AGENTS } from '../config/aiAgents.js';
+import { getConversationHistory, getPreviousDaysContext, getMultiDaySummary } from '../config/conversationMemory.js';
+import { formatTasksForAI as formatTasksFromMemory, getProjectTasks, getProjectInfo } from '../config/taskMemory.js';
 
 /**
  * Get comprehensive context for AI agents
@@ -50,20 +52,21 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
       });
     }
     
-    // 3. Get conversation history from database
-    const allMessages = await querySubcollection('userProjects', projectId, 'chatMessages');
-    console.log(`[ContextService] ✅ Fetched ${allMessages?.length || 0} messages from database`);
+    // 3. Get conversation history from memory (enhanced context)
+    const conversationHistory = getConversationHistory(projectId, currentDay, 15);
+    const previousDaysContext = getPreviousDaysContext(projectId, currentDay);
+    const multiDaySummary = getMultiDaySummary(projectId, currentDay, 2);
     
-    // Get recent conversation (last 15 messages)
-    const conversationHistory = allMessages?.slice(-15) || [];
+    console.log(`[ContextService] ✅ Memory-based conversation context:`);
+    console.log(`[ContextService]    - Current day messages: ${conversationHistory.length}`);
+    console.log(`[ContextService]    - Previous days context: ${previousDaysContext.length}`);
+    
     const conversationSummary = conversationHistory.length > 0 
       ? conversationHistory.map(msg => `${msg.senderName || 'Unknown'}: ${msg.content || ''}`).join('\n')
       : 'No conversation history yet.';
     
-    // Multi-day context (use same recent messages)
-    const multiDayHistory = conversationHistory;
-    const multiDaySummary = conversationSummary;
-    const previousDaysContext = [];
+    // Multi-day context includes previous days
+    const multiDayHistory = [...previousDaysContext, ...conversationHistory];
     
     // Enhanced conversation summary
     const enhancedConversationSummary = {
@@ -72,8 +75,18 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
       keyTopics: []
     };
     
-    // 4. Organize tasks by assignee
+    // 4. Organize tasks by assignee (enhanced with memory)
     const tasksByAssignee = organizeTasksByAssignee(projectData.tasks);
+    
+    // Get additional task context from memory
+    const memoryTasks = getProjectTasks(projectId);
+    const memoryProjectInfo = getProjectInfo(projectId);
+    const formattedTasksForAI = formatTasksFromMemory(projectId);
+    
+    console.log(`[ContextService] ✅ Task memory context:`);
+    console.log(`[ContextService]    - Memory tasks: ${memoryTasks.length}`);
+    console.log(`[ContextService]    - Memory project: ${memoryProjectInfo.title || 'Unknown'}`);
+    console.log(`[ContextService]    - Formatted for AI: ${formattedTasksForAI.length} chars`);
     
     // Debug logging for tasks
     console.log(`[ContextService] Project ${projectId} - Total tasks: ${projectData.tasks.length}`);
@@ -122,6 +135,7 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
       
       // Formatted summaries for AI prompts
       formattedTasks: formatTasksForAI(projectData.tasks),
+      memoryFormattedTasks: formattedTasksForAI, // Enhanced memory-based task formatting
       taskSummary: buildTaskSummary(projectData.tasks),
       assignmentSummary: buildAssignmentSummary(tasksByAssignee, agentId)
     };
@@ -481,12 +495,18 @@ When responding:
 - Don't pretend to have expertise outside your assigned tasks
 - If asked about something unrelated to your tasks, offer to help or suggest who might know better`;
   
+  // Add memory-based task context if available
+  let memoryTasksSection = '';
+  if (context.memoryFormattedTasks && context.memoryFormattedTasks.length > 50) {
+    memoryTasksSection = `\n📋 PROJECT TASK OVERVIEW (from memory):\n${context.memoryFormattedTasks}\n`;
+  }
+
   return `
 ${taskFocusedPrompt}
 
 Team Members: ${teammateList}
 ${context.alexAvailable ? '' : '(Alex is only available on Days 1, 3, 6)'}
-${myTasksSection}${projectStatusSection}${previousDaysSection}${insightsSection}
+${myTasksSection}${projectStatusSection}${memoryTasksSection}${previousDaysSection}${insightsSection}
 Recent conversation:
 ${context.conversationSummary}
 

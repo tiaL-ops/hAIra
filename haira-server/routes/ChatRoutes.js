@@ -26,6 +26,8 @@ import {
   queryDocuments
 } from '../services/databaseService.js';
 import { getProjectDay } from '../utils/chatUtils.js';
+import { storeMessage, getConversationHistory, getPreviousDaysContext } from '../config/conversationMemory.js';
+import { storeProjectData, formatTasksForAI } from '../config/taskMemory.js';
 
 const router = express.Router();
 
@@ -202,6 +204,30 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
     await addSubdocument('userProjects', projectId, 'chatMessages', null, message);
 
     console.log(`✅ Message saved from ${userTeammate.name}`);
+
+    // Store message in conversation memory for AI context
+    storeMessage(projectId, currentDay, {
+      id: message.messageId,
+      senderId: message.senderId,
+      senderName: message.senderName,
+      content: message.content,
+      timestamp: message.timestamp,
+      type: message.type
+    });
+
+    // Update task memory with current project data
+    try {
+      const tasks = await querySubcollection('userProjects', projectId, 'tasks');
+      const projectInfo = {
+        title: projectDoc.title || projectDoc.name || 'Untitled Project',
+        currentDay: currentDay,
+        userId: projectDoc.userId,
+        templateId: projectDoc.templateId
+      };
+      storeProjectData(projectId, tasks, projectInfo);
+    } catch (taskError) {
+      console.error('[Memory] Error updating task memory:', taskError);
+    }
 
     // 6. Update user teammate stats (no quota decrement - we count actual messages)
     await updateTeammateStats(projectId, userId, {

@@ -5,6 +5,8 @@ import { AI_AGENTS } from '../config/aiAgents.js';
 import { getAgentContext, buildEnhancedPrompt } from './contextService.js';
 import { getAIConfig, getPrimaryAPI, getFallbackAPI, isAPIAvailable } from './aiConfigService.js';
 import { getDocumentById, querySubcollection, addSubdocument } from './databaseService.js';
+import { storeMessage } from '../config/conversationMemory.js';
+import { getProjectDay } from '../utils/chatUtils.js';
 
 // In-memory cache for conversation summaries
 const summaryCache = new Map();
@@ -645,6 +647,17 @@ export async function triggerAgentResponse(projectId, agentId, triggerMessage) {
     
     // 7. Save to chatMessages
     await addSubdocument('userProjects', projectId, 'chatMessages', null, responseMessage);
+    
+    // Store AI response in conversation memory for future context
+    const currentDay = getProjectDay(projectData.startDate);
+    storeMessage(projectId, currentDay, {
+      id: responseMessage.messageId,
+      senderId: responseMessage.senderId,
+      senderName: responseMessage.senderName,
+      content: responseMessage.content,
+      timestamp: responseMessage.timestamp,
+      type: responseMessage.type
+    });
     
     console.log(`[AI Service] ✅ ${agentId} responded successfully`);
     
