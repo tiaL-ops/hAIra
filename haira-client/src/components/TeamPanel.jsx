@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { AI_TEAMMATES, TASK_TYPES } from '../../../haira-server/config/aiAgents.js';
+import React, { useState, useEffect } from 'react';
+import { getAIAgents } from '../services/aiAgentsService.js';
 import TaskAssignmentModal from './TaskAssignmentModal';
 
 // Import agent avatars
@@ -13,6 +13,22 @@ import RakotoAvatar from '../images/Rakoto.png';
 
 export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMembers = [] }) {
   const [selectedTeammate, setSelectedTeammate] = useState(null);
+  const [aiAgents, setAiAgents] = useState({ AI_AGENTS: {}, AI_TEAMMATES: {}, TASK_TYPES: {} });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadAIAgents = async () => {
+      try {
+        const agents = await getAIAgents();
+        setAiAgents(agents);
+      } catch (error) {
+        console.error('Error loading AI agents:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAIAgents();
+  }, []);
 
   // Avatar mapping
   const avatarMap = {
@@ -77,16 +93,16 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
     let mappedTaskType;
     switch (taskType) {
       case 'write':
-        mappedTaskType = TASK_TYPES.WRITE_SECTION;
+        mappedTaskType = aiAgents.TASK_TYPES.WRITE_SECTION;
         break;
       case 'review':
-        mappedTaskType = TASK_TYPES.REVIEW;
+        mappedTaskType = aiAgents.TASK_TYPES.REVIEW;
         break;
       case 'suggest':
-        mappedTaskType = TASK_TYPES.SUGGEST_IMPROVEMENTS;
+        mappedTaskType = aiAgents.TASK_TYPES.SUGGEST_IMPROVEMENTS;
         break;
       default:
-        mappedTaskType = TASK_TYPES.WRITE_SECTION;
+        mappedTaskType = aiAgents.TASK_TYPES.WRITE_SECTION;
     }
     
     console.log('🔄 TeamPanel: Mapped task type:', mappedTaskType);
@@ -103,14 +119,14 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
 
   const getAITeammate = (memberId) => {
     // Map memberId to AI_TEAMMATES - supports new 5-agent team and legacy IDs
-    if (AI_TEAMMATES[memberId]) {
-      return AI_TEAMMATES[memberId];
+    if (aiAgents.AI_TEAMMATES[memberId]) {
+      return aiAgents.AI_TEAMMATES[memberId];
     }
     // Legacy mapping
     if (memberId === 'ai_manager' || memberId === 'rasoa') {
-      return AI_TEAMMATES.brown;
+      return aiAgents.AI_TEAMMATES.brown;
     } else if (memberId === 'ai_helper' || memberId === 'rakoto') {
-      return AI_TEAMMATES.sam;
+      return aiAgents.AI_TEAMMATES.sam;
     }
     return null;
   };
@@ -126,13 +142,25 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
         }))
     : [
         // Default AI teammates for testing - include all available teammates
-        { id: 'brown', type: 'ai', ...AI_TEAMMATES.brown },
-        { id: 'elza', type: 'ai', ...AI_TEAMMATES.elza },
+        { id: 'brown', type: 'ai', ...aiAgents.AI_TEAMMATES.brown },
+        { id: 'elza', type: 'ai', ...aiAgents.AI_TEAMMATES.elza },
       ];
 
   // Debug: Log the AI teammates being created
   console.log('🔍 TeamPanel: aiTeammates created:', aiTeammates);
-  console.log('🔍 TeamPanel: AI_TEAMMATES keys:', Object.keys(AI_TEAMMATES));
+  console.log('🔍 TeamPanel: AI_TEAMMATES keys:', Object.keys(aiAgents.AI_TEAMMATES));
+
+  if (loading) {
+    return (
+      <div className="team-panel">
+        <div className="team-panel-header">
+          <div className="header-text">
+            <h3>Loading AI teammates...</h3>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="team-panel">

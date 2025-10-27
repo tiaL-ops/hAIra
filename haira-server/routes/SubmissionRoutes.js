@@ -4,9 +4,8 @@ import {
     updateUserProject,
     ensureProjectExists,
     updateDocument,
-    getDocumentById,
-    getSubdocuments
-} from '../services/firebaseService.js';
+    getDocumentById
+} from '../services/databaseService.js';
 import { COLLECTIONS } from '../schema/database.js';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
 
@@ -21,7 +20,6 @@ import { getTeammates } from '../services/teammateService.js';
 
 
 const router = express.Router()
-const db = admin.firestore();
 
 
 /**
@@ -393,6 +391,8 @@ Respond with JSON format:
 }
 `;
         const proofreadContext = `You are a grammar expert. Provide clear, helpful corrections.`;
+        
+        let aiResponse;
         try {
             console.log('🚀 Making Gemini API call...');
             aiResponse = await callGemini(grammarPrompt, proofreadContext);
@@ -449,6 +449,8 @@ Respond with JSON format:
 `;
 
         const summarizeContext ="You are a summarization expert. Create concise, accurate summaries.";
+        
+        let aiResponse;
         try {
             console.log('🚀 Making Gemini API call...');
             aiResponse = await callGemini(summaryPrompt, summarizeContext);
@@ -648,8 +650,7 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
         await ensureProjectExists(id, userId);
         
         // Get project data to fetch the actual project title
-        const projectDoc = await db.collection('userProjects').doc(id).get();
-        const projectInfo = projectDoc.data();
+        const projectInfo = await getDocumentById('userProjects', id);
         const actualProjectTitle = projectInfo?.title || 'the project';
         
         // Map agent IDs to correct teammates (support legacy IDs)
@@ -775,8 +776,7 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         await ensureProjectExists(id, userId);
         
         // Get project data to fetch the actual project title
-        const projectDoc = await db.collection('userProjects').doc(id).get();
-        const projectInfo = projectDoc.data();
+        const projectInfo = await getDocumentById('userProjects', id);
         const actualProjectTitle = projectInfo?.title || 'the project';
         
         // Map agent IDs to correct teammates (support legacy IDs)
@@ -802,6 +802,7 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         // const aiResponse = await generateAIContribution(taskPrompt, aiConfig, reviewContext);
         const reviewContext = `You are ${aiTeammate.name}, a ${aiTeammate.role}. ${aiTeammate.personality}`;
 
+        let aiResponse;
         try {
             console.log('🚀 Making AI call with centralized service...');
             aiResponse = await generateAIContribution(taskPrompt, aiConfig, reviewContext);
@@ -877,8 +878,7 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         await ensureProjectExists(id, userId);
         
         // Get project data to fetch the actual project title
-        const projectDoc = await db.collection('userProjects').doc(id).get();
-        const projectInfo = projectDoc.data();
+        const projectInfo = await getDocumentById('userProjects', id);
         const actualProjectTitle = projectInfo?.title || 'the project';
         
         // Map agent IDs to correct teammates (support legacy IDs)
@@ -904,6 +904,7 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         // const aiResponse = await generateAIContribution(taskPrompt, aiConfig, suggestionContext);
         const suggestionContext = `You are ${aiTeammate.name}, a ${aiTeammate.role}. ${aiTeammate.personality}`;
         
+        let aiResponse;
         try {
             console.log('🚀 Making AI call with centralized service...');
             aiResponse = await generateAIContribution(taskPrompt, aiConfig, suggestionContext);

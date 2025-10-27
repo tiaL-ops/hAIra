@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getAuth } from 'firebase/auth';
+import { serverFirebaseAvailable } from '../../firebase';
+import { useAuth } from '../App';
 import axios from 'axios';
 import '../styles/WeeklyLearningPrompt.css';
 
@@ -12,6 +13,7 @@ export default function WeeklyLearningPrompt({
   currentProject,
   canCreateNew = true
 }) {
+  const { currentUser } = useAuth();
   const [selectedTopic, setSelectedTopic] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,14 +22,20 @@ export default function WeeklyLearningPrompt({
   const [availableTemplates, setAvailableTemplates] = useState([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('');
-  const auth = getAuth();
 
   // Fetch learning topics from server
   useEffect(() => {
     const fetchTopics = async () => {
       try {
         console.log('[WeeklyLearningPrompt] Fetching topics...');
-        const token = await auth.currentUser?.getIdToken?.();
+        
+        // Get token with fallback
+        let token;
+        if (serverFirebaseAvailable && currentUser && currentUser.getIdToken) {
+          token = await currentUser.getIdToken();
+        } else {
+          token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+        }
         console.log('[WeeklyLearningPrompt] Token obtained:', token ? 'Yes' : 'No');
         
         const response = await axios.get(`${backend_host}/api/project/topics`, {
@@ -56,7 +64,7 @@ export default function WeeklyLearningPrompt({
     };
 
     fetchTopics();
-  }, [auth]);
+  }, []);
 
   // Handle topic selection - show choice between generate new vs pick existing
   const handleTopicSelect = (topicId) => {
@@ -71,7 +79,14 @@ export default function WeeklyLearningPrompt({
     
     setLoadingTemplates(true);
     try {
-      const token = await auth.currentUser?.getIdToken?.();
+      // Get token with fallback
+      let token;
+      if (serverFirebaseAvailable && currentUser && currentUser.getIdToken) {
+        token = await currentUser.getIdToken();
+      } else {
+        token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+      }
+      
       const response = await axios.get(`${backend_host}/api/project/templates/${selectedTopic}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -99,7 +114,14 @@ export default function WeeklyLearningPrompt({
     setError('');
 
     try {
-      const token = await auth.currentUser?.getIdToken?.();
+      // Get token with fallback
+      let token;
+      if (serverFirebaseAvailable && currentUser && currentUser.getIdToken) {
+        token = await currentUser.getIdToken();
+      } else {
+        token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+      }
+      
       const response = await axios.post(`${backend_host}/api/project/generate-project`, {
         topic: selectedTopic,
         action: 'generate_new'
@@ -135,7 +157,14 @@ export default function WeeklyLearningPrompt({
     setError('');
 
     try {
-      const token = await auth.currentUser?.getIdToken?.();
+      // Get token with fallback
+      let token;
+      if (serverFirebaseAvailable && currentUser && currentUser.getIdToken) {
+        token = await currentUser.getIdToken();
+      } else {
+        token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+      }
+      
       const response = await axios.post(`${backend_host}/api/project/generate-project`, {
         topic: selectedTopic,
         action: 'use_template',

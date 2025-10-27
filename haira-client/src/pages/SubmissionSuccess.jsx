@@ -1,21 +1,40 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getAuth } from "firebase/auth";
+import { auth, serverFirebaseAvailable } from '../../firebase';
 import { useAuth } from '../App';
 import ContributionTracker from "../components/ContributionTracker";
 import ReflectionModal from "../components/ReflectionModal";
 import SuccessIcon from "../images/Success.png";
 import { getChromeSummary } from "../utils/chromeAPI.js";
+import axios from 'axios';
 import "../styles/editor.css";
 import "../styles/global.css";
 import "../styles/SubmissionSuccess.css";
 
 const backend_host = "http://localhost:3002";
 
+// Helper function to retry axios requests on network errors
+const axiosWithRetry = async (config, maxRetries = 3, delay = 1000) => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await axios(config);
+    } catch (error) {
+      const isLastRetry = i === maxRetries - 1;
+      const isNetworkError = error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED';
+      
+      if (isNetworkError && !isLastRetry) {
+        console.log(`[Retry ${i + 1}/${maxRetries}] Network error, retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+};
+
 function SubmissionSuccess() {
   const { id } = useParams(); // project id
   const { currentUser } = useAuth();
-  const auth = getAuth();
   const navigate = useNavigate();
 
   const [submission, setSubmission] = useState(null);
@@ -30,29 +49,54 @@ function SubmissionSuccess() {
   const [reflectionSubmitted, setReflectionSubmitted] = useState(false);
   const [reflectionLoading, setReflectionLoading] = useState(false);
 
+  // Helper function to get token safely
+  const getIdTokenSafely = async () => {
+    try {
+      if (serverFirebaseAvailable) {
+        if (auth && auth.currentUser) {
+          return await auth.currentUser.getIdToken();
+        }
+      } else {
+        // Fallback to localStorage token
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        const currentUser = storedUser ? JSON.parse(storedUser) : null;
+        if (currentUser) {
+          return `mock-token-${currentUser.uid}-${Date.now()}`;
+        }
+      }
+    } catch (err) {
+      console.error('Error getting token:', err);
+      // Fallback to localStorage token on error
+      const storedUser = localStorage.getItem('__localStorage_current_user__');
+      const currentUser = storedUser ? JSON.parse(storedUser) : null;
+      if (currentUser) {
+        return `mock-token-${currentUser.uid}-${Date.now()}`;
+      }
+    }
+    return null;
+  };
+
   // Function to trigger AI grading
   const triggerAIGrading = async () => {
-    if (!auth.currentUser) {
+    if (!currentUser) {
       setError("User not authenticated");
       return;
     }
 
     setGradingLoading(true);
     try {
-      const token = await auth.currentUser.getIdToken();
-      const response = await fetch(`${backend_host}/api/project/${id}/ai/grade`, {
-        method: 'POST',
+      const token = await getIdTokenSafely();
+      const response = await axiosWithRetry({
+        method: 'post',
+        url: `${backend_host}/api/project/${id}/ai/grade`,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        timeout: 30000 // 30 seconds for AI grading (can be slow)
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = response.data;
       console.log('AI Grading Response:', data);
       
       if (data.success) {
@@ -81,31 +125,59 @@ function SubmissionSuccess() {
   useEffect(() => {
     // Fetch submission data from backend for the project
     const fetchSubmissionData = async () => {
-      if (!auth.currentUser) {
+      if (!currentUser) {
         navigate('/login');
         return;
       }
       
       try {
         setLoading(true);
-        const token = await auth.currentUser.getIdToken();
+        const token = await getIdTokenSafely();
         
-        // Fetch submission data
-        const response = await fetch(`${backend_host}/api/project/${id}/submission/results`, {
+        // Fetch submission data with retry logic
+        const response = await axiosWithRetry({
+          method: 'get',
+          url: `${backend_host}/api/project/${id}/submission/results`,
           headers: {
             'Authorization': `Bearer ${token}`
-          }
+          },
+          timeout: 10000
         });
         
-        if (!response.ok) {
-          throw new Error('Failed to fetch submission data');
-        }
-        
-        const data = await response.json();
+        const data = response.data;
         setSubmission(data.submission);
         setGrade(data.grade);
-
         
+        // Generate AI summary if we have content
+        if (data.submission?.content) {
+          try {
+            // Call server-side AI fallback function with retry logic
+            const serverSideFallback = async () => {
+              const token = await getIdTokenSafely();
+              const res = await axiosWithRetry({
+                method: 'post',
+                url: `${backend_host}/api/project/${id}/ai/summarize`,
+                data: { content: data.submission.content },
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                timeout: 10000
+              });
+              return {
+                summary: res.data?.result || res.data?.summary || "No summary returned.",
+                source: 'gemini'
+              };
+            };
+
+            // Execute the server-side fallback
+            const result = await serverSideFallback();
+            setAiSummary(result.summary);
+          } catch (summaryError) {
+            console.error("Error generating AI summary:", summaryError);
+            setAiSummary("Unable to generate AI summary at this time.");
+          }
+        }
         // Automatically trigger AI grading after submission data is loaded
         if (!aiGradingTriggered) {
           setAiGradingTriggered(true);
@@ -126,7 +198,7 @@ function SubmissionSuccess() {
     };
 
     fetchSubmissionData();
-  }, [id, navigate, auth, aiGradingTriggered]);
+  }, [id, navigate, aiGradingTriggered, currentUser]);
 
   // Show reflection modal after results are loaded and grading is complete
   useEffect(() => {

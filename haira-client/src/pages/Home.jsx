@@ -1,26 +1,21 @@
 // src/pages/Home.jsx
 import React, { useState, useEffect, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import ProblemNeuralNetwork from '../components/ProblemNeuralNetwork';
-import Solution3D from '../components/Solution3D';
-import Steps3D from '../components/Steps3D';
+
 import '../styles/Home.css';
 
 function Home() {
   const [isVisible, setIsVisible] = useState(false);
   const [wordCloudWords] = useState([
     'why do i feel pain?',
-    'I do not have personal opinions, beliefs, or feelings.',
     'chat does he love me?',
     'Can u summarize this like i\'m a 5 year old?',
-    'Cutting-edge',
+    'NO I DIDNT MEAN THAT',
     'Draft a professional email',
     'build this website for me',
-    'Revolutionize',
     'It\'s not just [X], it\'s [Y]',
     'It \'s real, It \'s powerful',
-    ' i\'m lost',
-    'Harnessing the power of..',
+    'am i going crazy?',
     'Gemini generate image',
     'FIX THE BUG I SAID!',
     'make this look cute',
@@ -35,6 +30,7 @@ function Home() {
   useEffect(() => {
     setIsVisible(true);
   }, []);
+
 
   return (
     <main className="home-container">
@@ -112,9 +108,12 @@ function Home() {
       <section className="home-section problem-section">
         <div className="problem-content">
           <div className="problem-visual">
-            <Suspense fallback={<div style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22cc88' }}>Loading Neural Network...</div>}>
-              <ProblemNeuralNetwork />
-            </Suspense>
+       
+            <div className="problem-graphic">
+              <div className="brain-icon">🧠</div>
+              <div className="arrow-down">↓</div>
+              <div className="ai-icon">🤖</div>
+            </div>
           </div>
           <div className="problem-text">
             <h2 className="section-title">The Problem</h2>
@@ -148,60 +147,60 @@ function Home() {
             </ul>
           </div>
           <div className="solution-visual">
-            <Suspense fallback={<div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22cc88' }}>Loading Solution...</div>}>
-              <Solution3D />
-            </Suspense>
+        
+            <div className="solution-graphic">
+              <div className="human-icon">👤</div>
+              <div className="plus-icon">+</div>
+              <div className="ai-team-icon">🤖</div>
+              <div className="equals-icon">=</div>
+              <div className="success-icon">✨</div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* How It Works */}
       <section className="home-section steps-section">
-        <h2 className="section-title">Your Journey in 4 Steps</h2>
-        <p className="steps-intro">Follow the flowing path to mastering Human-AI collaboration</p>
-        
-        <div className="steps-3d-container">
-          <Suspense fallback={<div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22cc88' }}>Loading Journey...</div>}>
-            <Steps3D />
-          </Suspense>
-        </div>
-        
-        <div className="steps-flow-container">
-          <div className="step-flow-item">
-            <div className="step-number">1</div>
-            <div className="step-content-flow">
+        <h2 className="section-title">Get Started in 4 Steps</h2>
+        <div className="steps-container">
+          <div className="step-item">
+            <div className="step-visual">
+              <div className="step-number">1</div>
+            
+            </div>
+            <div className="step-content">
               <h3>Choose Your Project</h3>
-              <p>Pick from topics or have AI generate a realistic project brief</p>
+              <p>Pick from a list of topics or have the AI generate a new, realistic project brief for a total of 7 days.</p>
             </div>
           </div>
-          
-          <div className="flow-arrow">→</div>
-          
-          <div className="step-flow-item">
-            <div className="step-number">2</div>
-            <div className="step-content-flow">
+          <div className="step-item">
+            <div className="step-visual">
+              <div className="step-number">2</div>
+             
+            </div>
+            <div className="step-content">
               <h3>Meet Your AI Team</h3>
-              <p>Choose teammates and plan your attack together</p>
+              <p>Choose your teammate. Use the group chat and task board to plan your attack.</p>
             </div>
           </div>
-          
-          <div className="flow-arrow">→</div>
-          
-          <div className="step-flow-item">
-            <div className="step-number">3</div>
-            <div className="step-content-flow">
-              <h3>Collaborate & Co-Create</h3>
-              <p>Work together like real colleagues in the editor</p>
+          <div className="step-item">
+            <div className="step-visual">
+              <div className="step-number">3</div>
+              
+            </div>
+            <div className="step-content">
+              <h3>Collaborate and Co-Create</h3>
+              <p>Work together in the built-in text editor. Ask your AI teammates to draft sections, review your work, or give you feedback—just like real colleagues.</p>
             </div>
           </div>
-          
-          <div className="flow-arrow">→</div>
-          
-          <div className="step-flow-item">
-            <div className="step-number">4</div>
-            <div className="step-content-flow">
+          <div className="step-item">
+            <div className="step-visual">
+              <div className="step-number">4</div>
+      
+            </div>
+            <div className="step-content">
               <h3>Submit & Get Feedback</h3>
-              <p>Get detailed grades on quality and teamwork</p>
+              <p>Submit your final project to the AI Project Manager for a detailed grade on report quality, teamwork, and contribution balance.</p>
             </div>
           </div>
         </div>
@@ -209,7 +208,7 @@ function Home() {
 
       {/* Fun Fact */}
       <section className="home-section funfact-section">
-        <h2 className="section-title">Cool fun fact</h2>
+        <h2 className="section-title">Cool fun fact ☺️</h2>
         <p className="section-text">
           The name <strong>hAIra</strong> is inspired by the Malagasy word 
           <em> "hairaha"</em>, which means 

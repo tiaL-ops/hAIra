@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
-import { getAuth } from 'firebase/auth';
+import React, { useState, useCallback } from 'react';
+import { auth, serverFirebaseAvailable } from '../../firebase';
 import axios from 'axios';
-import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
+import { getAIAgents } from '../services/aiAgentsService.js';
 import { getChromeWriter } from '../utils/chromeAPI.js';
 
 const backend_host = "http://localhost:3002";
@@ -37,22 +37,58 @@ const convertMarkdownToPlainText = (markdown) => {
     .trim();
 };
 
-const resolveTeammate = (aiType) => AI_TEAMMATES[aiType] || AI_TEAMMATES.rasoa;
-
 export const useAITeam = (projectId, editorRef, onAddComment = null) => {
   const [loadingAIs, setLoadingAIs] = useState(new Set());
   const [taskCompletionMessages, setTaskCompletionMessages] = useState([]);
+  const [aiAgents, setAiAgents] = useState({ AI_TEAMMATES: {} });
+  const [agentsLoaded, setAgentsLoaded] = useState(false);
+
+  // Load AI agents on mount
+  React.useEffect(() => {
+    const loadAIAgents = async () => {
+      try {
+        const agents = await getAIAgents();
+        setAiAgents(agents);
+        setAgentsLoaded(true);
+      } catch (error) {
+        console.error('Error loading AI agents:', error);
+        setAgentsLoaded(true); // Still set to true to prevent infinite loading
+      }
+    };
+    loadAIAgents();
+  }, []);
+
+  const resolveTeammate = (aiType) => {
+    if (!agentsLoaded || !aiAgents.AI_TEAMMATES) {
+      return { name: aiType, role: 'AI Assistant', avatar: '🤖', emoji: '🤖', color: '#666' };
+    }
+    return aiAgents.AI_TEAMMATES[aiType] || aiAgents.AI_TEAMMATES.rasoa || { name: aiType, role: 'AI Assistant', avatar: '🤖', emoji: '🤖', color: '#666' };
+  };
   // AI Content Reflection state - now an array to handle multiple pending reflections
   const [pendingAIContentReflections, setPendingAIContentReflections] = useState([]);
 
   const getIdTokenSafely = async () => {
     try {
-      const auth = getAuth();
-      if (auth && auth.currentUser) {
-        return await auth.currentUser.getIdToken();
+      if (serverFirebaseAvailable) {
+        if (auth && auth.currentUser) {
+          return await auth.currentUser.getIdToken();
+        }
+      } else {
+        // Fallback to localStorage token
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        const currentUser = storedUser ? JSON.parse(storedUser) : null;
+        if (currentUser) {
+          return `mock-token-${currentUser.uid}-${Date.now()}`;
+        }
       }
     } catch (err) {
       console.error('Error getting token:', err);
+      // Fallback to localStorage token on error
+      const storedUser = localStorage.getItem('__localStorage_current_user__');
+      const currentUser = storedUser ? JSON.parse(storedUser) : null;
+      if (currentUser) {
+        return `mock-token-${currentUser.uid}-${Date.now()}`;
+      }
     }
     return null;
   };
@@ -178,7 +214,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       const token = await getIdTokenSafely();
       const endpoint = `${backend_host}/api/project/${projectId}/ai/write`;
       const requestData = { 
-        aiType: aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate), 
+        aiType: aiTeammate.id || Object.keys(aiAgents.AI_TEAMMATES || {}).find(key => aiAgents.AI_TEAMMATES[key] === aiTeammate), 
         sectionName, 
         currentContent,
         projectTitle
@@ -217,6 +253,37 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       const htmlResponse = convertMarkdownToHTML(result.content);
       console.log('🔄 Client: Converted to HTML:', htmlResponse?.substring(0, 100) + '...');
       
+      console.log('📝 Client: Inserting AI text into editor...');
+      insertAIText(htmlResponse, aiTeammate.id, 'write_section');
+      console.log('✅ Client: AI text inserted successfully');
+      
+      // Generate completion message from API
+      console.log('🔍 Debug aiTeammate:', aiTeammate);
+      console.log('🔍 Debug aiTeammate.id:', aiTeammate.id);
+      
+      // Fix: Use aiTeammate.id or fallback to the key from AI_TEAMMATES
+      const aiType = aiTeammate.id || Object.keys(aiAgents.AI_TEAMMATES || {}).find(key => aiAgents.AI_TEAMMATES[key] === aiTeammate);
+      console.log('🔍 Debug resolved aiType:', aiType);
+      
+      const generatedMessage = await generateCompletionMessage(aiType, 'write');
+      console.log('🔍 Debug generatedMessage:', generatedMessage);
+      const completionMessage = {
+        id: Date.now(),
+        aiType: aiType,
+        message: generatedMessage,
+        timestamp: Date.now()
+      };
+      console.log('📝 Adding completion message:', completionMessage);
+      setTaskCompletionMessages(prev => {
+        const newMessages = [...prev, completionMessage];
+        console.log('📝 New completion messages:', newMessages);
+        return newMessages;
+      });
+      
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        setTaskCompletionMessages(prev => prev.filter(msg => msg.id !== completionMessage.id));
+      }, 5000);
         // Generate AI completion message and show reflection modal
         console.log('💬 Client: Generating AI completion message...');
         let aiCompletionMessage = '';
@@ -283,7 +350,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       console.log('✅ Client: Fallback AI content reflection modal shown');
       
       // Generate completion message from API
-      const aiType = aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate);
+      const aiType = aiTeammate.id || Object.keys(aiAgents.AI_TEAMMATES || {}).find(key => aiAgents.AI_TEAMMATES[key] === aiTeammate);
       const generatedMessage = await generateCompletionMessage(aiType, 'write');
       const completionMessage = {
         id: Date.now(),
@@ -322,7 +389,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       const token = await getIdTokenSafely();
       const endpoint = `${backend_host}/api/project/${projectId}/ai/review`;
       const requestData = { 
-        aiType: aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate), 
+        aiType: aiTeammate.id || Object.keys(aiAgents.AI_TEAMMATES || {}).find(key => aiAgents.AI_TEAMMATES[key] === aiTeammate), 
         currentContent 
       };
       
@@ -371,7 +438,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       console.log('✅ Client: Review comment added successfully');
       
       // Generate completion message from API
-      const aiType = aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate);
+      const aiType = aiTeammate.id || Object.keys(aiAgents.AI_TEAMMATES || {}).find(key => aiAgents.AI_TEAMMATES[key] === aiTeammate);
       const generatedMessage = await generateCompletionMessage(aiType, 'review');
       const completionMessage = {
         id: Date.now(),
@@ -400,7 +467,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       console.log('✅ Client: Fallback review comment added successfully');
       
       // Generate completion message from API
-      const aiType = aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate);
+      const aiType = aiTeammate.id || Object.keys(aiAgents.AI_TEAMMATES || {}).find(key => aiAgents.AI_TEAMMATES[key] === aiTeammate);
       const generatedMessage = await generateCompletionMessage(aiType, 'review');
       const completionMessage = {
         id: Date.now(),
@@ -438,7 +505,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       const token = await getIdTokenSafely();
       const endpoint = `${backend_host}/api/project/${projectId}/ai/suggest`;
       const requestData = { 
-        aiType: aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate), 
+        aiType: aiTeammate.id || Object.keys(aiAgents.AI_TEAMMATES || {}).find(key => aiAgents.AI_TEAMMATES[key] === aiTeammate), 
         currentContent 
       };
       
@@ -487,7 +554,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       console.log('✅ Client: Suggestion comment added successfully');
       
       // Generate completion message from API
-      const aiType = aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate);
+      const aiType = aiTeammate.id || Object.keys(aiAgents.AI_TEAMMATES || {}).find(key => aiAgents.AI_TEAMMATES[key] === aiTeammate);
       const generatedMessage = await generateCompletionMessage(aiType, 'suggest');
       const completionMessage = {
         id: Date.now(),
@@ -516,7 +583,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       console.log('✅ Client: Fallback suggestion comment added successfully');
       
       // Generate completion message from API
-      const aiType = aiTeammate.id || Object.keys(AI_TEAMMATES).find(key => AI_TEAMMATES[key] === aiTeammate);
+      const aiType = aiTeammate.id || Object.keys(aiAgents.AI_TEAMMATES || {}).find(key => aiAgents.AI_TEAMMATES[key] === aiTeammate);
       const generatedMessage = await generateCompletionMessage(aiType, 'suggest');
       const completionMessage = {
         id: Date.now(),

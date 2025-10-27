@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from 'react-router-dom';
-import { auth } from '../../firebase';
+import { auth, serverFirebaseAvailable } from '../../firebase';
 import axios from 'axios';
-import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
+import { getAIAgents } from '../services/aiAgentsService.js';
 import '../styles/Classroom.css';
 
 // Import all agent avatars
@@ -23,6 +23,8 @@ function Classroom() {
     const [teammates, setTeammates] = useState([]);
     const [isActivated, setIsActivated] = useState(false);
     const [selectedAgents, setSelectedAgents] = useState([]);
+    const [aiAgents, setAiAgents] = useState({ AI_TEAMMATES: {} });
+    const [loading, setLoading] = useState(true);
     
     const avatarMap = {
         brown: BrownAvatar,
@@ -40,14 +42,46 @@ function Classroom() {
     const [activeAgentId, setActiveAgentId] = useState(availableAgents[0]);
 
     useEffect(() => {
-        checkClassroomStatus();
-    }, [id]);
+        const loadAIAgents = async () => {
+            try {
+                const agents = await getAIAgents();
+                setAiAgents(agents);
+            } catch (error) {
+                console.error('Error loading AI agents:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadAIAgents();
+    }, []);
+
+    useEffect(() => {
+        if (!loading) {
+            checkClassroomStatus();
+        }
+    }, [id, loading]);
 
     const checkClassroomStatus = async () => {
         if (!id) return;
         
         try {
-            const token = await auth.currentUser.getIdToken(true);
+            // Get token with fallback
+            let token;
+            if (serverFirebaseAvailable) {
+              try {
+                token = await auth.currentUser.getIdToken(true);
+              } catch (error) {
+                // Fall back to localStorage token
+                const storedUser = localStorage.getItem('__localStorage_current_user__');
+                const currentUser = storedUser ? JSON.parse(storedUser) : null;
+                token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+              }
+            } else {
+              const storedUser = localStorage.getItem('__localStorage_current_user__');
+              const currentUser = storedUser ? JSON.parse(storedUser) : null;
+              token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+            }
+
             const response = await axios.get(
                 `http://localhost:3002/api/project/${id}/chat`,
                 { headers: { Authorization: `Bearer ${token}` } }
@@ -94,7 +128,22 @@ function Classroom() {
         setMessage(`🏫 Initializing classroom with ${selectedAgents.length} AI teammate(s)...`);
 
         try {
-            const token = await auth.currentUser.getIdToken(true);
+            // Get token with fallback
+            let token;
+            if (serverFirebaseAvailable) {
+              try {
+                token = await auth.currentUser.getIdToken(true);
+              } catch (error) {
+                // Fall back to localStorage token
+                const storedUser = localStorage.getItem('__localStorage_current_user__');
+                const currentUser = storedUser ? JSON.parse(storedUser) : null;
+                token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+              }
+            } else {
+              const storedUser = localStorage.getItem('__localStorage_current_user__');
+              const currentUser = storedUser ? JSON.parse(storedUser) : null;
+              token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+            }
             
             const response = await axios.post(
                 `http://localhost:3002/api/project/${id}/init-teammates`,
@@ -121,10 +170,22 @@ function Classroom() {
     };
 
     // Helper variables for the render logic
-    const activeAgent = AI_TEAMMATES[activeAgentId];
+    const activeAgent = aiAgents.AI_TEAMMATES[activeAgentId];
     const isSelected = selectedAgents.includes(activeAgentId);
 
     //Render
+    if (loading) {
+        return (
+            <div className="classroom-container-pixel">
+                <div className="classroom-content-wrapper">
+                    <div className="classroom-header-pixel">
+                        <h1>Loading AI teammates...</h1>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="classroom-container-pixel">
             
@@ -168,7 +229,7 @@ function Classroom() {
                         {/* This is the "Roster" at the BOTTOM */}
                         <div className="character-roster-area">
                             {availableAgents.map(agentId => {
-                                const agent = AI_TEAMMATES[agentId];
+                                const agent = aiAgents.AI_TEAMMATES[agentId];
                                 const isAgentSelected = selectedAgents.includes(agentId);
                                 const isAgentActive = activeAgentId === agentId;
 
