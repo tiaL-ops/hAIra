@@ -10,8 +10,9 @@ import axios from 'axios';
 import "../styles/editor.css";
 import "../styles/global.css";
 import "../styles/SubmissionSuccess.css";
+import { Environment } from "@google/genai";
 
-const backend_host = "http://localhost:3002";
+const backend_host = import.meta.env.VITE_BACKEND_HOST;
 
 // Helper function to retry axios requests on network errors
 const axiosWithRetry = async (config, maxRetries = 3, delay = 1000) => {

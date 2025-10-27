@@ -18,7 +18,7 @@ import RasoaAvatar from '../images/Rasoa.png';
 import RakotoAvatar from '../images/Rakoto.png';
 import YouAvatar from '../images/You.png';
 
-const backend_host = "http://localhost:3002";
+const backend_host = import.meta.env.VITE_BACKEND_HOST;
 
 export default function ProjectSelection() {
   const [loading, setLoading] = useState(true);

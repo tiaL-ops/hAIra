@@ -9,14 +9,37 @@ import Task from '../models/KanbanModels.js';
 import { COLLECTIONS, CHAT_SCHEMA, CHAT_MESSAGE_SCHEMA } from '../schema/database.js';
 import { PROJECT_RULES, LEARNING_TOPICS } from '../config/projectRules.js';
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Load environment variables based on deployment context
+if (process.env.GCLOUD_PROJECT === 'haira-prod' || process.env.FIREBASE_CONFIG) {
+  // Running in Firebase/Google Cloud - load haira-prod config
+  dotenv.config({ path: path.join(__dirname, '../.env.haira-prod') });
+  console.log('🔥 Loading .env.haira-prod for Firebase deployment');
+} else if (process.env.NODE_ENV === 'production') {
+  dotenv.config({ path: path.join(__dirname, '../.env.production') });
+  console.log('🔥 Loading .env.production');
+} else {
+  dotenv.config();
+  console.log('🔥 Loading .env for development');
+}
+
 function buildCredential() {
-  // Prefer explicit env vars
-  const { FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY } = process.env;
+  // Check if running in Firebase Functions environment
+  let config = {};
+  try {
+    // Firebase Functions config (if available)
+    const functions = require('firebase-functions');
+    config = functions.config();
+  } catch (error) {
+    // Not in Firebase Functions environment, use process.env
+  }
+
+  // Prefer explicit env vars, then Firebase Functions config
+  const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || config.firebase?.project_id;
+  const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL || config.firebase?.client_email;
+  const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY || config.firebase?.private_key;
   if (FIREBASE_PROJECT_ID && FIREBASE_CLIENT_EMAIL && FIREBASE_PRIVATE_KEY) {
     const privateKey = FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
     return admin.credential.cert({
@@ -27,8 +50,13 @@ function buildCredential() {
   }
 
   // Fallback: service account JSON file (path from env or default location)
-  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH ||
-    path.join(__dirname, '../config/serviceAccountKey.json');
+  // Check for production environment and use appropriate default
+  const isProduction = process.env.NODE_ENV === 'production';
+  const defaultPath = isProduction 
+    ? path.join(__dirname, '../config/serviceAccountKeyProd.json')
+    : path.join(__dirname, '../config/serviceAccountKey.json');
+  
+  const serviceAccountPath = process.env.APP_SERVICE_ACCOUNT_PATH || defaultPath;
 
   if (fs.existsSync(serviceAccountPath)) {
     const json = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
@@ -725,9 +753,12 @@ export async function getProjectWithTasks(projectId, userId) {
 // Update user's active project
 export async function updateUserActiveProject(userId, projectId) {
   const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
-  await userRef.update({
-    activeProjectId: projectId
-  });
+  
+  // Use set with merge to create the document if it doesn't exist
+  await userRef.set({
+    activeProjectId: projectId,
+    lastUpdated: Date.now()
+  }, { merge: true });
 }
 
 // Activate a project and set previous active project to inactive

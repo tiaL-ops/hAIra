@@ -11,7 +11,8 @@ let serverFirebaseAvailable = false;
 // Fetch Firebase availability from server
 async function checkServerFirebaseAvailability() {
   try {
-    const response = await fetch('http://localhost:3002/api/config');
+    const backendHost = import.meta.env.VITE_BACKEND_HOST || 'http://localhost:3002';
+    const response = await fetch(`${backendHost}/api/config`);
     const config = await response.json();
     serverFirebaseAvailable = config.firebaseAvailable;
     console.log(`📡 Server storage mode: ${config.storageMode}`);
@@ -33,13 +34,13 @@ async function initializeFirebaseClient() {
     // Server has Firebase, initialize client Firebase
     try {
       const firebaseConfig = {
-        apiKey: "AIzaSyAV-rdY66x8CAElzUWfR4tZ-HgcP9xIwDM",
-        authDomain: "haira-dev.firebaseapp.com",
-        projectId: "haira-dev",
-        storageBucket: "haira-dev.firebasestorage.app",
-        messagingSenderId: "325852042789",
-        appId: "1:325852042789:web:a9f0654c719b22a4da51cc",
-        measurementId: "G-FE30L1DSNX"
+        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+        authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+        storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+        appId: import.meta.env.VITE_FIREBASE_APP_ID,
+        measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
       };
 
       app = initializeApp(firebaseConfig);

@@ -8,7 +8,7 @@ import TaskReviewModal from "../components/TaskReviewModal";
 import '../styles/Chat.css';
 import '../styles/Kanban.css';
 
-const backend_host = "http://localhost:3002";
+const backend_host = import.meta.env.VITE_BACKEND_HOST;
 
 // Helper function to retry axios requests on network errors
 const axiosWithRetry = async (config, maxRetries = 3, delay = 1000) => {

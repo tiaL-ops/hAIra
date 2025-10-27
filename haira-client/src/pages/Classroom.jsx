@@ -14,6 +14,8 @@ import SamAvatar from '../images/Sam.png';
 import RasoaAvatar from '../images/Rasoa.png';
 import RakotoAvatar from '../images/Rakoto.png';
 
+const backend_host = import.meta.env.VITE_BACKEND_HOST;
+
 function Classroom() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -83,7 +85,7 @@ function Classroom() {
             }
 
             const response = await axios.get(
-                `http://localhost:3002/api/project/${id}/chat`,
+                `${backend_host}/api/project/${id}/chat`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             
@@ -146,7 +148,7 @@ function Classroom() {
             }
             
             const response = await axios.post(
-                `http://localhost:3002/api/project/${id}/init-teammates`,
+                `${backend_host}/api/project/${id}/init-teammates`,
                 { selectedAgents },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

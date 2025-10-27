@@ -4,8 +4,8 @@ import { useAuth } from '../App';
 import axios from 'axios';
 import '../styles/WeeklyLearningPrompt.css';
 
-// Prefer environment override, fallback to localhost for dev
-const backend_host = import.meta?.env?.VITE_BACKEND_HOST || "http://localhost:3002";
+// Use environment variable for backend host
+const backend_host = import.meta.env.VITE_BACKEND_HOST;
 
 export default function WeeklyLearningPrompt({ 
   onTopicSelected, 

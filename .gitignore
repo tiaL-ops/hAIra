@@ -1,8 +1,20 @@
 .DS_Store
 node_modules
 node_modules/
-haira-server/.env
 firestore.rules
 
+# Environment files
 .env
-.env/.env
+.env.local
+.env.production
+.env.production.local
+haira-client/.env
+haira-client/.env.local
+haira-client/.env.production
+haira-client/.env.production.local
+haira-server/.env
+haira-server/.env.local
+haira-server/.env.production
+haira-server/.env.production.local
+.firebase
+.firebase/*

@@ -53,7 +53,7 @@ import "../styles/SummarizePopup.css";
 import "../styles/ProofreadPopup.css";
 //------------
 
-const backend_host = "http://localhost:3002";
+const backend_host = import.meta.env.VITE_BACKEND_HOST;
 
 function Submission() {
   const { id } = useParams(); // project id
