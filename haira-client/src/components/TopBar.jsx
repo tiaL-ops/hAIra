@@ -7,6 +7,7 @@ import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import '../styles/TopBar.css';
 
+
 const backend_host = "http://localhost:3002";
 
 
@@ -52,9 +53,9 @@ export default function TopBar() {
     <header className="header-top">
       <div className="inner">
         {/* Brand */}
-        <Link to={isAuthenticated ? '/' : '/login'} className="logo">
-          hAIra
-        </Link>
+        <a href={isAuthenticated ? '/' : '/login'} className="logo-link">
+          <img src="/logo.png" alt="hAIra Logo" className="logo-img" />
+        </a>
 
         {/* Tabs */}
         {isAuthenticated && (

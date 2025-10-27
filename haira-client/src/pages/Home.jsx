@@ -141,9 +141,9 @@ function Home() {
               You will learn to:
             </p>
             <ul className="bullet-list">
-              <li><strong>Critique AI-generated content</strong> and decide what to use.</li>
-              <li><strong>Collaborate with diverse "personalities,"</strong> including AI teammates who are helpful and some who are constructively challenging.</li>
-              <li><strong>Practice teamwork</strong> by managing tasks, communicating in a group chat, and co-authoring documents.</li>
+              <li><strong> - Critique AI-generated content</strong> and decide what to use.</li>
+              <li><strong> - Collaborate with diverse "personalities,"</strong> including AI teammates who are helpful and some who are constructively challenging.</li>
+              <li><strong> - Practice teamwork</strong> by managing tasks, communicating in a group chat, and co-authoring documents.</li>
             </ul>
           </div>
           <div className="solution-visual">
@@ -211,8 +211,8 @@ function Home() {
         <h2 className="section-title">Cool fun fact ☺️</h2>
         <p className="section-text">
           The name <strong>hAIra</strong> is inspired by the Malagasy word 
-          <em> "hairaha"</em>, which means 
-          "the ability to create and critique art."
+          <em> "Mahay raha"</em>, which means 
+          "having the ability to create and critique art."
         </p>
       </section>
 

@@ -69,8 +69,8 @@ export default function WeeklyLearningPrompt({
   // Handle topic selection - show choice between generate new vs pick existing
   const handleTopicSelect = (topicId) => {
     setSelectedTopic(topicId);
-    setShowChoice(true);
     setError('');
+    handleGenerateNew(topicId);
   };
 
   // Fetch available templates for the selected topic
@@ -107,8 +107,9 @@ export default function WeeklyLearningPrompt({
   };
 
   // Handle choice: Generate new project
-  const handleGenerateNew = async () => {
-    if (!selectedTopic) return;
+  const handleGenerateNew = async (topicIdParam) => {
+    const topic = topicIdParam || selectedTopic;
+    if (!topic) return;
     
     setLoading(true);
     setError('');
@@ -123,7 +124,7 @@ export default function WeeklyLearningPrompt({
       }
       
       const response = await axios.post(`${backend_host}/api/project/generate-project`, {
-        topic: selectedTopic,
+        topic,
         action: 'generate_new'
       }, {
         headers: {
