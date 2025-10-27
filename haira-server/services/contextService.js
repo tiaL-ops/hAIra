@@ -171,7 +171,11 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
  */
 function organizeTasksByAssignee(tasks) {
   const organized = {
-    alex: [],
+    brown: [],
+    elza: [],
+    kati: [],
+    steve: [],
+    sam: [],
     rasoa: [],
     rakoto: [],
     user: [],
@@ -186,40 +190,53 @@ function organizeTasksByAssignee(tasks) {
   }
   
   tasks.forEach((task, index) => {
-    const assignee = (task.assignedTo || task.assignee || 'unassigned').toLowerCase();
+    const assignee = (task.assignedTo || 'unassigned').toLowerCase().trim();
     const taskTitle = task.title || task.text || 'No title';
-    const taskDescription = task.description || '';
     
     console.log(`[ContextService] Task ${index + 1}: "${taskTitle}" -> assignedTo: "${assignee}"`);
-    console.log(`[ContextService] Task details:`, {
-      title: taskTitle,
-      description: taskDescription,
-      status: task.status,
-      assignedTo: assignee
-    });
     
-    // Match assignee to known agents or user
-    if (assignee.includes('alex')) {
-      organized.alex.push(task);
-      console.log(`[ContextService] -> Assigned to Alex`);
-    } else if (assignee.includes('rasoa')) {
+    // Direct agent name match
+    if (assignee === 'brown' || assignee.includes('brown')) {
+      organized.brown.push(task);
+      console.log(`[ContextService] ✅ Assigned to Brown`);
+    } else if (assignee === 'elza' || assignee.includes('elza')) {
+      organized.elza.push(task);
+      console.log(`[ContextService] ✅ Assigned to Elza`);
+    } else if (assignee === 'kati' || assignee.includes('kati')) {
+      organized.kati.push(task);
+      console.log(`[ContextService] ✅ Assigned to Kati`);
+    } else if (assignee === 'steve' || assignee.includes('steve')) {
+      organized.steve.push(task);
+      console.log(`[ContextService] ✅ Assigned to Steve`);
+    } else if (assignee === 'sam' || assignee.includes('sam')) {
+      organized.sam.push(task);
+      console.log(`[ContextService] ✅ Assigned to Sam`);
+    } else if (assignee === 'rasoa' || assignee.includes('rasoa')) {
       organized.rasoa.push(task);
-      console.log(`[ContextService] -> Assigned to Rasoa`);
-    } else if (assignee.includes('rakoto')) {
+      console.log(`[ContextService] ✅ Assigned to Rasoa`);
+    } else if (assignee === 'rakoto' || assignee.includes('rakoto')) {
       organized.rakoto.push(task);
-      console.log(`[ContextService] -> Assigned to Rakoto`);
-    } else if (assignee.includes('user') || assignee.includes('human') || task.userId || assignee.length > 20) {
-      // If assignedTo is a long user ID, treat as user task
+      console.log(`[ContextService] ✅ Assigned to Rakoto`);
+    } else if (assignee === 'user' || assignee === 'human' || assignee.length > 20) {
+      // Long user IDs (Firebase UIDs)
       organized.user.push(task);
-      console.log(`[ContextService] -> Assigned to User (ID: ${assignee})`);
-    } else {
+      console.log(`[ContextService] ✅ Assigned to User`);
+    } else if (assignee === 'unassigned' || assignee === '') {
       organized.unassigned.push(task);
-      console.log(`[ContextService] -> Unassigned`);
+      console.log(`[ContextService] ✅ Unassigned`);
+    } else {
+      // Unknown assignee - treat as unassigned
+      organized.unassigned.push(task);
+      console.log(`[ContextService] ⚠️ Unknown assignee "${assignee}" - marking as unassigned`);
     }
   });
   
   console.log(`[ContextService] Final organization:`, {
-    alex: organized.alex.length,
+    brown: organized.brown.length,
+    elza: organized.elza.length,
+    kati: organized.kati.length,
+    steve: organized.steve.length,
+    sam: organized.sam.length,
     rasoa: organized.rasoa.length,
     rakoto: organized.rakoto.length,
     user: organized.user.length,
