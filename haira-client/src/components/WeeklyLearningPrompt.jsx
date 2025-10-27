@@ -5,7 +5,7 @@ import axios from 'axios';
 import '../styles/WeeklyLearningPrompt.css';
 
 // Use environment variable for backend host
-const backend_host = import.meta.env.VITE_BACKEND_HOST || "http://localhost:3002";
+const backend_host = import.meta.env.VITE_BACKEND_HOST;
 
 export default function WeeklyLearningPrompt({ 
   onTopicSelected, 
