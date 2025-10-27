@@ -5,6 +5,7 @@ import { useAuth } from '../App';
 import { auth, serverFirebaseAvailable } from '../../firebase';
 import '../styles/Chat.css'; // Your CSS (the updated one you shared)
 
+const backend_host = import.meta.env.VITE_BACKEND_HOST;
 // Helper function to retry axios requests on network errors
 const axiosWithRetry = async (config, maxRetries = 3, delay = 1000) => {
   for (let i = 0; i < maxRetries; i++) {
@@ -196,19 +197,19 @@ function Chat() {
         const [chatResp, projectResp, profileResp] = await Promise.all([
           axiosWithRetry({ 
             method: 'get',
-            url: `http://localhost:3002/api/project/${id}/chat`,
+            url: `${backend_host}/api/project/${id}/chat`,
             headers: { Authorization: `Bearer ${token}` },
             timeout: 10000
           }),
           axiosWithRetry({ 
             method: 'get',
-            url: `http://localhost:3002/api/project/${id}`,
+            url: `${backend_host}/api/project/${id}`,
             headers: { Authorization: `Bearer ${token}` },
             timeout: 10000
           }),
           axiosWithRetry({ 
             method: 'get',
-            url: `http://localhost:3002/api/profile`,
+            url: `${backend_host}/api/profile`,
             headers: { Authorization: `Bearer ${token}` },
             timeout: 10000
           })
@@ -308,7 +309,7 @@ function Chat() {
       }
         const response = await axiosWithRetry({
         method: 'post',
-        url: `http://localhost:3002/api/project/${id}/chat`,
+        url: `${backend_host}/api/project/${id}/chat`,
         data: { content: newMessage },
         headers: { Authorization: `Bearer ${token}` },
         timeout: 10000

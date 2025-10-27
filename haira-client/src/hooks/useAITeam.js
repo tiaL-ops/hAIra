@@ -4,7 +4,7 @@ import axios from 'axios';
 import { getAIAgents } from '../services/aiAgentsService.js';
 import { getChromeWriter } from '../utils/chromeAPI.js';
 
-const backend_host = "http://localhost:3002";
+const backend_host = import.meta.env.VITE_BACKEND_HOST;
 
 const convertMarkdownToHTML = (markdown) => {
   if (!markdown) return '';

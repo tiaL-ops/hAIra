@@ -10,7 +10,8 @@
   "scripts": {
     "dev": "concurrently -n server,client -c magenta.bold,cyan.bold \"npm --prefix haira-server run dev\" \"npm --prefix haira-client run dev\"",
     "dev:server": "npm --prefix haira-server run dev",
-    "dev:client": "npm --prefix haira-client run dev"
+    "dev:client": "npm --prefix haira-client run dev",
+    "build": "npm --prefix haira-client run build"
   },
   "devDependencies": {
     "chai": "^6.2.0",

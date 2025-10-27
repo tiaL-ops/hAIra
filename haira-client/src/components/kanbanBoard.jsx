@@ -17,6 +17,7 @@ import RasoaAvatar from '../images/Rasoa.png';
 import RakotoAvatar from '../images/Rakoto.png';
 import YouAvatar from '../images/You.png';
 
+const backend_host = import.meta.env.VITE_BACKEND_HOST;
 // Auth will be handled through useAuth hook and localStorage fallback
 
 const COLOR = {
@@ -96,7 +97,7 @@ export default function KanbanBoard({ id }) {
         } else {
           token = `mock-token-${currentUser.uid}-${Date.now()}`;
         }
-  const kanbanData = await axios.get(`http://localhost:3002/api/project/${id}/kanban`, { headers: { Authorization: `Bearer ${token}` } });
+  const kanbanData = await axios.get(`${backend_host}/api/project/${id}/kanban`, { headers: { Authorization: `Bearer ${token}` } });
         const fetchedTasks = kanbanData.data.tasks || {}; // Changed to object
         let data = {todo : [], inProgress : [], done : []};
         
@@ -121,12 +122,12 @@ export default function KanbanBoard({ id }) {
         const teammateNames = team.map(t => t.name);
         setTeammates(team);
 
-        const priorityData = await axios.get(`http://localhost:3002/api/project/tasks/priority`, { headers: { Authorization: `Bearer ${token}` } });
+        const priorityData = await axios.get(`${backend_host}/api/project/tasks/priority`, { headers: { Authorization: `Bearer ${token}` } });
         setPriority(priorityData.data.priority);
 
         // Fetch user profile for human avatar image
         try {
-          const profileResp = await axios.get(`http://localhost:3002/api/profile`, { headers: { Authorization: `Bearer ${token}` } });
+          const profileResp = await axios.get(`${backend_host}/api/profile`, { headers: { Authorization: `Bearer ${token}` } });
           if (profileResp?.data?.success && profileResp?.data?.user) {
             setUserProfile(profileResp.data.user);
           }
@@ -169,7 +170,7 @@ export default function KanbanBoard({ id }) {
     }
     const data = { title : id, taskUserId : newTask.assignee , status : column, description : newTask.name };
     const kanbanData = await axios.post(
-      `http://localhost:3002/api/project/${id}/tasks`,
+      `${backend_host}/api/project/${id}/tasks`,
       data,
       { headers: { Authorization: `Bearer ${token}` } });
     if (kanbanData.data.success) {
@@ -204,7 +205,7 @@ export default function KanbanBoard({ id }) {
     }
     const data = { taskId : task.id, title : id, status : column, userId : task.assignee , description : task.name, priority : task.priority };
     const kanbanData = await axios.put(
-      `http://localhost:3002/api/project/${id}/tasks`,
+      `${backend_host}/api/project/${id}/tasks`,
       data,
       { headers: { Authorization: `Bearer ${token}` } });
     if (!updateState)
@@ -241,7 +242,7 @@ export default function KanbanBoard({ id }) {
     }
     const data = { taskId : taskId };
     const kanbanData = await axios.delete(
-      `http://localhost:3002/api/project/${id}/tasks`,
+      `${backend_host}/api/project/${id}/tasks`,
       { headers: { Authorization: `Bearer ${token}` }, data: data });
     if (kanbanData.data.success) {
       setTasks({

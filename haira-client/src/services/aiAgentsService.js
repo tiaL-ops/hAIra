@@ -1,5 +1,6 @@
 // Service to fetch AI agents configuration from server
 let cachedAgents = null;
+const backend_host = import.meta.env.VITE_BACKEND_HOST;
 
 export async function getAIAgents() {
   if (cachedAgents) {
@@ -7,7 +8,7 @@ export async function getAIAgents() {
   }
 
   try {
-    const response = await fetch('http://localhost:3002/api/ai-agents');
+    const response = await fetch(`${backend_host}/api/ai-agents`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }

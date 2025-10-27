@@ -8,7 +8,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import '../styles/TopBar.css';
 
 
-const backend_host = "http://localhost:3002";
+const backend_host = import.meta.env.VITE_BACKEND_HOST;
 
 
 

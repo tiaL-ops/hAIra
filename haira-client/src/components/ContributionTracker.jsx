@@ -14,7 +14,7 @@ import SamAvatar from '../images/Sam.png';
 import RasoaAvatar from '../images/Rasoa.png';
 import RakotoAvatar from '../images/Rakoto.png';
 
-const backend_host = "http://localhost:3002";
+const backend_host = import.meta.env.VITE_BACKEND_HOST;
 
 export default function ContributionTracker({ projectId, showContributions = true, editorContent = '' }) {
   const [contributions, setContributions] = useState([]);

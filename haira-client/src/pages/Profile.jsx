@@ -16,6 +16,8 @@ function Profile() {
   const [uploading, setUploading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(null);
   
+  const backend_host = import.meta.env.VITE_BACKEND_HOST;
+  
   const navigate = useNavigate();
   const auth = getAuth();
 
@@ -45,7 +47,7 @@ function Profile() {
         } else {
           token = `mock-token-${currentUser.uid}-${Date.now()}`;
         }
-        const response = await axios.get("http://localhost:3002/api/profile", {
+        const response = await axios.get(`${backend_host}/api/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -85,7 +87,7 @@ function Profile() {
       } else {
         token = `mock-token-${currentUser.uid}-${Date.now()}`;
       }
-      await axios.patch("http://localhost:3002/api/profile/preferences", 
+      await axios.patch(`${backend_host}/api/profile/preferences`, 
         { language: newLanguage },
         { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
       );
@@ -179,7 +181,7 @@ function Profile() {
       // Upload to backend
       const token = await auth.currentUser.getIdToken();
       const response = await axios.patch(
-        "http://localhost:3002/api/profile/avatar",
+        `${backend_host}/api/profile/avatar`,
         { avatarData: compressedImage },
         { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
       );
