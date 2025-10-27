@@ -6,3 +6,4 @@ node_modules
 config/serviceAccountKey.json
 config/serviceAccountKeyProd.json
 local_data/
+.env.haira-prod
