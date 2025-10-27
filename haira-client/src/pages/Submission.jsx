@@ -1,8 +1,27 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from '../App';
-import { auth } from '../../firebase';
+import { auth, serverFirebaseAvailable } from '../../firebase';
 import axios from 'axios';
+
+// Helper function to retry axios requests on network errors
+const axiosWithRetry = async (config, maxRetries = 3, delay = 1000) => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await axios(config);
+    } catch (error) {
+      const isLastRetry = i === maxRetries - 1;
+      const isNetworkError = error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED';
+      
+      if (isNetworkError && !isLastRetry) {
+        console.log(`[Retry ${i + 1}/${maxRetries}] Network error, retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+};
 
 // Import agent avatars
 import BrownAvatar from '../images/Brown.png';
@@ -138,19 +157,40 @@ function Submission() {
   // Load project data and draft content
   useEffect(() => {
     const fetchSubmission = async () => {
-      if (!auth.currentUser) {
+      // Check authentication with fallback
+      const checkAuth = () => {
+        if (serverFirebaseAvailable) {
+          return auth.currentUser;
+        } else {
+          // Check localStorage for user
+          const storedUser = localStorage.getItem('__localStorage_current_user__');
+          return storedUser ? JSON.parse(storedUser) : null;
+        }
+      };
+      
+      const currentUser = checkAuth();
+      if (!currentUser) {
         navigate('/login');
         return;
       }
       
       try {
         setIsLoading(true);
-        const token = await auth.currentUser.getIdToken();
+        
+        // Get token with fallback
+        let token;
+        if (serverFirebaseAvailable) {
+          token = await auth.currentUser.getIdToken();
+        } else {
+          // Generate mock token for localStorage
+          token = `mock-token-${currentUser.uid}-${Date.now()}`;
+        }
         
         const response = await axios.get(`${backend_host}/api/project/${id}/submission`, {
           headers: {
             'Authorization': `Bearer ${token}`
-          }
+          },
+          timeout: 10000
         });
         
         const data = response.data;
@@ -234,7 +274,8 @@ function Submission() {
       const response = await axios.get(`${backend_host}/api/project/${id}/kanban`, {
         headers: {
           'Authorization': `Bearer ${token || await getIdTokenSafely()}`
-        }
+        },
+        timeout: 10000
       });
       
       if (response.data.success) {
@@ -273,7 +314,8 @@ function Submission() {
             headers: {
               "Content-Type": "application/json",
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            }
+            },
+            timeout: 10000
           }
         );
         
@@ -318,7 +360,8 @@ function Submission() {
             headers: {
               "Content-Type": "application/json",
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            }
+            },
+            timeout: 10000
           }
         );
         
@@ -467,18 +510,19 @@ function Submission() {
     setSummarizeError(null);
     
     try {
-      // Call server-side AI fallback function
+      // Call server-side AI fallback function with retry logic
       const serverSideFallback = async () => {
         const token = await getIdTokenSafely();
-        const res = await axios.post(`${backend_host}/api/project/${id}/ai/summarize`, 
-          { content: reportContent },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            }
-          }
-        );
+        const res = await axiosWithRetry({
+          method: 'post',
+          url: `${backend_host}/api/project/${id}/ai/summarize`,
+          data: { content: reportContent },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          timeout: 10000
+        });
         return {
           summary: res.data?.result || res.data?.summary || "No summary returned.",
           source: 'gemini'
@@ -541,18 +585,19 @@ function Submission() {
     setProofreadError(null);
     
     try {
-      // Call server-side AI fallback function
+      // Call server-side AI fallback function with retry logic
       const serverSideFallback = async () => {
         const token = await getIdTokenSafely();
-        const res = await axios.post(`${backend_host}/api/project/${id}/ai/proofread`, 
-          { content: textToProofread },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            }
-          }
-        );
+        const res = await axiosWithRetry({
+          method: 'post',
+          url: `${backend_host}/api/project/${id}/ai/proofread`,
+          data: { content: textToProofread },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          timeout: 10000
+        });
         return {
           corrections: res.data?.corrections || res.data?.proofread || "No response.",
           source: 'gemini'
@@ -720,7 +765,11 @@ function Submission() {
       }
     } catch (error) {
       console.error('AI task assignment failed:', error);
-      setAiFeedback(`❌ AI task failed: ${error.message}`);
+      if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
+        setAiFeedback(`🔌 Connection failed. Please refresh the page and try again.`);
+      } else {
+        setAiFeedback(`❌ AI task failed: ${error.message}`);
+      }
     }
   }
 
@@ -742,22 +791,25 @@ function Submission() {
       const token = await getIdTokenSafely();
       console.log('[syncTasks] Token obtained:', !!token);
       
-      const response = await axios.post(
-        `${backend_host}/api/project/${id}/sync-tasks`,
-        { tasks, status }, // Pass status to backend
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          }
-        }
-      );
+      const response = await axiosWithRetry({
+        method: 'post',
+        url: `${backend_host}/api/project/${id}/sync-tasks`,
+        data: { tasks, status },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        timeout: 10000
+      });
       
       console.log('[syncTasks] ✅ Response:', response.data);
       console.log('[syncTasks] ===== END SYNC =====');
       return response.data;
     } catch (err) {
       console.error('[syncTasks] ❌ Error:', err.response?.data || err.message);
+      if (err.code === 'ERR_NETWORK' || err.code === 'ECONNREFUSED') {
+        console.error('[syncTasks] ❌ Network connection failed after retries. Please check if server is running.');
+      }
       throw err;
     }
   }
@@ -769,7 +821,17 @@ function Submission() {
       return;
     }
 
-    if (!auth.currentUser) {
+    // Check authentication with fallback
+    const checkAuth = () => {
+      if (serverFirebaseAvailable) {
+        return auth.currentUser;
+      } else {
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        return storedUser ? JSON.parse(storedUser) : null;
+      }
+    };
+    
+    if (!checkAuth()) {
       alert("You must be logged in to submit a report.");
       return;
     }
@@ -778,16 +840,17 @@ function Submission() {
     try {
       const token = await getIdTokenSafely();
       
-      // Submit the report
-      const response = await axios.post(`${backend_host}/api/project/${id}/submission`, 
-        { content: reportContent },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          }
-        }
-      );
+      // Submit the report with retry logic
+      const response = await axiosWithRetry({
+        method: 'post',
+        url: `${backend_host}/api/project/${id}/submission`,
+        data: { content: reportContent },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        timeout: 10000
+      });
       
       setSubmitted(true);
       
@@ -806,8 +869,17 @@ function Submission() {
   // Utility to get token without assuming code structure; if getAuth not available it gracefully continues unauthenticated
   async function getIdTokenSafely() {
     try {
-      if (auth && auth.currentUser) {
-        return await auth.currentUser.getIdToken();
+      if (serverFirebaseAvailable) {
+        if (auth && auth.currentUser) {
+          return await auth.currentUser.getIdToken();
+        }
+      } else {
+        // Use localStorage fallback
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        if (storedUser) {
+          const currentUser = JSON.parse(storedUser);
+          return `mock-token-${currentUser.uid}-${Date.now()}`;
+        }
       }
     } catch (err) {
       // ignore; return null

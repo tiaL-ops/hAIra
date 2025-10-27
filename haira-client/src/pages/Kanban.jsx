@@ -30,32 +30,16 @@ function Kanban() {
 
     useEffect(() => {
       const fetchProjectData = async () => {
-        // Check authentication with fallback
-        let currentUser;
-        if (serverFirebaseAvailable) {
-          try {
-            currentUser = auth.currentUser;
-          } catch (error) {
-            console.warn('Firebase Auth error, falling back to localStorage:', error);
-            // Fall through to localStorage check
-          }
-        }
-        
+        // Use the currentUser from useAuth hook
         if (!currentUser) {
-          // Check localStorage for user
-          const storedUser = localStorage.getItem('__localStorage_current_user__');
-          currentUser = storedUser ? JSON.parse(storedUser) : null;
-        }
-        
-        if (!currentUser) {
-            navigate('/login');
-            return;
+          navigate('/login');
+          return;
         }
 
         try {
           // Get token with fallback
           let token;
-          if (firebaseAvailable && currentUser && currentUser.getIdToken) {
+          if (serverFirebaseAvailable && currentUser && currentUser.getIdToken) {
             token = await currentUser.getIdToken();
           } else {
             token = `mock-token-${currentUser.uid}-${Date.now()}`;
@@ -84,7 +68,7 @@ function Kanban() {
         }
       };
       fetchProjectData();
-    }, [id, navigate]);
+    }, [id, navigate, currentUser]);
 
   const handleGenerate = async () => {
     const projTitle = projectData?.title || "";
@@ -97,18 +81,9 @@ function Kanban() {
         try {
             // Get token with fallback
             let token;
-            if (serverFirebaseAvailable) {
-              try {
-                token = await auth.currentUser.getIdToken();
-              } catch (error) {
-                // Fall back to localStorage token
-                const storedUser = localStorage.getItem('__localStorage_current_user__');
-                const currentUser = storedUser ? JSON.parse(storedUser) : null;
-                token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
-              }
+            if (serverFirebaseAvailable && currentUser && currentUser.getIdToken) {
+              token = await currentUser.getIdToken();
             } else {
-              const storedUser = localStorage.getItem('__localStorage_current_user__');
-              const currentUser = storedUser ? JSON.parse(storedUser) : null;
               token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
             }
 
@@ -138,18 +113,9 @@ function Kanban() {
       try {
         // Get token with fallback
         let token;
-        if (serverFirebaseAvailable) {
-          try {
-            token = await auth.currentUser.getIdToken();
-          } catch (error) {
-            // Fall back to localStorage token
-            const storedUser = localStorage.getItem('__localStorage_current_user__');
-            const currentUser = storedUser ? JSON.parse(storedUser) : null;
-            token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
-          }
+        if (serverFirebaseAvailable && currentUser && currentUser.getIdToken) {
+          token = await currentUser.getIdToken();
         } else {
-          const storedUser = localStorage.getItem('__localStorage_current_user__');
-          const currentUser = storedUser ? JSON.parse(storedUser) : null;
           token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
         }
         

@@ -12,6 +12,25 @@ import "../styles/SubmissionSuccess.css";
 
 const backend_host = "http://localhost:3002";
 
+// Helper function to retry axios requests on network errors
+const axiosWithRetry = async (config, maxRetries = 3, delay = 1000) => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await axios(config);
+    } catch (error) {
+      const isLastRetry = i === maxRetries - 1;
+      const isNetworkError = error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED';
+      
+      if (isNetworkError && !isLastRetry) {
+        console.log(`[Retry ${i + 1}/${maxRetries}] Network error, retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+};
+
 function SubmissionSuccess() {
   const { id } = useParams(); // project id
   const { currentUser } = useAuth();
@@ -64,19 +83,17 @@ function SubmissionSuccess() {
     setGradingLoading(true);
     try {
       const token = await getIdTokenSafely();
-      const response = await fetch(`${backend_host}/api/project/${id}/ai/grade`, {
-        method: 'POST',
+      const response = await axiosWithRetry({
+        method: 'post',
+        url: `${backend_host}/api/project/${id}/ai/grade`,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        timeout: 30000 // 30 seconds for AI grading (can be slow)
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = response.data;
       console.log('AI Grading Response:', data);
       
       if (data.success) {
@@ -114,36 +131,36 @@ function SubmissionSuccess() {
         setLoading(true);
         const token = await getIdTokenSafely();
         
-        // Fetch submission data
-        const response = await fetch(`${backend_host}/api/project/${id}/submission/results`, {
+        // Fetch submission data with retry logic
+        const response = await axiosWithRetry({
+          method: 'get',
+          url: `${backend_host}/api/project/${id}/submission/results`,
           headers: {
             'Authorization': `Bearer ${token}`
-          }
+          },
+          timeout: 10000
         });
         
-        if (!response.ok) {
-          throw new Error('Failed to fetch submission data');
-        }
-        
-        const data = await response.json();
+        const data = response.data;
         setSubmission(data.submission);
         setGrade(data.grade);
         
         // Generate AI summary if we have content
         if (data.submission?.content) {
           try {
-            // Call server-side AI fallback function
+            // Call server-side AI fallback function with retry logic
             const serverSideFallback = async () => {
               const token = await getIdTokenSafely();
-              const res = await axios.post(`${backend_host}/api/project/${id}/ai/summarize`, 
-                { content: data.submission.content },
-                {
-                  headers: {
-                    "Content-Type": "application/json",
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                  }
-                }
-              );
+              const res = await axiosWithRetry({
+                method: 'post',
+                url: `${backend_host}/api/project/${id}/ai/summarize`,
+                data: { content: data.submission.content },
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                timeout: 10000
+              });
               return {
                 summary: res.data?.result || res.data?.summary || "No summary returned.",
                 source: 'gemini'

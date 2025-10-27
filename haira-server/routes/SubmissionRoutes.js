@@ -480,6 +480,8 @@ Respond with JSON format:
 }
 `;
         const proofreadContext = `You are a grammar expert. Provide clear, helpful corrections.`;
+        
+        let aiResponse;
         try {
             console.log('🚀 Making Gemini API call...');
             aiResponse = await callGemini(grammarPrompt, proofreadContext);
@@ -536,6 +538,8 @@ Respond with JSON format:
 `;
 
         const summarizeContext ="You are a summarization expert. Create concise, accurate summaries.";
+        
+        let aiResponse;
         try {
             console.log('🚀 Making Gemini API call...');
             aiResponse = await callGemini(summaryPrompt, summarizeContext);
@@ -1063,6 +1067,7 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
         // const aiResponse = await generateAIContribution(taskPrompt, aiConfig, reviewContext);
         const reviewContext = `You are ${aiTeammate.name}, a ${aiTeammate.role}. ${aiTeammate.personality}`;
 
+        let aiResponse;
         try {
             console.log('🚀 Making AI call with centralized service...');
             aiResponse = await generateAIContribution(taskPrompt, aiConfig, reviewContext);
@@ -1171,6 +1176,7 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         // const aiResponse = await generateAIContribution(taskPrompt, aiConfig, suggestionContext);
         const suggestionContext = `You are ${aiTeammate.name}, a ${aiTeammate.role}. ${aiTeammate.personality}`;
         
+        let aiResponse;
         try {
             console.log('🚀 Making AI call with centralized service...');
             aiResponse = await generateAIContribution(taskPrompt, aiConfig, suggestionContext);

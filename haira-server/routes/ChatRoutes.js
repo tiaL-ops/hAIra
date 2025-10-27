@@ -1,16 +1,8 @@
 // Phase 3: Chat Routes with Teammates Sync
+
 import express from 'express';
 import admin from 'firebase-admin';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
-import { 
-  addDocument, 
-  addSubdocument, 
-  getDocumentById, 
-  updateDocument, 
-  querySubcollection,
-  getUserMessageCountSince,
-  firebaseAvailable
-} from '../services/databaseService.js';
 import {
   getTeammates,
   getTeammate,
@@ -21,9 +13,23 @@ import {
   getSleepResponse
 } from '../services/teammateService.js';
 import { triggerAgentResponse } from '../services/aiService.js';
+import { getDefaultResponseAgents } from '../utils/chatUtils.js';
+import { 
+  getUserMessageCountSince, 
+  firebaseAvailable, 
+  getDocumentById, 
+  setDocument, 
+  addDocument, 
+  querySubcollection,
+  addSubdocument,
+  updateDocument,
+  queryDocuments
+} from '../services/databaseService.js';
+import * as localStorageService from '../services/localStorageService.js';
 import { getProjectDay } from '../utils/chatUtils.js';
 
 const router = express.Router();
+const isLocalMode = !firebaseAvailable; // true when using localStorage, false when using Firebase
 
 // Handle FieldValue for Firebase operations
 const getFieldValue = () => {

@@ -18,14 +18,14 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
   console.log(`[ContextService] Building context for ${agentId} on project ${projectId}, day ${currentDay}`);
   
   try {
-    // 1. Check if we have cached context for today
-    const cachedContext = getDailyContext(projectId, currentDay);
-    if (cachedContext && (Date.now() - cachedContext.lastUpdated) < 300000) { // 5 minutes
-      console.log(`[ContextService] ⚠️ Using cached context for ${agentId} - tasks: ${cachedContext.allTasks?.length || 0}`);
-      // TEMPORARILY DISABLED CACHE TO DEBUG
-      // return getEnhancedContextCache(projectId, currentDay, agentId);
-      console.log(`[ContextService] 🔧 Cache DISABLED - fetching fresh from Firestore`);
-    }
+    // 1. Check if we have cached context for today (DISABLED - function not implemented)
+    // const cachedContext = getDailyContext(projectId, currentDay);
+    // if (cachedContext && (Date.now() - cachedContext.lastUpdated) < 300000) { // 5 minutes
+    //   console.log(`[ContextService] ⚠️ Using cached context for ${agentId} - tasks: ${cachedContext.allTasks?.length || 0}`);
+    //   return getEnhancedContextCache(projectId, currentDay, agentId);
+    // }
+    console.log(`[ContextService] 🔧 Fetching fresh context (caching disabled)`);
+    
     
     // 2. Get project data and tasks from Firebase
     const projectData = await getProjectWithTasks(projectId, userId);

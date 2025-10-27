@@ -5,6 +5,25 @@ import { useAuth } from '../App';
 import { auth, serverFirebaseAvailable } from '../../firebase';
 import '../styles/Chat.css'; // Your CSS (the updated one you shared)
 
+// Helper function to retry axios requests on network errors
+const axiosWithRetry = async (config, maxRetries = 3, delay = 1000) => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await axios(config);
+    } catch (error) {
+      const isLastRetry = i === maxRetries - 1;
+      const isNetworkError = error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED';
+      
+      if (isNetworkError && !isLastRetry) {
+        console.log(`[Retry ${i + 1}/${maxRetries}] Network error, retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+};
+
 import AlexAvatar from '../images/Alex.png';
 import BrownAvatar from '../images/Brown.png';
 import ElzaAvatar from '../images/Elza.png';
@@ -175,9 +194,24 @@ function Chat() {
           token = `mock-token-${currentUser.uid}-${Date.now()}`;
         }
         const [chatResp, projectResp, profileResp] = await Promise.all([
-          axios.get(`http://localhost:3002/api/project/${id}/chat`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`http://localhost:3002/api/project/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`http://localhost:3002/api/profile`, { headers: { Authorization: `Bearer ${token}` } })
+          axiosWithRetry({ 
+            method: 'get',
+            url: `http://localhost:3002/api/project/${id}/chat`,
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: 10000
+          }),
+          axiosWithRetry({ 
+            method: 'get',
+            url: `http://localhost:3002/api/project/${id}`,
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: 10000
+          }),
+          axiosWithRetry({ 
+            method: 'get',
+            url: `http://localhost:3002/api/profile`,
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: 10000
+          })
         ]);
 
         if (isMounted) {
@@ -228,9 +262,25 @@ function Chat() {
         }
       } catch (err) {
         console.error('[Client] Error fetching data:', err);
-        const errorMessage = err.response?.status === 404 ? 'Project not found. Please check the project ID.' : err.message || 'Error loading chat data';
-        setStatusMessage(`❌ ${errorMessage}`);
-        if (err.response?.status === 404) setTimeout(() => navigate('/'), 3000);
+        
+        if (err.code === 'ERR_NETWORK' || err.code === 'NETWORK_ERROR') {
+          setStatusMessage(`🔌 Cannot connect to server. Please ensure the server is running on port 3002.`);
+          console.error('Network error details:', {
+            message: err.message,
+            code: err.code,
+            config: err.config
+          });
+        } else if (err.code === 'ECONNABORTED') {
+          setStatusMessage(`⏱️ Request timeout. Server may be slow or unresponsive.`);
+        } else if (err.response?.status === 404) {
+          setStatusMessage('❌ Project not found. Please check the project ID.');
+          setTimeout(() => navigate('/'), 3000);
+        } else if (err.response?.status === 401) {
+          setStatusMessage('🔐 Authentication failed. Please try refreshing the page.');
+        } else {
+          const errorMessage = err.message || 'Error loading chat data';
+          setStatusMessage(`❌ ${errorMessage}`);
+        }
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -256,9 +306,13 @@ function Chat() {
         const currentUser = storedUser ? JSON.parse(storedUser) : null;
         token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
       }
-        const response = await axios.post(`http://localhost:3002/api/project/${id}/chat`, {
-        content: newMessage
-      }, { headers: { Authorization: `Bearer ${token}` } });
+        const response = await axiosWithRetry({
+        method: 'post',
+        url: `http://localhost:3002/api/project/${id}/chat`,
+        data: { content: newMessage },
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000
+      });
 
       setStatusMessage(`✅ Message sent to team`);
       const newChats = response.data.chats || [];
@@ -308,8 +362,18 @@ function Chat() {
     } catch (err) {
       console.error('[Client] Error sending message:', err);
       
-      // Handle quota exceeded error (429)
-      if (err.response?.status === 429) {
+      // Handle different types of errors
+      if (err.code === 'ERR_NETWORK' || err.code === 'NETWORK_ERROR') {
+        setStatusMessage(`🔌 Connection failed. Please check if the server is running on port 3002.`);
+        console.error('Network error details:', {
+          message: err.message,
+          code: err.code,
+          config: err.config
+        });
+      } else if (err.code === 'ECONNABORTED') {
+        setStatusMessage(`⏱️ Request timeout. Server may be slow or unresponsive.`);
+      } else if (err.response?.status === 429) {
+        // Handle quota exceeded error (429)
         const errorData = err.response.data;
         setQuotaExceeded(true);
         setStatusMessage(`🚫 ${errorData.message || 'Daily message limit reached (7 messages per 24 hours)'}`);
@@ -321,6 +385,8 @@ function Chat() {
         if (errorData.currentProjectDay !== undefined) {
           setCurrentProjectDay(errorData.currentProjectDay);
         }
+      } else if (err.response?.status === 401) {
+        setStatusMessage(`🔐 Authentication failed. Please try refreshing the page.`);
       } else {
         setStatusMessage(`❌ Error: ${err.response?.data?.error || err.message}`);
       }
