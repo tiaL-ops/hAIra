@@ -27,8 +27,13 @@ function buildCredential() {
   }
 
   // Fallback: service account JSON file (path from env or default location)
-  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH ||
-    path.join(__dirname, '../config/serviceAccountKey.json');
+  // Check for production environment and use appropriate default
+  const isProduction = process.env.NODE_ENV === 'production';
+  const defaultPath = isProduction 
+    ? path.join(__dirname, '../config/serviceAccountKeyProd.json')
+    : path.join(__dirname, '../config/serviceAccountKey.json');
+  
+  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || defaultPath;
 
   if (fs.existsSync(serviceAccountPath)) {
     const json = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
