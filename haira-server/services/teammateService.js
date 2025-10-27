@@ -1,8 +1,10 @@
 import admin from 'firebase-admin';
 import { AI_AGENTS } from '../config/aiAgents.js';
+import { db as firebaseDb, firebaseAvailable } from './firebaseService.js';
+import { querySubcollection, addSubdocument, updateDocument, getDocumentById } from './databaseService.js';
 
-const db = admin.firestore();
-const FieldValue = admin.firestore.FieldValue;
+const db = firebaseDb;
+const FieldValue = firebaseAvailable ? admin.firestore.FieldValue : null;
 
 /**
  * Initialize teammates subcollection for a new project
@@ -262,17 +264,9 @@ export async function migrateTeamToTeammates(projectId) {
  */
 export async function getTeammate(projectId, teammateId) {
   try {
-    const doc = await db.collection('userProjects')
-      .doc(projectId)
-      .collection('teammates')
-      .doc(teammateId)
-      .get();
-    
-    if (!doc.exists) {
-      return null;
-    }
-    
-    return doc.data();
+    const teammates = await querySubcollection('userProjects', projectId, 'teammates');
+    const teammate = teammates.find(t => t.id === teammateId);
+    return teammate || null;
   } catch (error) {
     console.error(`Error fetching teammate ${teammateId} from project ${projectId}:`, error);
     throw error;
@@ -287,18 +281,8 @@ export async function getTeammate(projectId, teammateId) {
  */
 export async function getTeammates(projectId) {
   try {
-    const snapshot = await db.collection('userProjects')
-      .doc(projectId)
-      .collection('teammates')
-      .get();
-    
-    if (snapshot.empty) {
-      return [];
-    }
-    
-    return snapshot.docs.map(doc => ({
-      ...doc.data()
-    }));
+    const teammates = await querySubcollection('userProjects', projectId, 'teammates');
+    return teammates || [];
   } catch (error) {
     console.error(`Error fetching teammates for project ${projectId}:`, error);
     throw error;
@@ -316,18 +300,46 @@ export async function getTeammates(projectId) {
  */
 export async function updateTeammateStats(projectId, teammateId, updates) {
   try {
-    const teammateRef = db.collection('userProjects')
-      .doc(projectId)
-      .collection('teammates')
-      .doc(teammateId);
+    // Get current teammate from subcollection
+    const teammate = await getTeammate(projectId, teammateId);
+    if (!teammate) {
+      console.warn(`Teammate ${teammateId} not found in project ${projectId}`);
+      return;
+    }
     
-    // Add updatedAt timestamp
-    const updateData = {
-      ...updates,
-      updatedAt: Date.now()
-    };
+    // Process FieldValue objects for localStorage mode
+    const processedUpdates = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (value && typeof value === 'object' && value._increment !== undefined) {
+        // Handle increment operations
+        const currentValue = key.split('.').reduce((obj, k) => obj?.[k], teammate) || 0;
+        processedUpdates[key] = currentValue + value._increment;
+      } else if (value && typeof value === 'object' && value._serverTimestamp !== undefined) {
+        // Handle server timestamp
+        processedUpdates[key] = value._value || Date.now();
+      } else {
+        processedUpdates[key] = value;
+      }
+    }
     
-    await teammateRef.update(updateData);
+    // Build updated teammate object with nested property updates
+    const updatedTeammate = { ...teammate };
+    for (const [key, value] of Object.entries(processedUpdates)) {
+      const keys = key.split('.');
+      let current = updatedTeammate;
+      for (let i = 0; i < keys.length - 1; i++) {
+        if (!current[keys[i]]) current[keys[i]] = {};
+        current = current[keys[i]];
+      }
+      current[keys[keys.length - 1]] = value;
+    }
+    
+    // Update timestamp
+    updatedTeammate.updatedAt = Date.now();
+    
+    // Save the updated teammate to subcollection (addSubdocument with existing ID overwrites)
+    const { addSubdocument } = await import('./databaseService.js');
+    await addSubdocument('userProjects', projectId, 'teammates', teammateId, updatedTeammate);
     
   } catch (error) {
     console.error(`Error updating teammate ${teammateId} in project ${projectId}:`, error);

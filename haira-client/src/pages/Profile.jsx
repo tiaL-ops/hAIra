@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
+import { serverFirebaseAvailable } from '../../firebase';
 import '../styles/Profile.css';
 import bg from '../images/backgroundsky.png'; // put your image here
 
@@ -20,14 +21,30 @@ function Profile() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!auth.currentUser) {
+      // Check authentication with fallback
+      let currentUser;
+      if (serverFirebaseAvailable) {
+        currentUser = auth.currentUser;
+      } else {
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        currentUser = storedUser ? JSON.parse(storedUser) : null;
+      }
+      
+      if (!currentUser) {
         navigate('/login');
         return;
       }
 
       try {
         setLoading(true);
-        const token = await auth.currentUser.getIdToken();
+        
+        // Get token with fallback
+        let token;
+        if (serverFirebaseAvailable) {
+          token = await auth.currentUser.getIdToken();
+        } else {
+          token = `mock-token-${currentUser.uid}-${Date.now()}`;
+        }
         const response = await axios.get("http://localhost:3002/api/profile", {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -44,14 +61,30 @@ function Profile() {
     };
 
     fetchProfile();
-  }, [auth, navigate]);
+  }, [navigate]);
 
   const handleLanguageChange = async (newLanguage) => {
-    if (language === newLanguage || !auth.currentUser) return;
+    // Check authentication with fallback
+    let currentUser;
+    if (serverFirebaseAvailable) {
+      currentUser = auth.currentUser;
+    } else {
+      const storedUser = localStorage.getItem('__localStorage_current_user__');
+      currentUser = storedUser ? JSON.parse(storedUser) : null;
+    }
+    
+    if (language === newLanguage || !currentUser) return;
 
     try {
       setSaving(true);
-      const token = await auth.currentUser.getIdToken();
+      
+      // Get token with fallback
+      let token;
+      if (firebaseAvailable) {
+        token = await auth.currentUser.getIdToken();
+      } else {
+        token = `mock-token-${currentUser.uid}-${Date.now()}`;
+      }
       await axios.patch("http://localhost:3002/api/profile/preferences", 
         { language: newLanguage },
         { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }

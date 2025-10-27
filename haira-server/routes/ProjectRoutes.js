@@ -9,7 +9,7 @@ import {
   archiveProject, getArchivedProjects, getInactiveProjects,
   activateProject, getUnusedTemplatesForTopic, getLeastUsedTemplatesForTopic,
   getDocumentById, updateTemplateUsage
-} from '../services/firebaseService.js';
+} from '../services/databaseService.js';
 import { generateProjectForTopic, getOrCreateProjectTemplate } from '../services/aiProjectService.js';
 import { COLLECTIONS } from '../schema/database.js';
 import { PROJECT_RULES, LEARNING_TOPICS } from '../config/projectRules.js';

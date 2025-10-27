@@ -1,5 +1,5 @@
-import { generateAIContribution as callOpenAIContribution } from '../api/openaiService.js';
-import { getDocumentById, getSubdocuments, updateDocument, getProjectWithTasks, getChatMessagesByUser } from './firebaseService.js';
+import { generateAIContribution as callOpenAIContribution } from './aiService.js';
+import { getDocumentById, getSubdocuments, updateDocument, getProjectWithTasks, getChatMessagesByUser } from './databaseService.js';
 import { COLLECTIONS } from '../schema/database.js';
 
 export class AIGradingService {
@@ -398,15 +398,21 @@ Provide your evaluation in this exact JSON format:
     
     console.log(`[AIGradingService] Formatting ${tasks.length} tasks for analysis`);
     
-    // Separate user tasks from AI tasks
+    // Separate user tasks from AI tasks - using correct AI agent names
+    const aiAgentNames = ['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'];
+    
     const userTasks = tasks.filter(task => {
       const assignedTo = task.assignedTo?.toLowerCase();
-      return assignedTo && !['rasoa', 'rakoto', 'alex', 'sam', 'ai_manager', 'ai_helper', 'manager'].includes(assignedTo);
+      return assignedTo && !aiAgentNames.includes(assignedTo);
     });
     
+    // Filter AI tasks, but exclude mandatory AI tasks (write/review/suggest)
+    const mandatoryAITaskTypes = ['write_section', 'review_content', 'suggest_improvements'];
     const aiTasks = tasks.filter(task => {
       const assignedTo = task.assignedTo?.toLowerCase();
-      return assignedTo && ['rasoa', 'rakoto', 'alex', 'sam', 'ai_manager', 'ai_helper', 'manager'].includes(assignedTo);
+      const taskType = task.taskType || task.type;
+      return assignedTo && aiAgentNames.includes(assignedTo) && 
+             !mandatoryAITaskTypes.includes(taskType);
     });
     
     console.log(`[AIGradingService] Task breakdown: ${userTasks.length} user tasks, ${aiTasks.length} AI tasks`);

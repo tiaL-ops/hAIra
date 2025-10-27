@@ -38,6 +38,18 @@
   gap: 12px;
 }
 
+/* Brand logo link and image sizing */
+.header-top .logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+.header-top .logo-link .logo-img {
+  height: 100px; /* adjusted for less dominant header logo */
+  width: auto;
+  display: block;
+}
+
 /* pixel style logo text at left */
 .header-top .logo {
   font-family: var(--font-pixel);

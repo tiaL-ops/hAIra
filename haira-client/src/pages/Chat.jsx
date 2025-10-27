@@ -1,9 +1,28 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from 'axios';
-import { getAuth } from 'firebase/auth';
 import { useAuth } from '../App';
+import { auth, serverFirebaseAvailable } from '../../firebase';
 import '../styles/Chat.css'; // Your CSS (the updated one you shared)
+
+// Helper function to retry axios requests on network errors
+const axiosWithRetry = async (config, maxRetries = 3, delay = 1000) => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await axios(config);
+    } catch (error) {
+      const isLastRetry = i === maxRetries - 1;
+      const isNetworkError = error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED';
+      
+      if (isNetworkError && !isLastRetry) {
+        console.log(`[Retry ${i + 1}/${maxRetries}] Network error, retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+};
 
 import AlexAvatar from '../images/Alex.png';
 import BrownAvatar from '../images/Brown.png';
@@ -34,7 +53,6 @@ function Chat() {
   const [showQuotaWarning, setShowQuotaWarning] = useState(false);
   const [teammates, setTeammates] = useState({});
   const [userProfile, setUserProfile] = useState(null);
-  const auth = getAuth();
   
   // Ref for auto-scrolling to the bottom
   const messagesContainerRef = useRef(null);
@@ -144,7 +162,20 @@ function Chat() {
   // fetch on mount
   useEffect(() => {
     let isMounted = true;
-    if (!auth.currentUser) {
+    
+    // Check authentication with fallback
+    const checkAuth = () => {
+      if (serverFirebaseAvailable) {
+        return auth.currentUser;
+      } else {
+        // Check localStorage for user
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        return storedUser ? JSON.parse(storedUser) : null;
+      }
+    };
+    
+    const currentUser = checkAuth();
+    if (!currentUser) {
       navigate('/login');
       return;
     }
@@ -153,11 +184,34 @@ function Chat() {
       try {
         setIsLoading(true);
         setStatusMessage('');
-        const token = await auth.currentUser.getIdToken(true);
+        
+        // Get token with fallback
+        let token;
+        if (serverFirebaseAvailable) {
+          token = await auth.currentUser.getIdToken(true);
+        } else {
+          // Generate mock token for localStorage
+          token = `mock-token-${currentUser.uid}-${Date.now()}`;
+        }
         const [chatResp, projectResp, profileResp] = await Promise.all([
-          axios.get(`http://localhost:3002/api/project/${id}/chat`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`http://localhost:3002/api/project/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`http://localhost:3002/api/profile`, { headers: { Authorization: `Bearer ${token}` } })
+          axiosWithRetry({ 
+            method: 'get',
+            url: `http://localhost:3002/api/project/${id}/chat`,
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: 10000
+          }),
+          axiosWithRetry({ 
+            method: 'get',
+            url: `http://localhost:3002/api/project/${id}`,
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: 10000
+          }),
+          axiosWithRetry({ 
+            method: 'get',
+            url: `http://localhost:3002/api/profile`,
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: 10000
+          })
         ]);
 
         if (isMounted) {
@@ -208,9 +262,25 @@ function Chat() {
         }
       } catch (err) {
         console.error('[Client] Error fetching data:', err);
-        const errorMessage = err.response?.status === 404 ? 'Project not found. Please check the project ID.' : err.message || 'Error loading chat data';
-        setStatusMessage(`❌ ${errorMessage}`);
-        if (err.response?.status === 404) setTimeout(() => navigate('/'), 3000);
+        
+        if (err.code === 'ERR_NETWORK' || err.code === 'NETWORK_ERROR') {
+          setStatusMessage(`🔌 Cannot connect to server. Please ensure the server is running on port 3002.`);
+          console.error('Network error details:', {
+            message: err.message,
+            code: err.code,
+            config: err.config
+          });
+        } else if (err.code === 'ECONNABORTED') {
+          setStatusMessage(`⏱️ Request timeout. Server may be slow or unresponsive.`);
+        } else if (err.response?.status === 404) {
+          setStatusMessage('❌ Project not found. Please check the project ID.');
+          setTimeout(() => navigate('/'), 3000);
+        } else if (err.response?.status === 401) {
+          setStatusMessage('🔐 Authentication failed. Please try refreshing the page.');
+        } else {
+          const errorMessage = err.message || 'Error loading chat data';
+          setStatusMessage(`❌ ${errorMessage}`);
+        }
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -226,10 +296,23 @@ function Chat() {
     if (!newMessage.trim() || isSending) return;
     setIsSending(true);
     try {
-      const token = await auth.currentUser.getIdToken(true);
-        const response = await axios.post(`http://localhost:3002/api/project/${id}/chat`, {
-        content: newMessage
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      // Get token with fallback
+      let token;
+      if (serverFirebaseAvailable) {
+        token = await auth.currentUser.getIdToken(true);
+      } else {
+        // Check localStorage for user
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        const currentUser = storedUser ? JSON.parse(storedUser) : null;
+        token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+      }
+        const response = await axiosWithRetry({
+        method: 'post',
+        url: `http://localhost:3002/api/project/${id}/chat`,
+        data: { content: newMessage },
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000
+      });
 
       setStatusMessage(`✅ Message sent to team`);
       const newChats = response.data.chats || [];
@@ -279,8 +362,18 @@ function Chat() {
     } catch (err) {
       console.error('[Client] Error sending message:', err);
       
-      // Handle quota exceeded error (429)
-      if (err.response?.status === 429) {
+      // Handle different types of errors
+      if (err.code === 'ERR_NETWORK' || err.code === 'NETWORK_ERROR') {
+        setStatusMessage(`🔌 Connection failed. Please check if the server is running on port 3002.`);
+        console.error('Network error details:', {
+          message: err.message,
+          code: err.code,
+          config: err.config
+        });
+      } else if (err.code === 'ECONNABORTED') {
+        setStatusMessage(`⏱️ Request timeout. Server may be slow or unresponsive.`);
+      } else if (err.response?.status === 429) {
+        // Handle quota exceeded error (429)
         const errorData = err.response.data;
         setQuotaExceeded(true);
         setStatusMessage(`🚫 ${errorData.message || 'Daily message limit reached (7 messages per 24 hours)'}`);
@@ -292,6 +385,8 @@ function Chat() {
         if (errorData.currentProjectDay !== undefined) {
           setCurrentProjectDay(errorData.currentProjectDay);
         }
+      } else if (err.response?.status === 401) {
+        setStatusMessage(`🔐 Authentication failed. Please try refreshing the page.`);
       } else {
         setStatusMessage(`❌ Error: ${err.response?.data?.error || err.message}`);
       }
@@ -302,7 +397,16 @@ function Chat() {
 
   // NEW: return either message-user or message-in to match your CSS classes
   const getMessageStyle = (senderId) => {
-    if (senderId === auth.currentUser?.uid || senderId === 'user') return 'message-user';
+    // Check current user with fallback
+    let currentUserId;
+    if (serverFirebaseAvailable) {
+      currentUserId = auth.currentUser?.uid;
+    } else {
+      const storedUser = localStorage.getItem('__localStorage_current_user__');
+      currentUserId = storedUser ? JSON.parse(storedUser).uid : null;
+    }
+    
+    if (senderId === currentUserId || senderId === 'user') return 'message-user';
     return 'message-in';
   };
 
@@ -323,9 +427,18 @@ function Chat() {
   };
   // sender info helper
   const getSenderInfo = (senderId, senderName) => {
+    // Check current user with fallback
+    let currentUserId;
+    if (serverFirebaseAvailable) {
+      currentUserId = auth.currentUser?.uid;
+    } else {
+      const storedUser = localStorage.getItem('__localStorage_current_user__');
+      currentUserId = storedUser ? JSON.parse(storedUser).uid : null;
+    }
+    
     // Current user (human): prefer profile avatarUrl, then teammates avatar, then fallback
-    if (senderId === auth.currentUser?.uid || senderId === 'user') {
-      const human = teammates[auth.currentUser?.uid]
+    if (senderId === currentUserId || senderId === 'user') {
+      const human = teammates[currentUserId]
         || Object.values(teammates || {}).find(t => t.type === 'human');
       const avatar = userProfile?.avatarUrl || human?.avatar || YouAvatar;
       return {

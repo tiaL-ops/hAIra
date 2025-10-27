@@ -2,12 +2,26 @@ import OpenAI from "openai";
 import dotenv from "dotenv";
 dotenv.config();
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Only create OpenAI client if API key is present
+let openai = null;
+
+function getOpenAIClient() {
+  if (!openai && process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim() !== '') {
+    console.log('🔧 Initializing OpenAI client...');
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+}
 
 export async function generateAIResponse(userMessage, systemInstruction) {
-  const response = await openai.chat.completions.create({
+  const client = getOpenAIClient();
+  if (!client) {
+    throw new Error('OpenAI client not available. Please check your OPENAI_API_KEY environment variable.');
+  }
+
+  const response = await client.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       { role: "system", content: systemInstruction },
@@ -21,7 +35,12 @@ export async function generateAIResponse(userMessage, systemInstruction) {
 }
 
 export async function generateAIContribution(userMessage, personaConfig, systemInstruction) {
-  const response = await openai.chat.completions.create({
+  const client = getOpenAIClient();
+  if (!client) {
+    throw new Error('OpenAI client not available. Please check your OPENAI_API_KEY environment variable.');
+  }
+
+  const response = await client.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       { role: "system", content: systemInstruction },
@@ -35,6 +54,11 @@ export async function generateAIContribution(userMessage, personaConfig, systemI
 }
 
 export async function generateAIProject(prompt) {
+  const client = getOpenAIClient();
+  if (!client) {
+    throw new Error('OpenAI client not available. Please check your OPENAI_API_KEY environment variable.');
+  }
+
   try {
     const systemPrompt = `You are an educational AI that creates engaging learning projects. 
     Generate a project with:
@@ -53,7 +77,7 @@ export async function generateAIProject(prompt) {
 
     const fullPrompt = `${systemPrompt}\n\nTopic: ${prompt}`;
     
-    const response = await openai.chat.completions.create({
+    const response = await client.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
         { role: "system", content: systemPrompt },

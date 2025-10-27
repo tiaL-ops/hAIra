@@ -1,5 +1,5 @@
-import React from 'react';
-import { AI_TEAMMATES } from '../../../haira-server/config/aiAgents.js';
+import React, { useState, useEffect } from 'react';
+import { getAIAgents } from '../services/aiAgentsService.js';
 
 // Import agent avatars
 import BrownAvatar from '../images/Brown.png';
@@ -10,65 +10,89 @@ import SamAvatar from '../images/Sam.png';
 import RasoaAvatar from '../images/Rasoa.png';
 import RakotoAvatar from '../images/Rakoto.png';
 
-const AI_CONFIG = {
-  // New 5-agent team
-  brown: {
-    avatar: BrownAvatar,
-    color: AI_TEAMMATES.brown.color,
-    name: AI_TEAMMATES.brown.name,
-  },
-  elza: {
-    avatar: ElzaAvatar,
-    color: AI_TEAMMATES.elza.color,
-    name: AI_TEAMMATES.elza.name,
-  },
-  kati: {
-    avatar: KatiAvatar,
-    color: AI_TEAMMATES.kati.color,
-    name: AI_TEAMMATES.kati.name,
-  },
-  steve: {
-    avatar: SteveAvatar,
-    color: AI_TEAMMATES.steve.color,
-    name: AI_TEAMMATES.steve.name,
-  },
-  sam: {
-    avatar: SamAvatar,
-    color: AI_TEAMMATES.sam.color,
-    name: AI_TEAMMATES.sam.name,
-  },
-  // Legacy support - map old IDs to new agents
-  rasoa: {
-    avatar: RasoaAvatar,
-    color: AI_TEAMMATES.brown.color,
-    name: AI_TEAMMATES.brown.name,
-  },
-  rakoto: {
-    avatar: RakotoAvatar,
-    color: AI_TEAMMATES.sam.color,
-    name: AI_TEAMMATES.sam.name,
-  },
-  ai_manager: {
-    avatar: BrownAvatar,
-    color: AI_TEAMMATES.brown.color,
-    name: AI_TEAMMATES.brown.name,
-  },
-  ai_helper: {
-    avatar: SamAvatar,
-    color: AI_TEAMMATES.sam.color,
-    name: AI_TEAMMATES.sam.name,
-  }
-};
-
 export default function TaskCompletionFeedback({ messages, onRemoveMessage }) {
+  const [aiAgents, setAiAgents] = useState({ AI_TEAMMATES: {} });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadAIAgents = async () => {
+      try {
+        const agents = await getAIAgents();
+        setAiAgents(agents);
+      } catch (error) {
+        console.error('Error loading AI agents:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAIAgents();
+  }, []);
+
+  const getAIConfig = (aiType) => {
+    const AI_CONFIG = {
+      // New 5-agent team
+      brown: {
+        avatar: BrownAvatar,
+        color: aiAgents.AI_TEAMMATES.brown?.color || '#8B4513',
+        name: aiAgents.AI_TEAMMATES.brown?.name || 'Brown',
+      },
+      elza: {
+        avatar: ElzaAvatar,
+        color: aiAgents.AI_TEAMMATES.elza?.color || '#FF69B4',
+        name: aiAgents.AI_TEAMMATES.elza?.name || 'Elza',
+      },
+      kati: {
+        avatar: KatiAvatar,
+        color: aiAgents.AI_TEAMMATES.kati?.color || '#4A90E2',
+        name: aiAgents.AI_TEAMMATES.kati?.name || 'Kati',
+      },
+      steve: {
+        avatar: SteveAvatar,
+        color: aiAgents.AI_TEAMMATES.steve?.color || '#2ECC71',
+        name: aiAgents.AI_TEAMMATES.steve?.name || 'Steve',
+      },
+      sam: {
+        avatar: SamAvatar,
+        color: aiAgents.AI_TEAMMATES.sam?.color || '#E67E22',
+        name: aiAgents.AI_TEAMMATES.sam?.name || 'Sam',
+      },
+      // Legacy support - map old IDs to new agents
+      rasoa: {
+        avatar: RasoaAvatar,
+        color: aiAgents.AI_TEAMMATES.brown?.color || '#8B4513',
+        name: aiAgents.AI_TEAMMATES.brown?.name || 'Brown',
+      },
+      rakoto: {
+        avatar: RakotoAvatar,
+        color: aiAgents.AI_TEAMMATES.sam?.color || '#E67E22',
+        name: aiAgents.AI_TEAMMATES.sam?.name || 'Sam',
+      },
+      ai_manager: {
+        avatar: BrownAvatar,
+        color: aiAgents.AI_TEAMMATES.brown?.color || '#8B4513',
+        name: aiAgents.AI_TEAMMATES.brown?.name || 'Brown',
+      },
+      ai_helper: {
+        avatar: SamAvatar,
+        color: aiAgents.AI_TEAMMATES.sam?.color || '#E67E22',
+        name: aiAgents.AI_TEAMMATES.sam?.name || 'Sam',
+      }
+    };
+    return AI_CONFIG[aiType] || AI_CONFIG.brown;
+  };
+
   if (!messages || messages.length === 0) {
     return null;
+  }
+
+  if (loading) {
+    return <div>Loading...</div>;
   }
 
   return (
     <div className="task-completion-feedback">
       {messages.map((message) => {
-        const config = AI_CONFIG[message.aiType] || AI_CONFIG.brown;
+        const config = getAIConfig(message.aiType);
         
         return (
           <div

@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
-import { db } from '../services/firebaseService.js';
+import { getDocumentById, setDocument, updateDocument } from '../services/databaseService.js';
 import { COLLECTIONS } from '../schema/database.js';
 import User from '../models/UserModels.js';
 
@@ -11,27 +11,24 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
   try {
     const userId = req.user.uid;
     
-    const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
-    const userDoc = await userRef.get();
+    const userDoc = await getDocumentById(COLLECTIONS.USERS, userId);
     
-    if (!userDoc.exists) {
+    if (!userDoc) {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    const userData = userDoc.data();
+    const userData = userDoc;
     
     // Get active project details if it exists
     let activeProject = null;
     if (userData.activeProjectId) {
-      const projectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc(userData.activeProjectId);
-      const projectDoc = await projectRef.get();
+      const projectDoc = await getDocumentById(COLLECTIONS.USER_PROJECTS, userData.activeProjectId);
       
-      if (projectDoc.exists) {
-        const projectData = projectDoc.data();
+      if (projectDoc) {
         activeProject = {
           id: userData.activeProjectId,
-          title: projectData.title,
-          status: projectData.status
+          title: projectDoc.title,
+          status: projectDoc.status
         };
       }
     }
@@ -71,8 +68,7 @@ router.patch('/preferences', verifyFirebaseToken, async (req, res) => {
       return res.status(400).json({ error: 'Invalid language preference' });
     }
     
-    const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
-    await userRef.update({
+    await updateDocument(COLLECTIONS.USERS, userId, {
       'preferences.language': language
     });
     
@@ -109,8 +105,7 @@ router.patch('/avatar', verifyFirebaseToken, async (req, res) => {
       return res.status(400).json({ error: 'Image size exceeds 2MB limit' });
     }
     
-    const userRef = db.collection(COLLECTIONS.USERS).doc(userId);
-    await userRef.update({
+    await updateDocument(COLLECTIONS.USERS, userId, {
       avatarUrl: avatarData,
       updatedAt: new Date().toISOString()
     });
