@@ -37,6 +37,7 @@ export default function ContributionTracker({ projectId, showContributions = tru
     };
     loadAIAgents();
   }, []);
+  const [showDetails, setShowDetails] = useState(false);
 
   // Calculate user word count from editor content
   const calculateUserWordCount = async (content) => {
@@ -61,21 +62,16 @@ export default function ContributionTracker({ projectId, showContributions = tru
     }
   };
 
-  // Load real-time contributions from backend API
+  // Load interaction-based contributions from backend API
   useEffect(() => {
-    const loadRealTimeContributions = async () => {
+    const loadInteractionContributions = async () => {
       if (!projectId) return;
       try {
         setIsLoading(true);
         const token = await getIdTokenSafely();
         
-        // First, calculate user word count from current content if available
-        if (editorContent) {
-          await calculateUserWordCount(editorContent);
-        }
-        
-        // Use the new real-time contributions endpoint
-        const response = await axios.get(`${backend_host}/api/project/${projectId}/contributions/realtime`, {
+        // Use the new data-driven contributions endpoint
+        const response = await axios.get(`${backend_host}/api/project/${projectId}/contributions/analysis`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -84,27 +80,30 @@ export default function ContributionTracker({ projectId, showContributions = tru
         if (response.data.success) {
           const contributionsData = response.data.contributions;
           
-          // Convert the new format to the format expected by the component
+          // Convert to the format expected by the component
           const contributions = contributionsData.map(contributor => ({
             name: contributor.name,
             percent: contributor.percentage,
             role: contributor.role,
-            wordCount: contributor.words,
-            color: contributor.color
+            color: contributor.color,
+            details: contributor.details
           }));
           
           setContributions(contributions);
-          setTotalContribution(response.data.totalWords);
+          setTotalContribution(response.data.analysis?.scores?.userContributionScore + response.data.analysis?.scores?.aiContributionScore || 0);
+          
+          console.log('📊 Loaded data-driven contributions:', contributions);
+          console.log('📊 Analysis details:', response.data.analysis);
         }
       } catch (err) {
-        console.error("Error loading real-time contributions:", err);
+        console.error("Error loading interaction contributions:", err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadRealTimeContributions();
-  }, [projectId, editorContent]);
+    loadInteractionContributions();
+  }, [projectId]);
 
 
   // Utility to get token
@@ -198,7 +197,6 @@ export default function ContributionTracker({ projectId, showContributions = tru
   if (isLoading || !agentsLoaded) {
     return (
       <div className="contribution-tracker-container">
-        <h3>📊 Contribution Tracker</h3>
         <div className="loading-state">Loading contributions...</div>
       </div>
     );
@@ -206,8 +204,18 @@ export default function ContributionTracker({ projectId, showContributions = tru
 
   return (
     <div className="contribution-tracker-container">
-      
-      <div className="contributions-list">
+      <div className="grade-section-header">
+        <h2>👥 Team Contributions</h2>
+        <button 
+          className="detailed-analysis-btn-small"
+          onClick={() => setShowDetails(!showDetails)}
+          title="View detailed contribution analysis"
+        >
+          {showDetails ? '− Hide Details' : '+ View Details'}
+        </button>
+      </div>
+      <div className="grade-section">
+        <div className="contributions-list">
         {contributions.map((member, index) => (
           <div key={index} className="contribution-item">
             <div className="member-info">
@@ -225,8 +233,10 @@ export default function ContributionTracker({ projectId, showContributions = tru
                   <span className="percent-value">{member.percent.toFixed(1)}</span>
                   <span className="percent-label">%</span>
                 </div>
-                <div className="word-count">
-                  <span className="word-count-label">{member.wordCount || 0} words</span>
+                <div className="interaction-count">
+                  <span className="interaction-count-label">
+                    {member.details?.tasksCompleted || '0 done/0 assigned tasks'} • {member.details?.chatParticipation || '0/0 chats'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -240,14 +250,38 @@ export default function ContributionTracker({ projectId, showContributions = tru
                 }}
               />
             </div>
+            
+            {showDetails && member.details && (
+              <div className="interaction-details">
+                <h4>Contribution Breakdown:</h4>
+                <div className="interaction-detail">
+                  <span className="interaction-type">Task Completion Rate</span>
+                  <span className="interaction-points">{member.details.completionRate}</span>
+                </div>
+                <div className="interaction-detail">
+                  <span className="interaction-type">Chat Participation Rate</span>
+                  <span className="interaction-points">{member.details.chatRate}</span>
+                </div>
+                <div className="interaction-detail">
+                  <span className="interaction-type">Task Status</span>
+                  <span className="interaction-points">{member.details.tasksCompleted}</span>
+                </div>
+                <div className="interaction-detail">
+                  <span className="interaction-type">Chat Activity</span>
+                  <span className="interaction-points">{member.details.chatParticipation}</span>
+                </div>
+              </div>
+            )}
           </div>
         ))}
+        </div>
+        
+        <div className="tracker-tips">
+          <span className="tip-item">💡 Data-driven contributions</span>
+          <span className="tip-item">📝 Based on task completion & chat participation</span>
+          <span className="tip-item">🎯 Real project activity analysis</span>
+        </div>
       </div>
-      
-      <div className="tracker-tips">
-        <span className="tip-item">💡 Word-based contributions</span>
-        <span className="tip-item">📝 Auto-tracked when AI writes</span>
-      </div>image.png
     </div>
   );
 }
