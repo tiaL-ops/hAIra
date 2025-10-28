@@ -133,7 +133,7 @@ async function generateAgentResponseWithContext(projectId, agentId, userMessage,
         conversationSummary: conversationContext, 
         currentDay 
       }, recentMessages);
-
+      
       aiResponse = await generateAIResponse(userMessage.content, prompt);
       aiResponse = trimToSentences(aiResponse, 50);
       console.log(`✅ Standard context used for ${agentName}`);
