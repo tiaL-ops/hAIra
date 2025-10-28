@@ -108,26 +108,28 @@ export function getDefaultResponseAgents(availableAgents = ['rasoa', 'rakoto']) 
   
   const random = Math.random();
   
-  // 15% chance: Both agents respond
-  if (random < 0.15 && availableAgents.length >= 2) {
-    // Randomly shuffle which agent goes first
-    return Math.random() < 0.5 
-      ? [availableAgents[0], availableAgents[1]] 
-      : [availableAgents[1], availableAgents[0]];
-  }
-  
-  // 40% chance: First agent responds
-  else if (random < 0.55) { // 0.15 (previous) + 0.40 (this) = 0.55
-    return [availableAgents[0]];
-  } 
-  
-  // 45% chance: Second agent responds (or random agent if more than 2)
-  else {
-    const agentIndex = availableAgents.length > 2 
-      ? Math.floor(Math.random() * availableAgents.length) 
-      : 1;
-    return [availableAgents[agentIndex]];
-  }
+  // 02% chance: Both agents respond
+if (random < 0.02) {
+  // Randomly shuffle which agent goes first
+  // This logic is fine as length is guaranteed to be >= 2 here
+  return Math.random() < 0.5
+    ? [availableAgents[0], availableAgents[1]]
+    : [availableAgents[1], availableAgents[0]];
+}
+
+// 53% chance: First agent responds
+else if (random < 0.55) { // 0.02 + 0.53 = 0.55
+  return [availableAgents[0]];
+}
+
+// 45% chance: Second agent responds (or random agent if more than 2)
+else {
+  // Logic updated slightly for clarity and to handle the >= 2 case
+  const agentIndex = availableAgents.length > 2
+    ? Math.floor(Math.random() * availableAgents.length) // Pick a random agent
+    : 1; // Pick the second agent (index 1)
+  return [availableAgents[agentIndex]];
+}
 }
 
 /**

@@ -390,7 +390,10 @@ ${projectInfo.specialContext || ''}
 
 ${agent.systemPrompt}
 
+
+
 GUIDELINES:
+
 - Respond naturally as if chatting with teammates
 - Keep tone brief, cooperative, and human
 - Reference tasks and progress when relevant
@@ -551,15 +554,15 @@ export async function generateContextAwareResponse(agentId, projectId, userId, c
       console.log(`[AI Service] AI API failed, using mock response for ${agentId}:`, error.message);
       // Mock response when AI APIs are not available
       const mockResponses = {
-        'steve': `Hey! I'm Steve, your technical problem-solver. I see you're working on this project. Let me help you break down the technical challenges and find practical solutions. What specific technical aspect would you like to tackle first?`,
-        'kati': `Hi there! I'm Kati, your creative collaborator. I love bringing fresh ideas and creative approaches to projects. What creative challenges are you facing? I'm here to help you think outside the box!`,
-        'brown': `Hello! I'm Brown, your strategic researcher. I focus on methodology and connecting ideas to bigger frameworks. What research questions do you have? I can help you structure your approach.`,
-        'elza': `Hey! I'm Elza, your creative problem solver. I bring enthusiasm and innovative thinking to the team. What creative solutions are we exploring today?`,
-        'sam': `Hi! I'm Sam, your communication specialist. I help make complex ideas clear and engaging. How can I help you communicate your project better?`,
-        'rasoa': `Hello! I'm Rasoa, your project coordinator. I keep things organized and on track. What project management challenges can I help you with?`,
-        'rakoto': `Hey! I'm Rakoto, your data analyst. I help make sense of information and find patterns. What data or analysis do you need help with?`
+        'steve': `Let's break down the technical challenges and find practical solutions. What specific technical aspect would you like to tackle first?`,
+        'kati': `I love bringing fresh ideas and creative approaches to projects. What creative challenges are you facing? I'm here to help you think outside the box!`,
+        'brown': `I focus on methodology and connecting ideas to bigger frameworks. What research questions do you have? I can help you structure your approach.`,
+        'elza': `I bring enthusiasm and innovative thinking to the team. What creative solutions are we exploring today?`,
+        'sam': `I help make complex ideas clear and engaging. How can I help you communicate your project better?`,
+        'rasoa': `I keep things organized and on track. What project management challenges can I help you with?`,
+        'rakoto': `I help make sense of information and find patterns. What data or analysis do you need help with?`
       };
-      response = mockResponses[agentId] || `Hello! I'm ${agentId}, and I'm here to help with your project. What would you like to work on?`;
+      response = mockResponses[agentId] || `I'm here to help with your project. What would you like to work on?`;
     }
     
     console.log(`[AI Service] ✅ Generated response for ${agentId} with context awareness`);

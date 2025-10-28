@@ -199,19 +199,19 @@ function Chat() {
             method: 'get',
             url: `${backend_host}/api/project/${id}/chat`,
             headers: { Authorization: `Bearer ${token}` },
-            timeout: 10000
+            timeout: 30000
           }),
           axiosWithRetry({ 
             method: 'get',
             url: `${backend_host}/api/project/${id}`,
             headers: { Authorization: `Bearer ${token}` },
-            timeout: 10000
+            timeout: 30000
           }),
           axiosWithRetry({ 
             method: 'get',
             url: `${backend_host}/api/profile`,
             headers: { Authorization: `Bearer ${token}` },
-            timeout: 10000
+            timeout: 30000
           })
         ]);
 
