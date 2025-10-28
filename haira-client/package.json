@@ -38,9 +38,12 @@
     "raf-schd": "^4.0.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-markdown": "^10.1.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.9.4",
     "react-toastify": "^11.0.5",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1",
     "three": "^0.180.0",
     "yjs": "^13.6.27"
   },
