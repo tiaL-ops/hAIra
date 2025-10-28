@@ -171,9 +171,16 @@
 
 .hero-ctas {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin: 32px 0 20px;
+}
+
+.hero-buttons {
+  display: flex;
   gap: 16px;
   justify-content: center;
-  margin: 32px 0 20px;
   flex-wrap: wrap;
 }
 
@@ -227,6 +234,19 @@
 .home-container .btn-ghost:hover {
   background: rgba(255,255,255,0.05);
   transform: translateY(-2px);
+}
+
+.home-container .btn-research {
+  background: linear-gradient(135deg, #9169C0 0%, #B4565A 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 8px 24px rgba(145,105,192,0.4);
+}
+
+.home-container .btn-research:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 12px 32px rgba(145,105,192,0.6);
+  animation: glow 2s infinite;
 }
 
 .btn-glow {
