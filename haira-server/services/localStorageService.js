@@ -473,6 +473,7 @@ export async function updateTask(projectId, id, title, status, userId, descripti
     description: description,
     completedAt: completedAt,
     priority: priority,
+    assignedTo: userId, // Add the assignedTo field
   };
 
   console.log('[LocalStorage] updateTask payload:', JSON.stringify(data, null, 2));
