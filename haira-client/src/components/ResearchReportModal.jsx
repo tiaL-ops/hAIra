@@ -5,6 +5,8 @@ import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/github-dark.css';
 import '../styles/ResearchReportModal.css';
 
+const backend_host = import.meta.env.VITE_BACKEND_HOST;
+
 const ResearchReportModal = ({ isOpen, onClose }) => {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -21,7 +23,7 @@ const ResearchReportModal = ({ isOpen, onClose }) => {
     setError(null);
     
     try {
-      const response = await fetch('/api/home/research-report');
+      const response = await fetch(`${backend_host}/api/home/research-report`);
       const data = await response.json();
       
       if (data.success) {
