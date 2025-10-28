@@ -10,4 +10,5 @@ export default defineConfig({
     port: 5173,
     strictPort: true, // Fail if port is already in use
   },
+  publicDir: 'public',
 })
