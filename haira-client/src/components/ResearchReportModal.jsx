@@ -155,25 +155,6 @@ const ResearchReportModal = ({ isOpen, onClose }) => {
         
         <div className="research-modal-footer">
           <button 
-            className="research-download-btn"
-            onClick={() => {
-              if (reportData) {
-                const blob = new Blob([reportData.content], { type: 'text/markdown' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'hAIra-Research-Report.md';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-              }
-            }}
-            disabled={!reportData}
-          >
-            Download Report
-          </button>
-          <button 
             className="research-close-btn"
             onClick={handleClose}
           >

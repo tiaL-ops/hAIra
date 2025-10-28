@@ -59,8 +59,8 @@ hAIra seeks to create a web platform where students work on industry-style proje
 | **AI Teammate Character Design** | AI teammates possess distinct personalities inspired by teamwork literature [5], representing diverse collaboration styles, from highly cooperative . Yet we also added constructively challenging ones. |
 | **Task board** | Students may use Gen AI to help them break down tasks into small tasks. |
 | **Custom Rich Text Editor** | A built-in document editor that allows students and AI agents to co-author project content in real time, with individual contribution tracking. |
-| **GenAI Submission Board** | The workspace where students and AI teammates collaborate on the final project report. Key functions include: <br> • **Write:** Students can request AI teammates to draft or expand sections. <br> • **Review:** AI teammates provide targeted feedback or revision suggestions. <br> • **Summary:** AI-generated summaries highlight missing components or inconsistencies. <br> • **Proofreading:** AI checks grammar, tone, and writing style coherence. |
-| **GenAI : Results and Feedback** | Upon submission, the system provides: <br> • **Grades:** Overall and category-specific performance scores (report quality, responsiveness, contribution balance). <br> • **Feedback:** AI-generated analysis highlighting strengths, weaknesses, and actionable areas for improvement. |
+| **GenAI Submission Board** | The workspace where students and AI teammates collaborate on the final project report. Key functions include: * **Write:** Students can request AI teammates to draft or expand sections. • **Review:** AI teammates provide targeted feedback or revision suggestions. • **Summary:** AI-generated summaries highlight missing components or inconsistencies. • **Proofreading:** AI checks grammar, tone, and writing style coherence. |
+| **GenAI : Results and Feedback** | Upon submission, the system provides: • **Grades:** Overall and category-specific performance scores (report quality, responsiveness, contribution balance). • **Feedback:** AI-generated analysis highlighting strengths, weaknesses, and actionable areas for improvement. |
 
 -----
 
