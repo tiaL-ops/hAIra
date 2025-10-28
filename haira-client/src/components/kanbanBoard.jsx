@@ -203,7 +203,7 @@ export default function KanbanBoard({ id }) {
       const currentUser = storedUser ? JSON.parse(storedUser) : null;
       token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
     }
-    const data = { taskId : task.id, title : id, status : column, userId : task.assignee , description : task.name, priority : task.priority };
+    const data = { taskId : task.id, title : task.name, status : column, userId : task.assignee , description : task.name, priority : task.priority };
     const kanbanData = await axios.put(
       `${backend_host}/api/project/${id}/tasks`,
       data,
