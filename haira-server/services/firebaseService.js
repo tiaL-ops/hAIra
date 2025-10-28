@@ -471,13 +471,13 @@ export async function updateTask(projectId, id, title, status, userId, descripti
   if (status === 'done')
     completedAt = Date.now();
   
-  // Don't overwrite assignedTo - preserve AI assignments (sam, rasoa, etc.)
   const data = {
     title: title,
     status: status,
     description: description,
     completedAt: completedAt,
-    priority: priority
+    priority: priority,
+    assignedTo: userId // Update assignedTo field when manually assigning tasks
   };
 
   // Debug: log update intent so we can trace when updates are attempted

@@ -187,39 +187,58 @@ export default function KanbanBoard({ id }) {
   };
 
   const handleSaveTask = async (column, task, updateState = true) => {
-    // Get token with fallback
-    let token;
-    if (serverFirebaseAvailable) {
-      try {
-        token = await auth.currentUser.getIdToken(true);
-      } catch (error) {
-        // Fall back to localStorage token
+    try {
+      // Get token with fallback
+      let token;
+      if (serverFirebaseAvailable) {
+        try {
+          token = await auth.currentUser.getIdToken(true);
+        } catch (error) {
+          // Fall back to localStorage token
+          const storedUser = localStorage.getItem('__localStorage_current_user__');
+          const currentUser = storedUser ? JSON.parse(storedUser) : null;
+          token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+        }
+      } else {
         const storedUser = localStorage.getItem('__localStorage_current_user__');
         const currentUser = storedUser ? JSON.parse(storedUser) : null;
         token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
       }
-    } else {
-      const storedUser = localStorage.getItem('__localStorage_current_user__');
-      const currentUser = storedUser ? JSON.parse(storedUser) : null;
-      token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
-    }
-    const data = { taskId : task.id, title : id, status : column, userId : task.assignee , description : task.name, priority : task.priority };
-    const kanbanData = await axios.put(
-      `${backend_host}/api/project/${id}/tasks`,
-      data,
-      { headers: { Authorization: `Bearer ${token}` } });
-    if (!updateState)
-      return;
-    if (kanbanData.data.success) {
-      setTasks({
-        ...tasks,
-        [column]: tasks[column].map((t) =>
-          t.id === task.id ? task : t
-        ),
-      });
-      setEditingTask(null);
-    } else {
-      alert('no task saved');
+      
+      const data = { taskId : task.id, title : task.name, status : column, userId : task.assignee , description : task.name, priority : task.priority };
+      console.log('Saving task with data:', data);
+      
+      const kanbanData = await axios.put(
+        `${backend_host}/api/project/${id}/tasks`,
+        data,
+        { headers: { Authorization: `Bearer ${token}` } });
+      
+      console.log('Server response:', kanbanData.data);
+      
+      if (!updateState)
+        return;
+        
+      if (kanbanData.data.success) {
+        setTasks({
+          ...tasks,
+          [column]: tasks[column].map((t) =>
+            t.id === task.id ? task : t
+          ),
+        });
+        setEditingTask(null);
+        console.log('Task updated successfully');
+      } else {
+        console.error('Server returned success: false', kanbanData.data);
+        alert('Failed to save task: ' + (kanbanData.data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error saving task:', error);
+      if (error.response) {
+        console.error('Server error response:', error.response.data);
+        alert('Failed to save task: ' + (error.response.data?.error || error.message));
+      } else {
+        alert('Failed to save task: ' + error.message);
+      }
     }
   };
 
