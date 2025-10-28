@@ -1,4 +1,4 @@
-// Phase 3: Chat Routes with Teammates Sync
+// Phase 3: Chat Routes with Teammates Sync + Context Awareness
 
 import express from 'express';
 import admin from 'firebase-admin';
@@ -6,32 +6,37 @@ import { verifyFirebaseToken } from '../middleware/authMiddleware.js';
 import {
   getTeammates,
   getTeammate,
-  validateTeammate,
   updateTeammateStats,
   isTeammateAvailable,
   extractMentions,
   getSleepResponse
 } from '../services/teammateService.js';
-import { triggerAgentResponse } from '../services/aiService.js';
-import { getDefaultResponseAgents } from '../utils/chatUtils.js';
 import { 
   getUserMessageCountSince, 
   firebaseAvailable, 
   getDocumentById, 
-  setDocument, 
-  addDocument, 
   querySubcollection,
   addSubdocument,
-  updateDocument,
-  queryDocuments
+  updateDocument
 } from '../services/databaseService.js';
 import { getProjectDay } from '../utils/chatUtils.js';
-import { storeMessage, getConversationHistory, getPreviousDaysContext } from '../config/conversationMemory.js';
-import { storeProjectData, formatTasksForAI } from '../config/taskMemory.js';
+import { storeMessage, getConversationSummary } from '../config/conversationMemory.js';
+import { storeProjectData } from '../config/taskMemory.js';
+
+// Context-aware AI imports
+import { 
+  generateAIResponse, 
+  generateContextAwareResponse 
+} from '../services/aiService.js';
+import { AI_AGENTS } from '../config/aiAgents.js';
+import { trimToSentences } from '../utils/chatUtils.js';
+import { getAgentContext, buildEnhancedPrompt } from '../services/contextService.js';
 
 const router = express.Router();
 
-// Handle FieldValue for Firebase operations
+// Check if enhanced context is available
+const USE_ENHANCED_CONTEXT = typeof generateContextAwareResponse === 'function';
+
 const getFieldValue = () => {
   if (firebaseAvailable) {
     try {
@@ -47,15 +52,115 @@ const getFieldValue = () => {
 };
 
 /**
+ * Generate intelligent sign-off with context
+ */
+async function generateIntelligentSignOff(lastMessage, projectId, currentDay) {
+  try {
+    const tasks = await querySubcollection('userProjects', projectId, 'tasks');
+    const completedTasks = tasks.filter(t => t.status === 'done');
+    const inProgressTasks = tasks.filter(t => t.status === 'inprogress');
+    
+    let signOffMessage = `That's your 7 messages for today! `;
+    
+    if (completedTasks.length > 0) {
+      signOffMessage += `Great work completing ${completedTasks.length} task${completedTasks.length > 1 ? 's' : ''}! `;
+    }
+    
+    if (inProgressTasks.length > 0) {
+      signOffMessage += `Keep up the momentum on the ${inProgressTasks.length} task${inProgressTasks.length > 1 ? 's' : ''} in progress. `;
+    }
+    
+    signOffMessage += `See you tomorrow! 👋`;
+    return signOffMessage;
+  } catch (error) {
+    console.error('[SignOff] Error:', error);
+    return "Great progress today! See you tomorrow! 👋";
+  }
+}
+
+/**
+ * Generate context-aware AI response (inline - replaces triggerAgentResponse)
+ */
+async function generateAgentResponseWithContext(projectId, agentId, userMessage, currentDay, userId) {
+  try {
+    const agentName = AI_AGENTS[agentId]?.name || agentId;
+    let aiResponse;
+    
+    // Try enhanced context first
+    if (USE_ENHANCED_CONTEXT) {
+      try {
+        aiResponse = await generateContextAwareResponse(
+          agentId, 
+          projectId, 
+          userId, 
+          currentDay, 
+          userMessage.content
+        );
+        console.log(`✅ Enhanced context used for ${agentName}`);
+      } catch (enhancedError) {
+        console.error(`⚠️ Enhanced context failed for ${agentName}:`, enhancedError.message);
+      }
+    }
+    
+    // Fallback: Standard context method
+    if (!aiResponse) {
+      // Get recent messages
+      const recentMessages = await querySubcollection('userProjects', projectId, 'chatMessages', {
+        orderBy: [{ field: 'timestamp', direction: 'desc' }],
+        limit: 15
+      });
+      
+      // Get conversation from memory
+      const memoryConversation = getConversationSummary(projectId, currentDay);
+      const dbConv = recentMessages.reverse().map(c => `${c.senderName}: ${c.content}`).join('\n');
+      const conversationContext = memoryConversation || dbConv;
+      
+      // Get tasks for context
+      const tasks = await querySubcollection('userProjects', projectId, 'tasks');
+      const projectDoc = await getDocumentById('userProjects', projectId);
+      
+      const projectData = {
+        project: {
+          title: projectDoc?.title || 'Untitled Project',
+          startDate: projectDoc?.startDate
+        },
+        tasks: tasks
+      };
+      
+      // Build prompt with context
+      const prompt = buildContextualPrompt(agentId, { 
+        projectData, 
+        conversationSummary: conversationContext, 
+        currentDay 
+      }, recentMessages);
+      
+      aiResponse = await generateAIResponse(userMessage.content, prompt);
+      aiResponse = trimToSentences(aiResponse, 50);
+      console.log(`✅ Standard context used for ${agentName}`);
+    }
+    
+    // Ensure response has agent name prefix
+    if (!aiResponse.startsWith(agentName + ':')) {
+      aiResponse = `${agentName}: ${aiResponse}`;
+    }
+    
+    return aiResponse;
+    
+  } catch (error) {
+    console.error(`❌ Error generating response for ${agentId}:`, error);
+    const agentName = AI_AGENTS[agentId]?.name || agentId;
+    return `${agentName}: I'm having trouble responding right now. Let me get back to you!`;
+  }
+}
+
+/**
  * GET /api/project/:id/chat
- * Fetch chat messages with enriched teammate data and availability info
  */
 router.get('/:id/chat', verifyFirebaseToken, async (req, res) => {
   const { id: projectId } = req.params;
   const userId = req.user.uid;
 
   try {
-    // 1. Verify user has access to project
     const projectDoc = await getDocumentById('userProjects', projectId);
     
     if (!projectDoc) {
@@ -66,25 +171,19 @@ router.get('/:id/chat', verifyFirebaseToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    // 2. Fetch chat messages
     const messages = await querySubcollection('userProjects', projectId, 'chatMessages', {
       orderBy: [{ field: 'timestamp', direction: 'asc' }],
       limit: 100
     });
 
-    // 3. Fetch all teammates
     const teammates = await getTeammates(projectId);
-    
-    // Convert to object for easy lookup { teammateId: teammateData }
     const teammatesMap = teammates.reduce((acc, teammate) => {
       acc[teammate.id] = teammate;
       return acc;
     }, {});
 
-    // 4. Enrich messages with teammate data
     const enrichedMessages = messages.map(msg => {
       const sender = teammatesMap[msg.senderId];
-      
       return {
         ...msg,
         senderName: sender?.name || 'Unknown',
@@ -96,9 +195,8 @@ router.get('/:id/chat', verifyFirebaseToken, async (req, res) => {
       };
     });
 
-    // 5. Calculate availability for each AI agent
     const availability = {};
-    const currentDay = projectDoc.currentDay || 1;
+    const currentDay = getProjectDay(new Date(projectDoc?.startDate || Date.now()));
     
     for (const teammate of teammates) {
       if (teammate.type === 'ai') {
@@ -106,7 +204,18 @@ router.get('/:id/chat', verifyFirebaseToken, async (req, res) => {
       }
     }
 
-    // 6. Return response
+    // Store project data in memory
+    try {
+      const tasks = await querySubcollection('userProjects', projectId, 'tasks');
+      storeProjectData(projectId, tasks, {
+        title: projectDoc.title || 'Untitled Project',
+        currentDay: currentDay,
+        userId: projectDoc.userId
+      });
+    } catch (error) {
+      console.error('[Memory] Error storing project data:', error);
+    }
+
     res.json({
       chats: enrichedMessages,
       teammates: teammatesMap,
@@ -122,7 +231,7 @@ router.get('/:id/chat', verifyFirebaseToken, async (req, res) => {
 
 /**
  * POST /api/project/:id/chat
- * Send a chat message and sync with teammates
+ * WITH FULL CONTEXT AWARENESS
  */
 router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
   const { id: projectId } = req.params;
@@ -135,7 +244,7 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
       return res.status(400).json({ error: 'Message content is required' });
     }
 
-    // 2. Verify user has access to project
+    // 2. Verify project access
     const projectDoc = await getDocumentById('userProjects', projectId);
     
     if (!projectDoc) {
@@ -146,50 +255,39 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-        // 3. Validate user is a teammate
+    // 3. Validate user is a teammate
     const userTeammate = await getTeammate(projectId, userId);
     
     if (!userTeammate) {
       return res.status(403).json({ error: 'You are not a member of this project' });
     }
 
-    // 3.5. Check user's daily message quota (7 messages per 24 hours)
-    // Use project data already fetched in step 2
-    const projectData = projectDoc;
-    const projectStart = new Date(projectData?.startDate || Date.now());
+    // 4. Check quota
+    const projectStart = new Date(projectDoc?.startDate || Date.now());
     const currentDay = getProjectDay(projectStart);
-    
-    // Count actual messages sent in last 24 hours
     const userMsgsToday = await getUserMessageCountSince(projectId, userId, projectStart, currentDay);
-    console.log(`📊 User quota check: ${userMsgsToday}/7 messages sent in last 24 hours`);
     
-    // Hard limit: 7 messages per 24 hours
+    console.log(`📊 User quota: ${userMsgsToday}/7 messages`);
+    
     if (userMsgsToday >= 7) {
       return res.status(429).json({ 
         error: 'Daily message limit reached',
-        message: 'You have reached your daily message limit. You can send 7 messages per 24 hours.',
         quotaExceeded: true,
-        messagesSentToday: userMsgsToday,
-        messagesLeftToday: 0,
-        maxMessagesPerDay: 7,
+        messagesUsedToday: userMsgsToday,
+        dailyLimit: 7,
         currentProjectDay: currentDay
       });
     }
     
-    // Warning when approaching limit (at 5/7 messages)
     let quotaWarning = null;
     if (userMsgsToday >= 5) {
       const remaining = 7 - userMsgsToday;
-      quotaWarning = remaining === 1 
-        ? `${remaining} message remaining today` 
-        : `${remaining} messages remaining today`;
-      console.log(`⚠️ Quota warning: ${quotaWarning}`);
+      quotaWarning = `${remaining} message${remaining === 1 ? '' : 's'} remaining today`;
     }
 
-    // 4. Generate message ID
+    // 5. Create and save user message
     const generateId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     
-    // 5. Create and save chat message
     const message = {
       messageId: generateId(),
       projectId: projectId,
@@ -202,10 +300,9 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
     };
 
     await addSubdocument('userProjects', projectId, 'chatMessages', null, message);
-
     console.log(`✅ Message saved from ${userTeammate.name}`);
 
-    // Store message in conversation memory for AI context
+    // 6. Store in memory for AI context
     storeMessage(projectId, currentDay, {
       id: message.messageId,
       senderId: message.senderId,
@@ -215,61 +312,82 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
       type: message.type
     });
 
-    // Update task memory with current project data
+    // 7. Update task memory
     try {
       const tasks = await querySubcollection('userProjects', projectId, 'tasks');
-      const projectInfo = {
-        title: projectDoc.title || projectDoc.name || 'Untitled Project',
+      storeProjectData(projectId, tasks, {
+        title: projectDoc.title || 'Untitled Project',
         currentDay: currentDay,
-        userId: projectDoc.userId,
-        templateId: projectDoc.templateId
-      };
-      storeProjectData(projectId, tasks, projectInfo);
+        userId: projectDoc.userId
+      });
     } catch (taskError) {
       console.error('[Memory] Error updating task memory:', taskError);
     }
 
-    // 6. Update user teammate stats (no quota decrement - we count actual messages)
+    // 8. Update user stats
     await updateTeammateStats(projectId, userId, {
       'stats.messagesSent': getFieldValue()?.increment(1),
       'state.lastActive': Date.now(),
       'state.status': 'online'
     });
 
-    // 7. Extract @mentions from message
+    // 9. Extract mentions
     const mentions = extractMentions(content);
-    console.log(`📢 Mentions detected:`, mentions);
+    console.log(`📢 Mentions:`, mentions);
 
-    // 8. Handle each mention
     const mentionsHandled = [];
     
+    // 10. Handle mentions WITH CONTEXT
     for (const mentionedId of mentions) {
       try {
-        // Fetch mentioned teammate
         const mentionedTeammate = await getTeammate(projectId, mentionedId);
         
-        // Skip if not found or if human (humans don't auto-respond)
-        if (!mentionedTeammate) {
-          console.log(`⚠️ Mentioned teammate ${mentionedId} not found`);
-          continue;
-        }
-        
-        if (mentionedTeammate.type === 'human') {
-          console.log(`👤 Mentioned ${mentionedTeammate.name} (human, no auto-response)`);
+        if (!mentionedTeammate || mentionedTeammate.type === 'human') {
+          console.log(`👤 Skipping ${mentionedTeammate?.name || mentionedId}`);
           continue;
         }
 
-        // Check availability for AI agents
         const availabilityCheck = await isTeammateAvailable(projectId, mentionedId);
         
         if (availabilityCheck.available) {
-          // Agent is available - trigger AI response
-          console.log(`🤖 ${mentionedTeammate.name} is available, triggering response...`);
+          console.log(`🤖 ${mentionedTeammate.name} responding with context...`);
           
           try {
-            await triggerAgentResponse(projectId, mentionedId, message);
+            // Generate response WITH CONTEXT
+            const aiResponse = await generateAgentResponseWithContext(
+              projectId, 
+              mentionedId, 
+              message, 
+              currentDay, 
+              userId
+            );
             
-            // Update stats (no quota decrement for AI agents)
+            const agentName = AI_AGENTS[mentionedId]?.name || mentionedTeammate.name;
+            
+            // Save AI response
+            const aiMessage = {
+              messageId: generateId(),
+              projectId: projectId,
+              senderId: mentionedId,
+              senderName: agentName,
+              senderType: 'ai',
+              content: aiResponse,
+              timestamp: Date.now(),
+              type: 'message'
+            };
+            
+            await addSubdocument('userProjects', projectId, 'chatMessages', null, aiMessage);
+            
+            // Store in memory
+            storeMessage(projectId, currentDay, {
+              id: aiMessage.messageId,
+              senderId: mentionedId,
+              senderName: agentName,
+              content: aiResponse,
+              timestamp: aiMessage.timestamp,
+              type: 'message'
+            });
+            
             await updateTeammateStats(projectId, mentionedId, {
               'stats.messagesSent': getFieldValue()?.increment(1),
               'state.lastActive': Date.now(),
@@ -278,14 +396,14 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
             
             mentionsHandled.push({
               teammateId: mentionedId,
-              name: mentionedTeammate.name,
+              name: agentName,
               responded: true
             });
             
-            console.log(`✅ ${mentionedTeammate.name} responded successfully`);
+            console.log(`✅ ${agentName} responded with context`);
             
           } catch (aiError) {
-            console.error(`❌ Error triggering AI response for ${mentionedTeammate.name}:`, aiError);
+            console.error(`❌ AI error for ${mentionedTeammate.name}:`, aiError);
             mentionsHandled.push({
               teammateId: mentionedId,
               name: mentionedTeammate.name,
@@ -295,8 +413,8 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
           }
           
         } else {
-          // Agent is unavailable - send sleep response
-          console.log(`😴 ${mentionedTeammate.name} is unavailable: ${availabilityCheck.reason}`);
+          // Unavailable - sleep response
+          console.log(`😴 ${mentionedTeammate.name} unavailable: ${availabilityCheck.reason}`);
           
           const sleepMessage = getSleepResponse(mentionedTeammate, availabilityCheck);
           
@@ -311,7 +429,6 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
             type: 'system'
           });
           
-          // Optional: Track missed mention
           await updateTeammateStats(projectId, mentionedId, {
             'stats.missedMentions': getFieldValue()?.increment(1)
           });
@@ -323,146 +440,114 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
             reason: availabilityCheck.reason,
             sleepMessage: sleepMessage
           });
-          
-          console.log(`💤 Sleep response sent for ${mentionedTeammate.name}`);
         }
         
       } catch (mentionError) {
-        console.error(`❌ Error handling mention for ${mentionedId}:`, mentionError);
+        console.error(`❌ Mention error for ${mentionedId}:`, mentionError);
       }
     }
 
-    // 8.5. Handle probability-based responses (AI agents responding without @mentions)
-    // Only trigger if no mentions were detected (to avoid double responses)
+    // 11. Auto-responses (no mentions) WITH CONTEXT
     const probabilityHandled = [];
     
     if (mentions.length === 0) {
-      console.log(`🤖 No mentions detected, all AI teammates will respond...`);
+      console.log(`🤖 No mentions - all AI agents responding with context...`);
       
-      // Get all AI teammates for this project
       const allTeammates = await getTeammates(projectId);
       const aiTeammates = allTeammates.filter(t => t.type === 'ai');
       
-      console.log(`🤖 AI teammates in project:`, aiTeammates.map(t => t.id));
-      
-      // If no AI teammates, skip
-      if (aiTeammates.length === 0) {
-        console.log(`⚠️ No AI teammates found in project`);
-      } else {
-        // ALL AI teammates respond with generated content
-        console.log(`🤖 Triggering responses from all ${aiTeammates.length} AI teammates`);
+      for (const teammate of aiTeammates) {
+        const agentId = teammate.id;
         
-        for (const teammate of aiTeammates) {
-          const agentId = teammate.id;
-          try {
-            // Check availability
-            const availabilityCheck = await isTeammateAvailable(projectId, agentId);
+        try {
+          const availabilityCheck = await isTeammateAvailable(projectId, agentId);
+          
+          if (availabilityCheck.available) {
+            console.log(`🤖 ${teammate.name} auto-responding with context...`);
             
-            if (availabilityCheck.available) {
-              // Agent is available - trigger AI-generated response
-              console.log(`🤖 ${teammate.name} responding with AI-generated content...`);
+            try {
+              // Generate response WITH CONTEXT
+              const aiResponse = await generateAgentResponseWithContext(
+                projectId, 
+                agentId, 
+                message, 
+                currentDay, 
+                userId
+              );
               
-              try {
-                await triggerAgentResponse(projectId, agentId, message);
-                
-                // Update stats (no quota decrement for AI agents)
-                await updateTeammateStats(projectId, agentId, {
-                  'stats.messagesSent': getFieldValue()?.increment(1),
-                  'state.lastActive': Date.now(),
-                  'state.status': 'online'
-                });
-                
-                probabilityHandled.push({
-                  teammateId: agentId,
-                  name: teammate.name,
-                  responded: true,
-                  trigger: 'auto-response'
-                });
-                
-                console.log(`✅ ${teammate.name} responded with AI-generated content`);
-                
-              } catch (aiError) {
-                console.error(`❌ Error generating AI response for ${teammate.name}:`, aiError);
-                probabilityHandled.push({
-                  teammateId: agentId,
-                  name: teammate.name,
-                  responded: false,
-                  error: 'Failed to generate response',
-                  trigger: 'auto-response'
-                });
-              }
-            } else {
-              // Agent is unavailable - skip (no sleep message for auto responses)
-              console.log(`😴 ${teammate.name} unavailable: ${availabilityCheck.reason}`);
+              const agentName = AI_AGENTS[agentId]?.name || teammate.name;
+              
+              const aiMessage = {
+                messageId: generateId(),
+                projectId: projectId,
+                senderId: agentId,
+                senderName: agentName,
+                senderType: 'ai',
+                content: aiResponse,
+                timestamp: Date.now(),
+                type: 'message'
+              };
+              
+              await addSubdocument('userProjects', projectId, 'chatMessages', null, aiMessage);
+              
+              storeMessage(projectId, currentDay, {
+                id: aiMessage.messageId,
+                senderId: agentId,
+                senderName: agentName,
+                content: aiResponse,
+                timestamp: aiMessage.timestamp,
+                type: 'message'
+              });
+              
+              await updateTeammateStats(projectId, agentId, {
+                'stats.messagesSent': getFieldValue()?.increment(1),
+                'state.lastActive': Date.now(),
+                'state.status': 'online'
+              });
+              
+              probabilityHandled.push({
+                teammateId: agentId,
+                name: agentName,
+                responded: true,
+                trigger: 'auto-response'
+              });
+              
+              console.log(`✅ ${agentName} auto-responded with context`);
+              
+            } catch (aiError) {
+              console.error(`❌ Auto-response error for ${teammate.name}:`, aiError);
               probabilityHandled.push({
                 teammateId: agentId,
                 name: teammate.name,
                 responded: false,
-                reason: availabilityCheck.reason,
-                trigger: 'probability'
+                error: 'Failed to generate response',
+                trigger: 'auto-response'
               });
             }
-            
-          } catch (probError) {
-            console.error(`❌ Error handling probability response for ${agentId}:`, probError);
+          } else {
+            console.log(`😴 ${teammate.name} unavailable`);
+            probabilityHandled.push({
+              teammateId: agentId,
+              name: teammate.name,
+              responded: false,
+              reason: availabilityCheck.reason,
+              trigger: 'auto-response'
+            });
           }
+          
+        } catch (probError) {
+          console.error(`❌ Auto-response error for ${agentId}:`, probError);
         }
       }
-    } else {
-      console.log(`📢 Mentions detected, skipping probability-based responses`);
     }
 
-    // 8.6. Add intelligent sign-off if this is the 7th message (last message allowed)
-    if (userMsgsToday === 6) { // This is the 7th message
-      console.log(`🎯 7th message detected - adding intelligent sign-off from Rasoa`);
+    // 12. Intelligent sign-off on 7th message
+    if (userMsgsToday === 6) {
+      console.log(`🎯 7th message - adding sign-off`);
       
       try {
-        // Get all tasks to summarize
-        const tasks = await querySubcollection('userProjects', projectId, 'tasks');
+        const signOffMessage = await generateIntelligentSignOff(content, projectId, currentDay);
         
-        // Build task summary with more natural language
-        let taskSummary = '';
-        const todoTasks = tasks.filter(t => t.status === 'todo');
-        const inProgressTasks = tasks.filter(t => t.status === 'inprogress');
-        const completedTasks = tasks.filter(t => t.status === 'done');
-        
-        if (tasks.length > 0) {
-          taskSummary = `\n\n� Today's progress:\n`;
-          
-          if (completedTasks.length > 0) {
-            taskSummary += `Great work! We completed ${completedTasks.length} task${completedTasks.length > 1 ? 's' : ''}. `;
-          }
-          
-          if (inProgressTasks.length > 0) {
-            taskSummary += `${inProgressTasks.length} task${inProgressTasks.length > 1 ? 's are' : ' is'} in progress. `;
-          }
-          
-          if (todoTasks.length > 0) {
-            taskSummary += `Still have ${todoTasks.length} task${todoTasks.length > 1 ? 's' : ''} to tackle.`;
-          }
-        } else {
-          taskSummary = `\n\nNo tasks on the Kanban board yet. `;
-        }
-        
-        // Get recent chat messages to check if tasks were discussed
-        const recentMessages = await querySubcollection('userProjects', projectId, 'chatMessages', {
-          orderBy: [{ field: 'timestamp', direction: 'desc' }],
-          limit: 10
-        });
-        
-        const chatTexts = recentMessages.map(msg => (msg.content || msg.text || '').toLowerCase()).join(' ');
-        const hasTaskDiscussion = chatTexts.includes('task') || chatTexts.includes('work on') || 
-                                   chatTexts.includes('need to') || chatTexts.includes('should do');
-        
-        let kanbanReminder = '';
-        if (hasTaskDiscussion && tasks.length < 3) {
-          kanbanReminder = `\n\n💡 Reminder: Add any tasks we discussed to the Kanban board so we don't forget!`;
-        }
-        
-        // Build natural sign-off message
-        const signOffMessage = `That's your 7 messages for today! ${taskSummary}${kanbanReminder}\n\nLet's continue tomorrow. See you! 👋`;
-        
-        // Save sign-off message from Rasoa
         await addSubdocument('userProjects', projectId, 'chatMessages', null, {
           messageId: generateId(),
           projectId: projectId,
@@ -474,21 +559,28 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
           type: 'system'
         });
         
-        console.log(`✅ Intelligent sign-off added from Rasoa`);
+        storeMessage(projectId, currentDay, {
+          senderId: 'rasoa',
+          senderName: 'Rasoa',
+          content: signOffMessage,
+          timestamp: Date.now(),
+          type: 'system'
+        });
+        
+        console.log(`✅ Sign-off added`);
         
       } catch (signOffError) {
-        console.error(`❌ Error adding sign-off:`, signOffError);
-        // Continue without sign-off if there's an error
+        console.error(`❌ Sign-off error:`, signOffError);
       }
     }
 
-    // 9. Fetch all messages to return (including AI responses)
+    // 13. Fetch all messages
     const allMessages = await querySubcollection('userProjects', projectId, 'chatMessages', {
       orderBy: [{ field: 'timestamp', direction: 'asc' }]
     });
 
-    // 10. Return success response with all messages
-    const messagesAfterThis = userMsgsToday + 1; // Count including this message
+    // 14. Return response
+    const messagesAfterThis = userMsgsToday + 1;
     const remainingAfterThis = 7 - messagesAfterThis;
     
     res.json({
@@ -501,29 +593,27 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
       quotaWarning: remainingAfterThis > 0 && remainingAfterThis <= 2 
         ? `${remainingAfterThis} message${remainingAfterThis === 1 ? '' : 's'} remaining today`
         : null,
-      quotaExceeded: messagesAfterThis >= 7, // Will be true on 7th message
+      quotaExceeded: messagesAfterThis >= 7,
       messagesUsedToday: messagesAfterThis,
       dailyLimit: 7
     });
 
   } catch (error) {
-    console.error('❌ Error posting chat message:', error);
-    res.status(500).json({ error: 'Failed to send message' });
+    console.error('❌ POST /:id/chat ERROR:', error);
+    console.error('Stack:', error.stack);
+    res.status(500).json({ error: 'Failed to send message', details: error.message });
   }
 });
 
 /**
  * POST /api/project/:id/init-teammates
- * Initialize teammates subcollection for a project
- * Accepts selectedAgents array to create only chosen teammates (up to 2)
  */
 router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
   const { id: projectId } = req.params;
-  const { selectedAgents } = req.body; // Get selected agents from request body
+  const { selectedAgents } = req.body;
   const userId = req.user.uid;
 
   try {
-    // 1. Verify user has access to project
     const projectDoc = await getDocumentById('userProjects', projectId);
     
     if (!projectDoc) {
@@ -534,7 +624,6 @@ router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    // 2. Check if teammates already exist
     const teammates = await querySubcollection('userProjects', projectId, 'teammates');
 
     if (teammates.length > 0) {
@@ -545,20 +634,15 @@ router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
       });
     }
 
-    // 3. Validate selected agents
     const validAgents = ['brown', 'elza', 'kati', 'steve', 'sam', 'rasoa', 'rakoto'];
     const agentsToCreate = selectedAgents && Array.isArray(selectedAgents) 
-      ? selectedAgents.filter(id => validAgents.includes(id)).slice(0, 2) // Max 2 agents
-      : ['brown', 'elza']; // Default to brown and elza if not specified
+      ? selectedAgents.filter(id => validAgents.includes(id)).slice(0, 2)
+      : ['brown', 'elza'];
     
     if (agentsToCreate.length === 0) {
       return res.status(400).json({ error: 'Please select at least one valid teammate' });
     }
 
-    // 4. Initialize teammates - Human user + selected AI agents
-    const { AI_AGENTS } = await import('../config/aiAgents.js');
-
-    // Create human user teammate
     const humanTeammate = {
       id: userId,
       name: projectDoc.userName || 'You',
@@ -567,11 +651,11 @@ router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
       avatar: '👤',
       color: '#2196F3',
       config: {
-        maxMessagesPerDay: 7, // User gets 7 messages per day
+        maxMessagesPerDay: 7,
         isActive: true
       },
       state: {
-        messagesLeftToday: 7, // Start with 7 messages
+        messagesLeftToday: 7,
         lastActiveDay: 0,
         status: 'online'
       },
@@ -584,7 +668,6 @@ router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
     };
     await addSubdocument('userProjects', projectId, 'teammates', userId, humanTeammate);
 
-    // Create only the selected AI teammates (up to 2)
     let agentCount = 0;
 
     for (const agentId of agentsToCreate) {
@@ -601,7 +684,7 @@ router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
         emoji: agent.emoji || agent.avatar || '🤖',
         personality: agent.personality || 'Helpful AI assistant',
         config: {
-          isActive: true, // Enable the agent by default
+          isActive: true,
           activeDays: agent.activeDays || [0, 1, 2, 3, 4, 5, 6],
           activeHours: agent.activeHours || { start: 0, end: 24 },
           messageQuota: {
@@ -639,7 +722,6 @@ router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
       agentCount++;
     }
 
-    // Update the project's team array to reflect teammates
     const teamArray = [
       {
         id: userId,
@@ -666,7 +748,7 @@ router.post('/:id/init-teammates', verifyFirebaseToken, async (req, res) => {
     res.json({
       success: true,
       message: 'Teammates initialized successfully',
-      count: agentCount + 1 // AI agents + human user
+      count: agentCount + 1
     });
 
   } catch (error) {
