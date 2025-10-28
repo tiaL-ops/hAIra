@@ -1,11 +1,13 @@
 // src/pages/Home.jsx
 import React, { useState, useEffect, Suspense } from 'react';
 import { Link } from 'react-router-dom';
+import ResearchReportModal from '../components/ResearchReportModal';
 
 import '../styles/Home.css';
 
 function Home() {
   const [isVisible, setIsVisible] = useState(false);
+  const [showResearchModal, setShowResearchModal] = useState(false);
   const [wordCloudWords] = useState([
     'why do i feel pain?',
     'chat does he love me?',
@@ -83,9 +85,17 @@ function Home() {
           <p className={`hero-slogan ${isVisible ? 'animate-in' : ''}`}>
             We aim to help humans <span className="slogan-highlight">think better, not less.</span>
           </p>
-            <Link to="/login" className="btn btn-secondary">
-              <span className="btn-text">Try the hAIra Demo</span>
-            </Link>
+            <div className="hero-buttons">
+              <Link to="/login" className="btn btn-secondary">
+                <span className="btn-text">Try the hAIra Demo</span>
+              </Link>
+              <button 
+                className="btn btn-research"
+                onClick={() => setShowResearchModal(true)}
+              >
+                <span className="btn-text"> View Research Report</span>
+              </button>
+            </div>
           </div>
 
           
@@ -225,6 +235,12 @@ function Home() {
           </Link>
         </div>
       </section>
+      
+      {/* Research Report Modal */}
+      <ResearchReportModal 
+        isOpen={showResearchModal}
+        onClose={() => setShowResearchModal(false)}
+      />
     </main>
   );
 }
