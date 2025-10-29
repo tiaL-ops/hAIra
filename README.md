@@ -164,7 +164,7 @@ hAIra includes built-in support for Chrome's native AI APIs, providing a local f
 
 #### Prerequisites for Chrome AI
 
-  - **Chrome Browser**: Version 126+ with AI features enabled
+  - **Chrome Browser**: Version 138 stable or higher with AI features enabled
   - **Chrome Flags**: Enable experimental AI features
   - **User Activation**: Required for Chrome AI API calls
 
@@ -172,10 +172,12 @@ hAIra includes built-in support for Chrome's native AI APIs, providing a local f
 
 1.  **Enable Chrome AI Flags**:
 
-    ```bash
-    # Start Chrome with AI flags enabled
-    google-chrome --enable-features=ChromeAIPlatform,ChromeAIPlatformWriter,ChromeAIPlatformProofreader,ChromeAIPlatformSummarizer
-    ```
+      Go to the [Official Documentation](https://developer.chrome.com/docs/ai/built-in-apis) for more details on using the Chrome AI APIs.
+
+      * **Writer API:** [developer.chrome.com/docs/ai/writer-api](https://developer.chrome.com/docs/ai/writer-api)
+      * **Proofreader API:** [developer.chrome.com/docs/ai/proofreader-api](https://developer.chrome.com/docs/ai/proofreader-api)
+      * **Summarizer API:** [developer.chrome.com/docs/ai/summarizer-api](https://developer.chrome.com/docs/ai/summarizer-api)
+
 
 2.  **Verify Chrome AI Availability**:
 
@@ -189,14 +191,6 @@ hAIra includes built-in support for Chrome's native AI APIs, providing a local f
   - Server-side Gemini unavailable $\rightarrow$ Falls back to OpenAI
   - All APIs unavailable $\rightarrow$ AI features disabled
 
-#### Official Documentation
-
-For more details on using the Chrome AI APIs, refer to the official developer documentation:
-
-  * **Built-in APIs Overview:** [developer.chrome.com/docs/ai/built-in-apis](https://developer.chrome.com/docs/ai/built-in-apis)
-  * **Writer API:** [developer.chrome.com/docs/ai/writer-api](https://developer.chrome.com/docs/ai/writer-api)
-  * **Proofreader API:** [developer.chrome.com/docs/ai/proofreader-api](https://developer.chrome.com/docs/ai/proofreader-api)
-  * **Summarizer API:** [developer.chrome.com/docs/ai/summarizer-api](https://developer.chrome.com/docs/ai/summarizer-api)
 
 ### Firebase Setup (Optional)
 
