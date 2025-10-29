@@ -159,14 +159,12 @@ export const db = {
   type: _isBrowser() ? 'localStorageFallback' : 'localFileFallback',
   clearAll: () => {
     _saveDb(_getDefaultDb());
-    console.log(_isBrowser() ? '[LocalStorage] Fallback DB cleared.' : '[LocalFile] Fallback DB cleared.');
   },
 };
 
 // --- Generic Helpers ---
 
 export async function addDocument(collectionName, data) {
-  console.log(`[LocalStorage] Adding document to '${collectionName}'`);
   const db = _getDb();
   const id = _uuid();
   const doc = { ...data, id };
@@ -180,13 +178,11 @@ export async function addDocument(collectionName, data) {
 }
 
 export async function addSubdocument(parentCollection, parentId, subcollection, docId, data) {
-  console.log(`[LocalStorage] Adding document to '${parentCollection}/${parentId}/${subcollection}'`);
   const db = _getDb();
   const id = docId || _uuid();
   const doc = { ...data, id };
 
   if (!db[parentCollection] || !db[parentCollection][parentId]) {
-    console.warn(`[LocalStorage] Parent doc '${parentCollection}/${parentId}' not found, but creating subdoc anyway.`);
     // Ensure parent exists to avoid errors
     if (!db[parentCollection]) db[parentCollection] = {};
     if (!db[parentCollection][parentId]) db[parentCollection][parentId] = { id: parentId };
@@ -202,7 +198,6 @@ export async function addSubdocument(parentCollection, parentId, subcollection, 
 }
 
 export async function setDocument(collectionName, id, data) {
-  console.log(`[LocalStorage] Setting document in '${collectionName}/${id}' (merge: true)`);
   const db = _getDb();
 
   if (!db[collectionName]) {
@@ -218,11 +213,9 @@ export async function setDocument(collectionName, id, data) {
 }
 
 export async function updateDocument(collectionName, id, data) {
-  console.log(`[LocalStorage] Updating document in '${collectionName}/${id}'`);
   const db = _getDb();
 
   if (!db[collectionName] || !db[collectionName][id]) {
-    console.warn(`[LocalStorage] Document '${collectionName}/${id}' not found for update, creating it.`);
     if (!db[collectionName]) db[collectionName] = {};
   }
 
@@ -235,7 +228,6 @@ export async function updateDocument(collectionName, id, data) {
 }
 
 export async function deleteDocument(collectionName, id) {
-  console.log(`[LocalStorage] Deleting document in '${collectionName}/${id}'`);
   const db = _getDb();
   let deleted = false;
 
@@ -251,7 +243,6 @@ export async function deleteDocument(collectionName, id) {
 }
 
 export async function getDocumentById(collectionName, id) {
-  console.log(`[LocalStorage] Getting document '${collectionName}/${id}'`);
   const db = _getDb();
   const doc = db[collectionName] ? db[collectionName][id] : null;
   return _asyncDelay(doc ? { ...doc } : null); // Return a copy
@@ -319,7 +310,6 @@ function _applyQueryOptions(docs, options = {}) {
 }
 
 export async function queryDocuments(collectionName, options = {}) {
-  console.log(`[LocalStorage] Querying '${collectionName}'`);
   const db = _getDb();
   const collection = db[collectionName] || {};
   const docs = Object.values(collection);
@@ -334,7 +324,6 @@ export async function getDocuments(collectionName, queryObj = {}, orderByField =
 }
 
 export async function querySubcollection(parentCollection, parentId, subcollection, options = {}) {
-  console.log(`[LocalStorage] Querying subcollection '${parentCollection}/${parentId}/${subcollection}'`);
   const db = _getDb();
   const parentDoc = db[parentCollection] ? db[parentCollection][parentId] : null;
   const subColl = parentDoc && parentDoc[subcollection] ? parentDoc[subcollection] : {};
@@ -350,7 +339,6 @@ export async function getSubdocuments(parentCollection, parentId, subcollection,
 }
 
 export async function getChatMessagesByUser(parentCollection, parentId, subcollection, userId, orderByField = 'timestamp') {
-  console.log(`[LocalStorage] Getting chat messages for user ${userId} from ${parentCollection}/${parentId}/${subcollection}`);
   const db = _getDb();
   const parentDoc = db[parentCollection] ? db[parentCollection][parentId] : null;
   const subColl = parentDoc && parentDoc[subcollection] ? parentDoc[subcollection] : {};
@@ -363,8 +351,6 @@ export async function getChatMessagesByUser(parentCollection, parentId, subcolle
   if (orderByField) {
     messages.sort((a, b) => (b[orderByField] || 0) - (a[orderByField] || 0)); // desc
   }
-
-  console.log(`[LocalStorage] Found ${messages.length} user messages`);
   return _asyncDelay(messages.map(doc => ({ ...doc })));
 }
 
@@ -429,7 +415,6 @@ export async function updateUserProject(projectId, content, grade, status = 'sub
 }
 
 export async function addTasks(projectId, userId, projectTitle, status, deliverables = []) {
-  console.log('[LocalStorage] addTasks called');
   await ensureProjectExists(projectId);
 
   let completedAt = 0;
@@ -457,7 +442,6 @@ export async function addTasks(projectId, userId, projectTitle, status, delivera
   });
 
   const results = await Promise.all(promises);
-  console.log('[LocalStorage] All tasks saved, count:', results.length);
   return results;
 }
 
@@ -476,12 +460,9 @@ export async function updateTask(projectId, id, title, status, userId, descripti
     assignedTo: userId, // Add the assignedTo field
   };
 
-  console.log('[LocalStorage] updateTask payload:', JSON.stringify(data, null, 2));
-
   // We need a custom setDocument for subcollections
   const db = _getDb();
   if (!db[COLLECTIONS.USER_PROJECTS]?.[projectId]?.['tasks']) {
-    console.warn(`[LocalStorage] Subcollection for updateTask not found, creating.`);
     await ensureProjectExists(projectId);
     db[COLLECTIONS.USER_PROJECTS][projectId]['tasks'] = {};
   }
@@ -495,7 +476,6 @@ export async function updateTask(projectId, id, title, status, userId, descripti
 }
 
 export async function deleteTask(projectId, taskId) {
-  console.log(`[LocalStorage] Deleting task '${taskId}' from project '${projectId}'`);
   const db = _getDb();
   let deleted = false;
   
@@ -515,7 +495,6 @@ export async function ensureProjectExists(projectId, userId = 'default_user', te
   const collection = db[COLLECTIONS.USER_PROJECTS];
   
   if (!collection[projectId]) {
-    console.log(`[LocalStorage] Project ${projectId} not found, creating it`);
     collection[projectId] = {
       id: projectId,
       userId,
@@ -535,7 +514,6 @@ export async function ensureProjectExists(projectId, userId = 'default_user', te
 }
 
 export async function createProject(userId, userName, title) {
-  console.log(`[LocalStorage] Creating new project for user ${userId}`);
   // Set existing active project to inactive
   const activeProject = await getActiveProject(userId);
   if (activeProject) {
@@ -567,33 +545,27 @@ export async function createProject(userId, userName, title) {
   await setDocument(COLLECTIONS.USER_PROJECTS, projectRef.id, projectData);
   await updateUserActiveProject(userId, projectRef.id);
 
-  console.log(`[LocalStorage] Created new active project ${projectRef.id}`);
   return _asyncDelay(projectRef.id);
 }
 
 export async function getUserProjects(userId) {
-  console.log(`[LocalStorage] Getting projects for user: ${userId}`);
   const db = _getDb();
   const projects = Object.values(db[COLLECTIONS.USER_PROJECTS] || {});
   const userProjects = projects.filter(p => p.userId === userId);
-  console.log(`[LocalStorage] Total projects found: ${userProjects.length}`);
   return _asyncDelay(userProjects.map(p => ({ ...p })));
 }
 
 export async function getNotifications(userId) {
-  console.log(`[LocalStorage] Getting notifications for user: ${userId}`);
   return getSubdocuments(COLLECTIONS.USERS, userId, 'notifications', {}, 'sentAt');
 }
 
 export async function getLateTasks(id, userId) {
-  console.warn('[LocalStorage] getLateTasks is not fully implemented, returning empty array.');
   // This is complex logic to replicate.
   // A simple mock:
   return _asyncDelay([]);
 }
 
 export async function pushNotification(userId, type, message) {
-  console.log(`[LocalStorage] Pushing notification for user: ${userId}`);
   const notif = {
     type: type,
     message: message,
@@ -603,7 +575,6 @@ export async function pushNotification(userId, type, message) {
 }
 
 export async function clearNotifications(userId) {
-  console.log(`[LocalStorage] Clearing notifications for user: ${userId}`);
   const db = _getDb();
   if (db[COLLECTIONS.USERS]?.[userId]?.['notifications']) {
     db[COLLECTIONS.USERS][userId]['notifications'] = {};
@@ -613,16 +584,13 @@ export async function clearNotifications(userId) {
 }
 
 export async function getProjectWithTasks(projectId, userId) {
-  console.log(`[LocalStorage] Looking for project ${projectId} for user ${userId}`);
   const project = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
 
   if (!project) {
-    console.log(`[LocalStorage] Project ${projectId} does not exist`);
     return _asyncDelay(null);
   }
 
   if (project.userId !== userId) {
-    console.log(`[LocalStorage] Access denied: Project ${projectId} belongs to ${project.userId}`);
     return _asyncDelay(null);
   }
   
@@ -630,7 +598,6 @@ export async function getProjectWithTasks(projectId, userId) {
   const tasks = Object.values(db[COLLECTIONS.USER_PROJECTS]?.[projectId]?.['tasks'] || {});
   const teammates = Object.values(db[COLLECTIONS.USER_PROJECTS]?.[projectId]?.['teammates'] || {});
   
-  console.log(`[LocalStorage] Found project ${projectId} with ${tasks.length} total tasks`);
 
   let updatedProjectData = { ...project };
   if (teammates.length > 0) {
@@ -644,14 +611,12 @@ export async function getProjectWithTasks(projectId, userId) {
 }
 
 export async function updateUserActiveProject(userId, projectId) {
-  console.log(`[LocalStorage] Updating active project for user ${userId} to ${projectId}`);
   return updateDocument(COLLECTIONS.USERS, userId, {
     activeProjectId: projectId,
   });
 }
 
 export async function activateProject(userId, projectId) {
-  console.log(`[LocalStorage] Activating project ${projectId} for user ${userId}`);
   const activeProject = await getActiveProject(userId);
 
   await updateDocument(COLLECTIONS.USER_PROJECTS, projectId, {
@@ -673,7 +638,6 @@ export async function activateProject(userId, projectId) {
 export async function getUserMessageCountSince(projectId, userId, projectStartDate, currentDay) {
   const now = Date.now();
   const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
-  console.log(`[LocalStorage] Counting messages for user ${userId} in project ${projectId} since ${new Date(twentyFourHoursAgo).toISOString()}`);
 
   const db = _getDb();
   const messages = Object.values(db[COLLECTIONS.USER_PROJECTS]?.[String(projectId)]?.['chatMessages'] || {});
@@ -682,7 +646,6 @@ export async function getUserMessageCountSince(projectId, userId, projectStartDa
     msg.senderId === userId && (msg.timestamp || 0) >= twentyFourHoursAgo
   ).length;
 
-  console.log(`[LocalStorage] Found ${count} user messages in last 24 hours`);
   return _asyncDelay(count);
 }
 
@@ -691,7 +654,6 @@ export async function getUserMessageCountSince(projectId, userId, projectStartDa
 export async function canCreateNewProject(userId) {
   const projects = await getUserProjects(userId);
   const canCreate = projects.length < PROJECT_RULES.MAX_TOTAL_PROJECTS;
-  console.log(`[LocalStorage] Can create new project: ${canCreate} (${projects.length}/${PROJECT_RULES.MAX_TOTAL_PROJECTS})`);
   return _asyncDelay(canCreate);
 }
 
@@ -704,19 +666,16 @@ export async function getActiveProject(userId) {
 export async function getInactiveProjects(userId) {
   const projects = await getUserProjects(userId);
   const inactive = projects.filter(p => p.isActive === false && !p.archivedAt);
-  console.log(`[LocalStorage] Found ${inactive.length} inactive projects`);
   return _asyncDelay(inactive);
 }
 
 export async function getArchivedProjects(userId) {
   const projects = await getUserProjects(userId);
   const archived = projects.filter(p => p.status === 'archived');
-  console.log(`[LocalStorage] Found ${archived.length} archived projects`);
   return _asyncDelay(archived);
 }
 
 export async function archiveProject(projectId, userId) {
-  console.log(`[LocalStorage] Archiving project ${projectId}`);
   const project = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
   if (!project || project.userId !== userId) {
     throw new Error('Project not found or access denied');
@@ -740,7 +699,6 @@ export async function archiveProject(projectId, userId) {
 }
 
 export async function createAITemplate(aiProject, topic) {
-  console.log(`[LocalStorage] Creating AI template for topic: ${topic}`);
   const templateData = {
     title: aiProject.title,
     description: aiProject.description,
@@ -760,7 +718,6 @@ export async function createAITemplate(aiProject, topic) {
 }
 
 export async function createAIGeneratedProject(userId, userName, topic, aiProject, existingTemplateId = null) {
-  console.log(`[LocalStorage] Creating AI-generated project for topic: ${topic}`);
   const canCreate = await canCreateNewProject(userId);
   if (!canCreate) {
     throw new Error('Maximum number of projects reached. Please archive a project first.');
@@ -860,7 +817,6 @@ export async function getUserProjectsWithTemplates(userId) {
 // --- Template Reuse Functions ---
 
 export async function getUnusedTemplatesForTopic(topic, userId) {
-  console.log(`[LocalStorage] Looking for unused templates for topic: ${topic}, user: ${userId}`);
   const templates = await getDocuments(COLLECTIONS.PROJECT_TEMPLATES, { 
     topic: topic,
     isReusable: true,
@@ -871,12 +827,10 @@ export async function getUnusedTemplatesForTopic(topic, userId) {
     return !usedBy.includes(userId);
   });
   
-  console.log(`[LocalStorage] Found ${unusedTemplates.length} unused templates`);
   return _asyncDelay(unusedTemplates);
 }
 
 export async function getLeastUsedTemplatesForTopic(topic, limit = 3) {
-  console.log(`[LocalStorage] Looking for least-used templates for topic: ${topic}`);
   const templates = await getDocuments(COLLECTIONS.PROJECT_TEMPLATES, { 
     topic: topic,
     isReusable: true,
@@ -886,12 +840,10 @@ export async function getLeastUsedTemplatesForTopic(topic, limit = 3) {
     .sort((a, b) => (a.usageCount || 0) - (b.usageCount || 0))
     .slice(0, limit);
     
-  console.log(`[LocalStorage] Found ${sortedTemplates.length} least-used templates`);
   return _asyncDelay(sortedTemplates);
 }
 
 export async function updateTemplateUsage(templateId, userId) {
-  console.log(`[LocalStorage] Updating template usage for template: ${templateId}, user: ${userId}`);
   const template = await getDocumentById(COLLECTIONS.PROJECT_TEMPLATES, templateId);
   if (!template) {
     throw new Error(`Template ${templateId} not found`);
@@ -910,6 +862,5 @@ export async function updateTemplateUsage(templateId, userId) {
     lastUsed: Date.now(),
   });
   
-  console.log(`[LocalStorage] Updated template usage: ${usageCount + 1} total uses`);
   return _asyncDelay(null);
 }

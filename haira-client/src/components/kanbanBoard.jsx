@@ -121,6 +121,9 @@ export default function KanbanBoard({ id }) {
         // Filter to get names for the dropdown
         const teammateNames = team.map(t => t.name);
         setTeammates(team);
+        
+        // Debug logging for teammates
+        console.log('Loaded teammates:', team.map(t => ({ id: t.id, name: t.name, type: t.type })));
 
         const priorityData = await axios.get(`${backend_host}/api/project/tasks/priority`, { headers: { Authorization: `Bearer ${token}` } });
         setPriority(priorityData.data.priority);
@@ -146,28 +149,37 @@ export default function KanbanBoard({ id }) {
   }, []);
 
   const handleAddTask = async (column) => {
-    const newTask = {
-      id: uuidv4(),
-      name: "New task",
-      assignee: teammates.length > 0 ? (teammates[0].id || teammates[0].name) : "",
-    };
-    
-    // Get token with fallback
+    // Get token with fallback and current user ID
     let token;
+    let currentUserId;
     if (serverFirebaseAvailable) {
       try {
         token = await auth.currentUser.getIdToken(true);
+        currentUserId = auth.currentUser.uid;
       } catch (error) {
         // Fall back to localStorage token
         const storedUser = localStorage.getItem('__localStorage_current_user__');
         const currentUser = storedUser ? JSON.parse(storedUser) : null;
         token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+        currentUserId = currentUser?.uid;
       }
     } else {
       const storedUser = localStorage.getItem('__localStorage_current_user__');
       const currentUser = storedUser ? JSON.parse(storedUser) : null;
       token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+      currentUserId = currentUser?.uid;
     }
+    
+    // Find the human teammate (current user) in the teammates list, fallback to current user ID
+    const humanTeammate = teammates.find(t => t.type === 'human');
+    const defaultAssignee = humanTeammate?.id || currentUserId || (teammates.length > 0 ? (teammates[0].id || teammates[0].name) : "");
+    
+    const newTask = {
+      id: uuidv4(),
+      name: "New task",
+      assignee: defaultAssignee,
+    };
+    
     const data = { title : id, taskUserId : newTask.assignee , status : column, description : newTask.name };
     const kanbanData = await axios.post(
       `${backend_host}/api/project/${id}/tasks`,
@@ -190,22 +202,35 @@ export default function KanbanBoard({ id }) {
     try {
       // Get token with fallback
       let token;
+      let currentUserId;
       if (serverFirebaseAvailable) {
         try {
           token = await auth.currentUser.getIdToken(true);
+          currentUserId = auth.currentUser.uid;
         } catch (error) {
           // Fall back to localStorage token
           const storedUser = localStorage.getItem('__localStorage_current_user__');
           const currentUser = storedUser ? JSON.parse(storedUser) : null;
           token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+          currentUserId = currentUser?.uid;
         }
       } else {
         const storedUser = localStorage.getItem('__localStorage_current_user__');
         const currentUser = storedUser ? JSON.parse(storedUser) : null;
         token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+        currentUserId = currentUser?.uid;
       }
       
-      const data = { taskId : task.id, title : task.name, status : column, userId : task.assignee , description : task.name, priority : task.priority };
+      // Ensure assignee is properly set - if empty or "You", use current user ID
+      let assignee = task.assignee;
+      if (!assignee || assignee === 'You' || assignee === '') {
+        // Find the human teammate (current user) in the teammates list
+        const humanTeammate = teammates.find(t => t.type === 'human');
+        assignee = humanTeammate?.id || currentUserId;
+        console.log('Setting assignee to:', assignee, 'from humanTeammate:', humanTeammate, 'currentUserId:', currentUserId);
+      }
+      
+      const data = { taskId : task.id, title : task.name, status : column, userId : assignee , description : task.name, priority : task.priority };
       console.log('Saving task with data:', data);
       
       const kanbanData = await axios.put(
@@ -213,7 +238,6 @@ export default function KanbanBoard({ id }) {
         data,
         { headers: { Authorization: `Bearer ${token}` } });
       
-      console.log('Server response:', kanbanData.data);
       
       if (!updateState)
         return;
@@ -226,7 +250,6 @@ export default function KanbanBoard({ id }) {
           ),
         });
         setEditingTask(null);
-        console.log('Task updated successfully');
       } else {
         console.error('Server returned success: false', kanbanData.data);
         alert('Failed to save task: ' + (kanbanData.data.error || 'Unknown error'));
@@ -281,6 +304,15 @@ export default function KanbanBoard({ id }) {
 
     const sourceCol = [...tasks[source.droppableId]];
     const [moved] = sourceCol.splice(source.index, 1);
+
+    // Ensure assignee is properly set before saving
+    if (!moved.assignee || moved.assignee === 'You' || moved.assignee === '') {
+      // Find the human teammate (current user) in the teammates list
+      const humanTeammate = teammates.find(t => t.type === 'human');
+      if (humanTeammate) {
+        moved.assignee = humanTeammate.id;
+      }
+    }
 
     // if 
     let destCol = [];
@@ -374,7 +406,24 @@ export default function KanbanBoard({ id }) {
                             <div className="ai-info">
                               <h4>{task.name}</h4>
                               <span className="ai-role">{(() => {
-                                const mate = teammates.find(t => String(t.id).toLowerCase() === String(task.assignee || '').toLowerCase());
+                                // Try to find teammate by exact ID match first
+                                let mate = teammates.find(t => t.id === task.assignee);
+                                
+                                // If not found, try case-insensitive match
+                                if (!mate) {
+                                  mate = teammates.find(t => String(t.id).toLowerCase() === String(task.assignee || '').toLowerCase());
+                                }
+                                
+                                // If still not found, try matching by name
+                                if (!mate) {
+                                  mate = teammates.find(t => t.name === task.assignee);
+                                }
+                                
+                                // Debug logging
+                                if (!mate && task.assignee) {
+                                  console.log('Could not find teammate for assignee:', task.assignee, 'Available teammates:', teammates.map(t => ({ id: t.id, name: t.name, type: t.type })));
+                                }
+                                
                                 return mate ? mate.name : (task.assignee || 'Unassigned');
                               })()}</span>
                             </div>

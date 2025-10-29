@@ -17,10 +17,8 @@ async function initTeammates() {
     });
     
     const data = await response.json();
-    console.log('✅ Init result:', data);
     
     if (data.success) {
-      console.log(`🎉 Created ${data.count} teammates!`);
       // Reload the chat page to see teammates
       window.location.reload();
     }

@@ -96,7 +96,6 @@ async function generateAgentResponseWithContext(projectId, agentId, userMessage,
           currentDay, 
           userMessage.content
         );
-        console.log(`✅ Enhanced context used for ${agentName}`);
       } catch (enhancedError) {
         console.error(`⚠️ Enhanced context failed for ${agentName}:`, enhancedError.message);
       }
@@ -136,7 +135,6 @@ async function generateAgentResponseWithContext(projectId, agentId, userMessage,
       
       aiResponse = await generateAIResponse(userMessage.content, prompt);
       aiResponse = trimToSentences(aiResponse, 50);
-      console.log(`✅ Standard context used for ${agentName}`);
     }
     
     // Ensure response has agent name prefix
@@ -267,8 +265,6 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
     const currentDay = getProjectDay(projectStart);
     const userMsgsToday = await getUserMessageCountSince(projectId, userId, projectStart, currentDay);
     
-    console.log(`📊 User quota: ${userMsgsToday}/7 messages`);
-    
     if (userMsgsToday >= 7) {
       return res.status(429).json({ 
         error: 'Daily message limit reached',
@@ -300,7 +296,6 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
     };
 
     await addSubdocument('userProjects', projectId, 'chatMessages', null, message);
-    console.log(`✅ Message saved from ${userTeammate.name}`);
 
     // 6. Store in memory for AI context
     storeMessage(projectId, currentDay, {
@@ -333,7 +328,6 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
 
     // 9. Extract mentions
     const mentions = extractMentions(content);
-    console.log(`📢 Mentions:`, mentions);
 
     const mentionsHandled = [];
     
@@ -343,14 +337,12 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
         const mentionedTeammate = await getTeammate(projectId, mentionedId);
         
         if (!mentionedTeammate || mentionedTeammate.type === 'human') {
-          console.log(`👤 Skipping ${mentionedTeammate?.name || mentionedId}`);
           continue;
         }
 
         const availabilityCheck = await isTeammateAvailable(projectId, mentionedId);
         
         if (availabilityCheck.available) {
-          console.log(`🤖 ${mentionedTeammate.name} responding with context...`);
           
           try {
             // Generate response WITH CONTEXT
@@ -400,7 +392,6 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
               responded: true
             });
             
-            console.log(`✅ ${agentName} responded with context`);
             
           } catch (aiError) {
             console.error(`❌ AI error for ${mentionedTeammate.name}:`, aiError);
@@ -414,7 +405,6 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
           
         } else {
           // Unavailable - sleep response
-          console.log(`😴 ${mentionedTeammate.name} unavailable: ${availabilityCheck.reason}`);
           
           const sleepMessage = getSleepResponse(mentionedTeammate, availabilityCheck);
           
@@ -451,7 +441,6 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
     const probabilityHandled = [];
     
     if (mentions.length === 0) {
-      console.log(`🤖 No mentions - all AI agents responding with context...`);
       
       const allTeammates = await getTeammates(projectId);
       const aiTeammates = allTeammates.filter(t => t.type === 'ai');
@@ -463,7 +452,6 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
           const availabilityCheck = await isTeammateAvailable(projectId, agentId);
           
           if (availabilityCheck.available) {
-            console.log(`🤖 ${teammate.name} auto-responding with context...`);
             
             try {
               // Generate response WITH CONTEXT
@@ -512,7 +500,6 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
                 trigger: 'auto-response'
               });
               
-              console.log(`✅ ${agentName} auto-responded with context`);
               
             } catch (aiError) {
               console.error(`❌ Auto-response error for ${teammate.name}:`, aiError);
@@ -525,7 +512,6 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
               });
             }
           } else {
-            console.log(`😴 ${teammate.name} unavailable`);
             probabilityHandled.push({
               teammateId: agentId,
               name: teammate.name,
@@ -543,7 +529,6 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
 
     // 12. Intelligent sign-off on 7th message
     if (userMsgsToday === 6) {
-      console.log(`🎯 7th message - adding sign-off`);
       
       try {
         const signOffMessage = await generateIntelligentSignOff(content, projectId, currentDay);
@@ -566,9 +551,6 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
           timestamp: Date.now(),
           type: 'system'
         });
-        
-        console.log(`✅ Sign-off added`);
-        
       } catch (signOffError) {
         console.error(`❌ Sign-off error:`, signOffError);
       }

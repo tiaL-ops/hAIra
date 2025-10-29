@@ -27,7 +27,6 @@ export default function WeeklyLearningPrompt({
   useEffect(() => {
     const fetchTopics = async () => {
       try {
-        console.log('[WeeklyLearningPrompt] Fetching topics...');
         
         // Get token with fallback
         let token;
@@ -36,17 +35,13 @@ export default function WeeklyLearningPrompt({
         } else {
           token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
         }
-        console.log('[WeeklyLearningPrompt] Token obtained:', token ? 'Yes' : 'No');
         
         const response = await axios.get(`${backend_host}/api/project/topics`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
-
-        console.log('[WeeklyLearningPrompt] Response received:', response.status);
         if (response.data.success) {
-          console.log('[WeeklyLearningPrompt] Topics loaded:', response.data.topics?.length || 0);
           setTopics(response.data.topics || []);
         }
       } catch (err) {

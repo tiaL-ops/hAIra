@@ -16,7 +16,6 @@ const axiosWithRetry = async (config, maxRetries = 3, delay = 1000) => {
       const isNetworkError = error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED';
       
       if (isNetworkError && !isLastRetry) {
-        console.log(`[Retry ${i + 1}/${maxRetries}] Network error, retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
@@ -64,7 +63,6 @@ function Chat() {
     if (messagesContainerRef.current) {
       const element = messagesContainerRef.current;
       element.scrollTop = element.scrollHeight;
-      console.log('Scrolling to bottom:', element.scrollTop, element.scrollHeight);
     }
     
     // Fallback: scroll the last message into view
@@ -151,7 +149,6 @@ function Chat() {
   // Scroll to bottom when messages container ref is available
   useEffect(() => {
     if (messagesContainerRef.current && messages.length > 0) {
-      console.log('Messages container ref available, scrolling to bottom');
       scrollToBottom();
     }
   }, [messagesContainerRef.current, messages.length]);
@@ -226,7 +223,6 @@ function Chat() {
           
           // Set teammates from backend response
           if (chatResp.data.teammates) {
-            console.log('📥 Teammates loaded from backend:', chatResp.data.teammates);
             setTeammates(chatResp.data.teammates);
           }
           
@@ -266,11 +262,6 @@ function Chat() {
         
         if (err.code === 'ERR_NETWORK' || err.code === 'NETWORK_ERROR') {
           setStatusMessage(`🔌 Cannot connect to server. Please ensure the server is running on port 3002.`);
-          console.error('Network error details:', {
-            message: err.message,
-            code: err.code,
-            config: err.config
-          });
         } else if (err.code === 'ECONNABORTED') {
           setStatusMessage(`⏱️ Request timeout. Server may be slow or unresponsive.`);
         } else if (err.response?.status === 404) {

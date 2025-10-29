@@ -16,7 +16,6 @@ const db = admin.firestore();
 
 async function migrateProject(projectId) {
   try {
-    console.log(`\n🔄 Migrating project: ${projectId}`);
     
     // Check if teammates already exist
     const teammatesSnap = await db
@@ -26,13 +25,11 @@ async function migrateProject(projectId) {
       .get();
     
     if (teammatesSnap.size > 0) {
-      console.log(`✅ Project already has ${teammatesSnap.size} teammates`);
       return;
     }
     
     // Initialize teammates from team array
     await initializeTeammates(projectId);
-    console.log(`✅ Successfully initialized teammates for ${projectId}`);
     
   } catch (error) {
     console.error(`❌ Error migrating ${projectId}:`, error.message);
@@ -43,8 +40,6 @@ async function main() {
   const projectIds = process.argv.slice(2);
   
   if (projectIds.length === 0) {
-    console.log('Usage: node migrate-teammates.js <projectId1> [projectId2] ...');
-    console.log('Example: node migrate-teammates.js WBw7IWzi2EZelmSWVpGX');
     process.exit(1);
   }
   
@@ -52,7 +47,6 @@ async function main() {
     await migrateProject(projectId);
   }
   
-  console.log('\n✅ Migration complete!');
   process.exit(0);
 }
 

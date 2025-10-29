@@ -218,7 +218,6 @@ export const getAuthService = () => {
       return mockAuth;
     }
   } else {
-    console.log('Firebase not available, using localStorage fallback');
     return mockAuth;
   }
 };
@@ -234,7 +233,6 @@ export const getFirestoreService = () => {
       return mockFirestore;
     }
   } else {
-    console.log('Firebase not available, using localStorage fallback');
     return mockFirestore;
   }
 };
