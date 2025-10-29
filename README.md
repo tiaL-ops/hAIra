@@ -30,17 +30,27 @@ The platform aims to enhance critical thinking, collaboration, and AI literacy. 
 
 ## 🛑 Important Note on Non-Free Dependencies
 
-While the hAIra source code is released under a free and open license (**GNU GPL-3.0+**), running the application with its full functionality **requires proprietary, non-free services** from third parties.
+While the hAIra source code is released under a free and open license (GNU GPL-3.0+), running the application with its full functionality requires proprietary, non-free services from third parties.
 
-To enable the core AI teammate and grading features, you must obtain and use API keys for:
+There are two main dependencies:
 
+#### Database (Firebase):
 
-  * **Google Gemini** or **OpenAI** 
-  * **Firebase Service Account Key**
+A Firebase Service Account Key is required for production mode (using Cloud Firestore).
 
-Without these keys, the application can still run , but in a limited **localStorage Mode** .It will not execute the multi-agent collaboration and  that are part of the project's educational goals. We encourage contributors to explore and develop free alternatives.
+Without this key, the application automatically runs in a limited localStorage Mode, which is perfect for development and testing.
 
-Instructions to get the keys are below in 'Configuration' section.
+##### AI Features (Server vs. Client):
+
+- Server-Side Keys (Google Gemini or OpenAI): These keys are required specifically for the multi-agent chat, which simulate your AI teammates.
+
+- Client-Side (Chrome AI): If you do not provide server-side keys, you can still use ALL the platform's other AI collaboration tools (like AI-assisted writing , proofreading, reviewer ..etc ) as long as your browser's built-in Chrome AI is enabled.
+
+If no server keys are provided and Chrome AI is unavailable, all AI-powered features will be disabled.
+
+We encourage contributors to explore and develop free alternatives.
+
+Instructions to get the keys are in the 'Configuration' section below..
 
 -----
 
