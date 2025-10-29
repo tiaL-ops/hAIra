@@ -4,8 +4,8 @@
 
 **Authors:**
 
-  * **Landy Rakotoarison**
-  * **Fanamby Randri**
+  * **Landy Rakotoarison** (Computer Science Student)
+  * **Fanamby Randri** (Data Scientist - Machine Learning Engineer)
 
 -----
 
