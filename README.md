@@ -18,7 +18,7 @@ The platform aims to enhance critical thinking, collaboration, and AI literacy. 
 
 ## 💻 Tech Stack
 
-  * Chrome AI APIs (via client side)
+  * Chrome AI APIs : Writer , Proofreader, Summarizer (via client side)
   * Google's Gemini Developer API
   * Firebase
   * React
