@@ -24,11 +24,6 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
     const {includeArchived} = req.query;
     
     let projects = await getUserProjectsWithTemplates(userId);
-    
-    console.log(`[ProjectRoutes] Raw projects for user ${userId}:`);
-    projects.forEach(p => {
-      console.log(`  - ${p.id}: title="${p.title}", isActive=${p.isActive}, status=${p.status}, startDate=${p.startDate}`);
-    });
 
     // Sort projects by startDate (most recent first)
     projects = projects.sort((a, b) => (b.startDate || 0) - (a.startDate || 0));
@@ -36,7 +31,6 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
     // Ensure most recent project is active if no active project exists
     const hasActiveProject = projects.some(p => p.isActive === true && !p.archivedAt);
     if (!hasActiveProject && projects.length > 0 && !projects[0].archivedAt) {
-      console.log(`[ProjectRoutes] No active project found, setting most recent project ${projects[0].id} as active`);
       await updateDocument(COLLECTIONS.USER_PROJECTS, projects[0].id, {
         isActive: true,
         status: 'active'
@@ -53,8 +47,6 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
     //create project limits
     const canCreate = await canCreateNewProject(userId);
     const activeProject = await getActiveProject(userId);
-    
-    console.log(`[ProjectRoutes] Returning ${displayProjects.length} projects (${activeProjects.length} active, ${archivedProjects.length} archived)`);
     
     res.json({
       success: true,
@@ -133,7 +125,6 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
 //
 router.get('/topics', verifyFirebaseToken, async (req, res) => {
   try {
-    console.log('[ProjectRoutes] Topics endpoint called by user:', req.user?.uid);
     res.json({
       success: true,
       topics: LEARNING_TOPICS
@@ -152,18 +143,13 @@ router.get('/:id', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;
     const userId = req.user.uid;
 
-    console.log(`[ProjectRoutes] Fetching project ${id} for user ${userId}`);
     
     const projectData = await getProjectWithTasks(id, userId);
     
-    console.log(`[ProjectRoutes] Project data result:`, projectData ? 'Found' : 'Not found');
-    
     if (!projectData) {
-      console.log(`[ProjectRoutes] Project ${id} not found or access denied for user ${userId}`);
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    console.log(`[ProjectRoutes] Returning project:`, projectData.project.id);
     res.json({
       success: true,
       project: projectData.project
@@ -283,14 +269,11 @@ router.post('/generate-project', verifyFirebaseToken, async (req, res) => {
     const userId = req.user.uid;
     const userName = req.user.name;
 
-    console.log(`[ProjectRoutes] Project generation request: topic=${topic}, action=${action}, templateId=${templateId}`);
-
     let templateResult;
     let projectId;
 
     if (action === 'use_template' && templateId) {
       // User selected an existing template
-      console.log(`[ProjectRoutes] Using existing template: ${templateId}`);
       
       // Get the template from database
       const template = await getDocumentById(COLLECTIONS.PROJECT_TEMPLATES, templateId);
@@ -314,8 +297,6 @@ router.post('/generate-project', verifyFirebaseToken, async (req, res) => {
       
     } else {
       // Generate new project (AI-generated)
-      console.log(`[ProjectRoutes] Generating new AI project for topic: ${topic}`);
-      
       const aiProject = await generateProjectForTopic(topic);
       projectId = await createAIGeneratedProject(
         userId, userName, topic, aiProject
@@ -403,8 +384,6 @@ router.get('/templates/:topic', verifyFirebaseToken, async (req, res) => {
     const { topic } = req.params;
     const userId = req.user.uid;
     
-    console.log(`[ProjectRoutes] Getting templates for topic: ${topic}, user: ${userId}`);
-    
     // Get unused templates first
     const unusedTemplates = await getUnusedTemplatesForTopic(topic, userId);
     
@@ -420,8 +399,6 @@ router.get('/templates/:topic', verifyFirebaseToken, async (req, res) => {
         allTemplates.push(template);
       }
     });
-    
-    console.log(`[ProjectRoutes] Found ${allTemplates.length} templates for topic ${topic}`);
     
     res.json({
       success: true,

@@ -19,8 +19,6 @@ export async function verifyFirebaseToken(req, res, next) {
         const parts = token.split('-');
         const uid = parts.slice(2, -1).join('-'); // Everything between "mock-token-" and timestamp
         
-        console.log('💾 Using mock token authentication for uid:', uid);
-        
         // Add mock user info to request object
         req.user = {
           uid: uid,

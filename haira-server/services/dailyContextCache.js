@@ -24,8 +24,6 @@ export function storeDailyContext(projectId, day, context) {
     lastUpdated: Date.now(),
     cachedAt: new Date().toISOString()
   });
-  
-  console.log(`[DailyContextCache] Stored context for project ${projectId}, day ${day}`);
 }
 
 /**
@@ -249,7 +247,6 @@ export function clearOldContextCache(projectId) {
     }
   }
   
-  console.log(`[DailyContextCache] Cleared old context for project ${projectId}`);
 }
 
 /**

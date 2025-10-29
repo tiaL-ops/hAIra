@@ -95,20 +95,15 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
 
   const generateCompletionMessage = async (aiType, taskType) => {
     try {
-      console.log('🎯 Generating completion message for:', { aiType, taskType });
-      console.log('🔍 Debug projectId:', projectId);
-      console.log('🔍 Debug backend_host:', backend_host);
       
       const token = await getIdTokenSafely();
       const endpoint = `${backend_host}/api/project/${projectId}/ai/completion-message`;
       const requestData = { aiType, taskType };
       
-      console.log('🚀 Calling completion message API:', { endpoint, requestData });
       const { data } = await axios.post(endpoint, requestData, { 
         headers: { Authorization: `Bearer ${token}` } 
       });
       
-      console.log('📥 Completion message received:', data.completionMessage);
       return data.completionMessage;
     } catch (error) {
       console.error('❌ Error generating completion message:', error);
@@ -119,10 +114,8 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
   };
 
   const insertAIText = useCallback(async (text, aiType, taskType = '') => {
-    console.log('📝 insertAIText called with:', { text: text?.substring(0, 100) + '...', aiType, taskType });
     
     if (!editorRef.current) {
-      console.log('❌ insertAIText: No editor reference available');
       return;
     }
 
@@ -130,15 +123,11 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     const aiTeammate = resolveTeammate(aiType);
     const { name, role, color, emoji } = aiTeammate;
     
-    console.log('👤 AI Teammate resolved:', { name, role, color, emoji });
 
     const wordCount = text.trim().split(/\s+/).filter(word => word.length > 0).length;
     const textColor = taskType === 'review' ? '#DC2626' : color;
     
-    console.log('📊 Text stats:', { wordCount, textColor });
-
     const docSize = editor.state.doc.content.size;
-    console.log('📄 Current document size:', docSize);
     
     editor.commands.setTextSelection({ from: docSize, to: docSize });
 
@@ -151,11 +140,9 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
         </div>
       </div>`;
 
-    console.log('🎨 Inserting content into editor...');
     editor.commands.insertContent(`${avatarHtml}<p>${text}</p>`);
     
     const newDocSize = editor.state.doc.content.size;
-    console.log('📄 New document size:', newDocSize);
     
     editor.commands.setTextSelection({ from: newDocSize - text.length - 7, to: newDocSize - 4 });
     editor.commands.setColor(textColor);
@@ -163,7 +150,6 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     const highlightMap = { review: '#FEF2F2', suggest: '#FFF7ED', write_section: color + '20' };
     editor.commands.setHighlight({ color: highlightMap[taskType] || color + '20' });
     
-    console.log('✅ Content inserted and styled successfully');
   }, [editorRef, projectId, getIdTokenSafely]);
 
   const addAIComment = useCallback((text, aiType, taskType = '') => {
@@ -198,19 +184,15 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
   }, [editorRef]);
 
   const performWriteTask = useCallback(async (aiTeammate, sectionName, currentContent, projectTitle = null) => {
-    console.log('🎯 performWriteTask called with:', { aiTeammate, sectionName, currentContent: currentContent?.substring(0, 50) + '...' });
     
     // Set loading state
-    console.log('🔄 Setting loading state for:', aiTeammate.id);
     setLoadingAIs(prev => {
       const newSet = new Set([...prev, aiTeammate.id]);
-      console.log('🔄 New loading state:', Array.from(newSet));
       return newSet;
     });
     
     // Create server fallback function
     const serverFallback = async () => {
-      console.log('🔄 Server fallback: Calling OpenAI API...');
       const token = await getIdTokenSafely();
       const endpoint = `${backend_host}/api/project/${projectId}/ai/write`;
       const requestData = { 
@@ -219,17 +201,9 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
         currentContent,
         projectTitle
       };
-      
-      console.log('🚀 Server fallback: Sending write request:', requestData);
+
       const { data } = await axios.post(endpoint, requestData, { headers: { Authorization: `Bearer ${token}` } });
       
-      console.log('📥 Server fallback: Received response from OpenAI:', {
-        success: data.success,
-        aiType: data.aiType,
-        responseLength: data.response?.length,
-        responsePreview: data.response?.substring(0, 100) + '...',
-        completionMessage: data.completionMessage
-      });
       
       return {
         content: data.content || data.response,
@@ -239,26 +213,11 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     };
     
     // Try Chrome Writer API first
-    console.log('🔧 AI Service: Trying Chrome Writer API first...');
     try {
       const result = await getChromeWriter(currentContent, 'write_section', aiTeammate, serverFallback, sectionName, projectTitle);
       
-      console.log('📥 Chrome Writer result:', {
-        source: result.source,
-        contentLength: result.content?.length,
-        contentPreview: result.content?.substring(0, 100) + '...',
-        error: result.error
-      });
-      
       const htmlResponse = convertMarkdownToHTML(result.content);
-      console.log('🔄 Client: Converted to HTML:', htmlResponse?.substring(0, 100) + '...');
-      
-      // Don't insert text automatically - wait for user reflection
-      console.log('📝 Client: AI text generated, waiting for user reflection...');
-      
-      // Completion message will be shown in the reflection modal instead of as a popup
         // Generate AI completion message and show reflection modal
-        console.log('💬 Client: Generating AI completion message...');
         let aiCompletionMessage = '';
         try {
           const token = await getIdTokenSafely();
@@ -273,7 +232,6 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
             
             if (completionResponse.data.success) {
               aiCompletionMessage = completionResponse.data.completionMessage;
-              console.log('✅ Client: AI completion message generated');
             }
           }
         } catch (error) {
@@ -282,7 +240,6 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
         }
 
         // Add to pending reflections array instead of replacing
-        console.log('📝 Client: Adding AI content reflection to pending list...');
         const newReflection = {
           id: Date.now() + Math.random(), // Unique ID
           isOpen: true,
@@ -297,20 +254,15 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
         };
         
         setPendingAIContentReflections(prev => [...prev, newReflection]);
-        console.log('✅ Client: AI content reflection added to pending list');
       
       return result;
       
     } catch (error) {
-      console.error('❌ Chrome Writer failed, using server fallback:', error);
       const fallbackResult = await serverFallback();
       
       const htmlResponse = convertMarkdownToHTML(fallbackResult.content);
-      console.log('🔄 Client: Converted fallback to HTML:', htmlResponse?.substring(0, 100) + '...');
       
       // Instead of directly inserting, show reflection modal for fallback too
-      console.log('📝 Client: Showing fallback AI content reflection modal...');
-      
       // Generate AI completion message for fallback
       let aiCompletionMessage = '';
       try {
@@ -326,7 +278,6 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
           
           if (completionResponse.data.success) {
             aiCompletionMessage = completionResponse.data.completionMessage;
-            console.log('✅ Client: Fallback AI completion message generated');
           }
         }
       } catch (error) {
@@ -335,7 +286,6 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       }
 
       // Add to pending reflections array instead of using non-existent function
-      console.log('📝 Client: Adding fallback AI content reflection to pending list...');
       const newReflection = {
         id: Date.now() + Math.random(), // Unique ID
         isOpen: true,
@@ -350,25 +300,21 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       };
       
       setPendingAIContentReflections(prev => [...prev, newReflection]);
-      console.log('✅ Client: Fallback AI content reflection added to pending list');
       
       // Completion message is already included in the reflection modal
       
       return fallbackResult;
     } finally {
       // Clear loading state
-      console.log('🔄 Clearing loading state for:', aiTeammate.id);
       setLoadingAIs(prev => {
         const newSet = new Set(prev);
         newSet.delete(aiTeammate.id);
-        console.log('🔄 Final loading state:', Array.from(newSet));
         return newSet;
       });
     }
   }, [projectId, insertAIText]);
 
   const performReviewTask = useCallback(async (aiTeammate, currentContent) => {
-    console.log('🎯 performReviewTask called with:', { aiTeammate, currentContent: currentContent?.substring(0, 50) + '...' });
     
     // Set loading state
     setLoadingAIs(prev => new Set([...prev, aiTeammate.id]));
@@ -382,16 +328,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
         currentContent 
       };
       
-      console.log('🚀 Server fallback: Sending review request:', requestData);
       const { data } = await axios.post(endpoint, requestData, { headers: { Authorization: `Bearer ${token}` } });
-      
-      console.log('📥 Server fallback: Received review response from OpenAI:', {
-        success: data.success,
-        aiType: data.aiType,
-        responseLength: data.response?.length,
-        responsePreview: data.response?.substring(0, 100) + '...',
-        completionMessage: data.completionMessage
-      });
       
       return {
         content: data.content || data.response,
@@ -401,30 +338,12 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     };
     
     // Try Chrome API first (if available for review)
-    console.log('🔧 AI Service: Trying Chrome API first for review...');
     try {
       const result = await getChromeWriter(currentContent, 'review', aiTeammate, serverFallback);
-      
-      console.log('📥 Chrome Writer result:', {
-        source: result.source,
-        contentLength: result.content?.length,
-        contentPreview: result.content?.substring(0, 100) + '...',
-        error: result.error
-      });
-      
-      console.log('📥 Review result:', {
-        source: result.source,
-        contentLength: result.content?.length,
-        contentPreview: result.content?.substring(0, 100) + '...',
-        error: result.error
-      });
-      
+
       const plainResponse = convertMarkdownToPlainText(result.content);
-      console.log('🔄 Client: Converted to plain text:', plainResponse?.substring(0, 100) + '...');
       
-      console.log('📝 Client: Adding review comment...');
       if (onAddComment) onAddComment(`Review by ${aiTeammate.name}:\n${plainResponse}`, 'review', aiTeammate.name);
-      console.log('✅ Client: Review comment added successfully');
       
       // Generate completion message from API
       const aiType = aiTeammate.id || Object.keys(aiAgents.AI_TEAMMATES || {}).find(key => aiAgents.AI_TEAMMATES[key] === aiTeammate);
@@ -445,15 +364,11 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       return result;
       
     } catch (error) {
-      console.error('❌ Review failed, using server fallback:', error);
       const fallbackResult = await serverFallback();
       
       const plainResponse = convertMarkdownToPlainText(fallbackResult.content);
-      console.log('🔄 Client: Converted fallback to plain text:', plainResponse?.substring(0, 100) + '...');
       
-      console.log('📝 Client: Adding fallback review comment...');
       if (onAddComment) onAddComment(`Review by ${aiTeammate.name}:\n${plainResponse}`, 'review', aiTeammate.name);
-      console.log('✅ Client: Fallback review comment added successfully');
       
       // Generate completion message from API
       const aiType = aiTeammate.id || Object.keys(aiAgents.AI_TEAMMATES || {}).find(key => aiAgents.AI_TEAMMATES[key] === aiTeammate);
@@ -483,31 +398,20 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
   }, [projectId, onAddComment]);
 
   const performSuggestTask = useCallback(async (aiTeammate, currentContent) => {
-    console.log('🎯 performSuggestTask called with:', { aiTeammate, currentContent: currentContent?.substring(0, 50) + '...' });
     
     // Set loading state
     setLoadingAIs(prev => new Set([...prev, aiTeammate.id]));
     
     // Create server fallback function
     const serverFallback = async () => {
-      console.log('🔄 Server fallback: Calling OpenAI API for suggestions...');
       const token = await getIdTokenSafely();
       const endpoint = `${backend_host}/api/project/${projectId}/ai/suggest`;
       const requestData = { 
         aiType: aiTeammate.id || Object.keys(aiAgents.AI_TEAMMATES || {}).find(key => aiAgents.AI_TEAMMATES[key] === aiTeammate), 
         currentContent 
       };
-      
-      console.log('🚀 Server fallback: Sending suggest request:', requestData);
+
       const { data } = await axios.post(endpoint, requestData, { headers: { Authorization: `Bearer ${token}` } });
-      
-      console.log('📥 Server fallback: Received suggest response from OpenAI:', {
-        success: data.success,
-        aiType: data.aiType,
-        responseLength: data.response?.length,
-        responsePreview: data.response?.substring(0, 100) + '...',
-        completionMessage: data.completionMessage
-      });
       
       return {
         content: data.content || data.response,
@@ -517,30 +421,11 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
     };
     
     // Try Chrome API first (if available for suggestions)
-    console.log('🔧 AI Service: Trying Chrome API first for suggestions...');
     try {
       const result = await getChromeWriter(currentContent, 'suggestion', aiTeammate, serverFallback);
-      
-      console.log('📥 Chrome Writer result:', {
-        source: result.source,
-        contentLength: result.content?.length,
-        contentPreview: result.content?.substring(0, 100) + '...',
-        error: result.error
-      });
-      
-      console.log('📥 Suggest result:', {
-        source: result.source,
-        contentLength: result.content?.length,
-        contentPreview: result.content?.substring(0, 100) + '...',
-        error: result.error
-      });
-      
+                
       const plainResponse = convertMarkdownToPlainText(result.content);
-      console.log('🔄 Client: Converted to plain text:', plainResponse?.substring(0, 100) + '...');
-      
-      console.log('📝 Client: Adding suggestion comment...');
       if (onAddComment) onAddComment(`Suggestion by ${aiTeammate.name}:\n${plainResponse}`, 'suggest', aiTeammate.name);
-      console.log('✅ Client: Suggestion comment added successfully');
       
       // Generate completion message from API
       const aiType = aiTeammate.id || Object.keys(aiAgents.AI_TEAMMATES || {}).find(key => aiAgents.AI_TEAMMATES[key] === aiTeammate);
@@ -561,15 +446,10 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       return result;
       
     } catch (error) {
-      console.error('❌ Suggest failed, using server fallback:', error);
       const fallbackResult = await serverFallback();
       
       const plainResponse = convertMarkdownToPlainText(fallbackResult.content);
-      console.log('🔄 Client: Converted fallback to plain text:', plainResponse?.substring(0, 100) + '...');
-      
-      console.log('📝 Client: Adding fallback suggestion comment...');
       if (onAddComment) onAddComment(`Suggestion by ${aiTeammate.name}:\n${plainResponse}`, 'suggest', aiTeammate.name);
-      console.log('✅ Client: Fallback suggestion comment added successfully');
       
       // Generate completion message from API
       const aiType = aiTeammate.id || Object.keys(aiAgents.AI_TEAMMATES || {}).find(key => aiAgents.AI_TEAMMATES[key] === aiTeammate);
@@ -667,16 +547,11 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
 
   const handleModifyAIContent = useCallback(async (reflectionData, reflectionId) => {
     try {
-      console.log('🔄 handleModifyAIContent called with:', { reflectionData, reflectionId });
-      
       // Find the specific reflection
       const reflection = pendingAIContentReflections.find(r => r.id === reflectionId);
       if (!reflection) {
-        console.error('❌ Reflection not found:', reflectionId);
         return;
       }
-
-      console.log('📝 Found reflection:', reflection);
 
       // Insert the modified content
       if (reflectionData.modifiedContent) {
@@ -685,10 +560,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
           const aiTeammate = resolveTeammate(reflection.pendingResult.aiType);
           const { name, role, color, emoji } = aiTeammate;
           
-          console.log('👤 AI Teammate resolved:', { name, role, color, emoji });
-          
           const docSize = editor.state.doc.content.size;
-          console.log('📄 Current document size:', docSize);
           
           // Move cursor to end
           editor.commands.setTextSelection({ from: docSize, to: docSize });
@@ -710,13 +582,9 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
             .map(line => `<p>${line}</p>`)
             .join('');
 
-          console.log('🎨 Inserting modified content...');
           editor.commands.insertContent(`${avatarHtml}${htmlContent}`);
           
           const newDocSize = editor.state.doc.content.size;
-          console.log('📄 New document size:', newDocSize);
-          
-          console.log('✅ Modified content inserted successfully');
         }
       }
 
@@ -735,7 +603,7 @@ export const useAITeam = (projectId, editorRef, onAddComment = null) => {
       // Content handled silently - no additional completion message needed
 
     } catch (error) {
-      console.error('❌ Error modifying AI content:', error);
+      console.error('Error modifying AI content reflection:', error);
     }
   }, [pendingAIContentReflections, projectId, buildStyledContent, getIdTokenSafely]);
 

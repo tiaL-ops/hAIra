@@ -15,14 +15,11 @@ const __dirname = path.dirname(__filename);
 // Load environment variables based on deployment context
 if (process.env.GCLOUD_PROJECT === 'haira-prod' || process.env.FIREBASE_CONFIG) {
   // Running in Firebase/Google Cloud - load haira-prod config
-  dotenv.config({ path: path.join(__dirname, '../.env.haira-prod') });
-  console.log('🔥 Loading .env.haira-prod for Firebase deployment');
+  dotenv.config({ path: path.join(__dirname, '../.env.haira-prod') })
 } else if (process.env.NODE_ENV === 'production') {
   dotenv.config({ path: path.join(__dirname, '../.env.production') });
-  console.log('🔥 Loading .env.production');
 } else {
   dotenv.config();
-  console.log('🔥 Loading .env for development');
 }
 
 function buildCredential() {
@@ -79,11 +76,8 @@ if (!admin.apps.length) {
     admin.initializeApp({ credential });
     db = admin.firestore();
     firebaseAvailable = true;
-    console.log('🔥 Firebase Admin SDK initialized successfully');
   } catch (error) {
     console.error('❌ Firebase initialization failed:', error.message);
-    console.log('💾 No Firebase credentials found - using localStorage fallback for all operations');
-    console.log('💾 All data will be stored in local_data/fallback_firebase.json');
     firebaseAvailable = false;
   }
 } else {
@@ -102,7 +96,6 @@ export { db, firebaseAvailable };
 // Generic helpers
 export async function addDocument(collectionName, data) {
   try {
-    console.log(`[Firebase] Adding document to '${collectionName}'`);
     const docRef = await db.collection(collectionName).add(data);
     return { id: docRef.id, ...data };
   } catch (error) {
@@ -114,8 +107,6 @@ export async function addDocument(collectionName, data) {
 // Helper for adding documents to subcollections
 export async function addSubdocument(parentCollection, parentId, subcollection, docId, data) {
   try {
-    console.log(`[Firebase] Adding document to '${parentCollection}/${parentId}/${subcollection}'`);
-    console.log(`[Firebase] Data type:`, typeof data, 'Data keys:', Object.keys(data || {}));
     
     // Create a plain JavaScript object (no special Firestore objects)
     // Remove any functions, undefined values, or non-serializable objects
@@ -131,8 +122,6 @@ export async function addSubdocument(parentCollection, parentId, subcollection, 
         }
       }
     }
-    
-    console.log(`[Firebase] Plain data keys:`, Object.keys(plainData));
     
     if (docId) {
       // Use set with specific docId
@@ -293,7 +282,6 @@ export async function getSubdocuments(parentCollection, parentId, subcollection,
 
 // Get chat messages filtered by user ID (senderId)
 export async function getChatMessagesByUser(parentCollection, parentId, subcollection, userId, orderByField = 'timestamp') {
-  console.log(`[FirebaseService] Getting chat messages for user ${userId} from ${parentCollection}/${parentId}/${subcollection}`);
   
   try {
     let ref = db.collection(parentCollection).doc(parentId).collection(subcollection);
@@ -312,20 +300,10 @@ export async function getChatMessagesByUser(parentCollection, parentId, subcolle
       const isUserMessage = senderId === userId;
       
       if (isUserMessage) {
-        console.log(`[FirebaseService] User message ${msg.id}:`, {
-          senderId: msg.senderId,
-          senderName: msg.senderName,
-          text: (msg.text || '').substring(0, 100) + '...',
-          timestamp: new Date(msg.timestamp).toLocaleString()
-        });
-      } else {
-        console.log(`[FirebaseService] Skipping message ${msg.id} - senderId: ${senderId}, not ${userId}`);
       }
-      
       return isUserMessage;
     });
     
-    console.log(`[FirebaseService] Found ${userMessages.length} user messages out of ${allMessages.length} total messages`);
     return userMessages;
     
   } catch (error) {
@@ -372,7 +350,6 @@ export async function getChats(projectId, useSubcollection = false) {
     const projectDoc = await db.collection(COLLECTIONS.USER_PROJECTS).doc(projectIdString).get();
     
     if (!projectDoc.exists) {
-      console.log(`[Firebase] Project ${projectIdString} not found, creating it`);
       // Create project if it doesn't exist (placeholder for now)
       await db.collection(COLLECTIONS.USER_PROJECTS).doc(projectIdString).set({
         userId: 'default_user',
@@ -417,13 +394,6 @@ export async function updateUserProject(projectId, content, grade, status = "sub
 }
 
 export async function addTasks(projectId, userId, projectTitle, status, deliverables = []) {
-  console.log('[FirebaseService] addTasks called');
-  console.log('[FirebaseService] projectId:', projectId);
-  console.log('[FirebaseService] userId:', userId);
-  console.log('[FirebaseService] projectTitle:', projectTitle);
-  console.log('[FirebaseService] status:', status);
-  console.log('[FirebaseService] deliverables count:', deliverables.length);
-  console.log('[FirebaseService] deliverables:', JSON.stringify(deliverables, null, 2));
   
   projectTitle = (projectTitle || '').trim();
   await ensureProjectExists(projectId);
@@ -438,13 +408,6 @@ export async function addTasks(projectId, userId, projectTitle, status, delivera
     const priority = (item && typeof item.priority === 'number')
       ? item.priority
       : Task.PRIORITY.MEDIUM.value;
-
-    console.log(`[FirebaseService] Creating task ${index + 1}:`, {
-      description,
-      assignee,
-      priority,
-      status
-    });
 
     let newDeliverable = new Task(
       projectTitle,
@@ -461,7 +424,6 @@ export async function addTasks(projectId, userId, projectTitle, status, delivera
   });
 
   const results = await Promise.all(promises);
-  console.log('[FirebaseService] All tasks saved, count:', results.length);
   return results;
 }
 
@@ -480,19 +442,7 @@ export async function updateTask(projectId, id, title, status, userId, descripti
     assignedTo: userId // Update assignedTo field when manually assigning tasks
   };
 
-  // Debug: log update intent so we can trace when updates are attempted
-  try {
-    console.log('[FirebaseService] updateTask called for project:', projectId, 'taskId:', id);
-    console.log('[FirebaseService] updateTask payload:', JSON.stringify(data, null, 2));
-  } catch (e) {
-    // ignore stringify errors
-  }
-
   const result = await setDocument(collectionName, id, data);
-
-  try {
-    console.log('[FirebaseService] updateTask completed for task:', id, 'result id:', result?.id || 'n/a');
-  } catch (e) {}
 
   return result;
 }
@@ -532,7 +482,6 @@ export async function createProject(userId, userName, title) {
         isActive: false,
         status: 'inactive'
       });
-      console.log(`[FirebaseService] Set previous active project ${activeProject.id} to inactive`);
     }
 
     const projectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc();
@@ -555,7 +504,6 @@ export async function createProject(userId, userName, title) {
     // Update user's active project
     await updateUserActiveProject(userId, projectRef.id);
     
-    console.log(`[FirebaseService] Created new active project ${projectRef.id} for user ${userId}`);
     return projectRef.id;
   } catch (error) {
     console.error('[FirebaseService] Error creating project:', error);
@@ -565,7 +513,6 @@ export async function createProject(userId, userName, title) {
 
 // Get all projects for a user
 export async function getUserProjects(userId) {
-  console.log(`[FirebaseService] Getting projects for user: ${userId}`);
   
   const projectsRef = db.collection(COLLECTIONS.USER_PROJECTS);
   const query = projectsRef.where('userId', '==', userId);
@@ -577,10 +524,8 @@ export async function getUserProjects(userId) {
       id: doc.id,
       ...doc.data()
     });
-    console.log(`[FirebaseService] Found project: ${doc.id} - ${doc.data().title || doc.data().name || 'No title'}`);
   });
   
-  console.log(`[FirebaseService] Total projects found: ${projects.length}`);
   return projects;
 }
 
@@ -605,8 +550,6 @@ export async function getNotifications(userId) {
 
   if (!notif)
     return dummyNotif;
-
-  console.log('notifications: fetched user notifications');
 
   return notif;
 }
@@ -668,24 +611,18 @@ export async function clearNotifications(userId) {
 
 // Get project with tasks
 export async function getProjectWithTasks(projectId, userId) {
-  console.log(`[FirebaseService] Looking for project ${projectId} for user ${userId}`);
   
   const projectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc(projectId);
   const projectDoc = await projectRef.get();
   
-  console.log(`[FirebaseService] Project document exists: ${projectDoc.exists}`);
-  
   if (!projectDoc.exists) {
-    console.log(`[FirebaseService] Project ${projectId} does not exist`);
     return null;
   }
   
   const projectData = projectDoc.data();
-  console.log(`[FirebaseService] Project data userId: ${projectData.userId}, requested userId: ${userId}`);
   
   // Verify the user owns this project
   if (projectData.userId !== userId) {
-    console.log(`[FirebaseService] Access denied: Project ${projectId} belongs to ${projectData.userId}, not ${userId}`);
     return null;
   }
   
@@ -703,18 +640,7 @@ export async function getProjectWithTasks(projectId, userId) {
     // Include all tasks for the project (both user-assigned and AI-assigned)
     tasks.push(taskData);
     
-    // Log each task for debugging
-    console.log(`[FirebaseService] Task ${doc.id}:`, {
-      title: taskData.title || taskData.text || 'No title',
-      description: taskData.description || 'No description',
-      status: taskData.status || 'no status',
-      assignedTo: taskData.assignedTo || taskData.assignee || 'unassigned',
-      id: doc.id
-    });
   });
-  
-  console.log(`[FirebaseService] Found project ${projectId} with ${tasks.length} total tasks`);
-  console.log(`[FirebaseService] All tasks:`, JSON.stringify(tasks, null, 2));
   
   // Fetch teammates from subcollection (source of truth)
   const teammatesRef = projectRef.collection('teammates');
@@ -732,8 +658,6 @@ export async function getProjectWithTasks(projectId, userId) {
       color: teammateData.color
     });
   });
-  
-  console.log(`[FirebaseService] Found ${teammates.length} teammates in subcollection`);
   
   // Update project.team from subcollection if teammates exist
   let updatedProjectData = { ...projectData };
@@ -786,11 +710,6 @@ export async function activateProject(userId, projectId) {
     // Update user's activeProjectId
     await updateUserActiveProject(userId, projectId);
     
-    console.log(`[FirebaseService] Activated project ${projectId} for user ${userId}`);
-    if (activeProject) {
-      console.log(`[FirebaseService] Set previous active project ${activeProject.id} to inactive`);
-    }
-    
   } catch (error) {
     console.error('[FirebaseService] Error activating project:', error);
     throw error;
@@ -803,8 +722,6 @@ export async function getUserMessageCountSince(projectId, userId, projectStartDa
     // Calculate 24 hours ago from now
     const now = Date.now();
     const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
-    
-    console.log(`[Firebase] Counting messages for user ${userId} in project ${projectId} in last 24 hours (since ${new Date(twentyFourHoursAgo).toISOString()})`);
     
     // Query subcollection for all messages first, then filter in memory to avoid index requirement
     const messagesRef = db
@@ -821,16 +738,8 @@ export async function getUserMessageCountSince(projectId, userId, projectStartDa
       // Count only user messages (not AI messages) from the last 24 hours
       if (data.senderId === userId && data.timestamp >= twentyFourHoursAgo) {
         count++;
-        console.log(`[Firebase] Found user message: ${data.text?.substring(0, 50)}... at ${new Date(data.timestamp).toISOString()}`);
       }
     });
-    
-    console.log(`[Firebase] Found ${count} user messages in last 24 hours for user ${userId}`);
-    
-    // Debug: Show when the 24-hour window started
-    const nowDate = new Date();
-    const twentyFourHoursAgoDate = new Date(twentyFourHoursAgo);
-    console.log(`[Firebase] 24-hour window: ${twentyFourHoursAgoDate.toISOString()} to ${nowDate.toISOString()}`);
     
     return count;
   } catch (error) {
@@ -845,14 +754,7 @@ export async function getUserMessageCountSince(projectId, userId, projectStartDa
 export async function canCreateNewProject(userId) {
   try {
     const projects = await getUserProjects(userId);
-    console.log(`[FirebaseService] Projects: ${JSON.stringify(projects, null, 2)}`);
-    console.log(`[FirebaseService] Max total projects: ${PROJECT_RULES.MAX_TOTAL_PROJECTS}`);
     const activeProjects = projects.filter(p => p.isActive === true);
-    console.log(`[FirebaseService] Active projects: ${JSON.stringify(activeProjects, null, 2)}`);
-    console.log(`[FirebaseService] Active projects length: ${activeProjects.length}`);
-    console.log(`[FirebaseService] Total projects: ${projects.length}`);
-    console.log(`[FirebaseService] Max total projects: ${PROJECT_RULES.MAX_TOTAL_PROJECTS}`);
-    console.log(`[FirebaseService] Can create new project: ${projects.length < PROJECT_RULES.MAX_TOTAL_PROJECTS}`);
     return projects.length < PROJECT_RULES.MAX_TOTAL_PROJECTS;
   } catch (error) {
     console.error('Error checking project limits:', error);
@@ -876,7 +778,6 @@ export async function getInactiveProjects(userId) {
   try {
     const projects = await getUserProjects(userId);
     const inactiveProjects = projects.filter(p => p.isActive === false && !p.archivedAt);
-    console.log(`[FirebaseService] Found ${inactiveProjects.length} inactive projects for user ${userId}`);
     return inactiveProjects;
   } catch (error) {
     console.error('Error getting inactive projects:', error);
@@ -889,10 +790,6 @@ export async function getArchivedProjects(userId) {
   try {
     const projects = await getUserProjects(userId);
     const archivedProjects = projects.filter(p => p.status === 'archived');
-    console.log(`[FirebaseService] Found ${archivedProjects.length} archived projects for user ${userId}`);
-    archivedProjects.forEach(project => {
-      console.log(`[FirebaseService] Archived project: ${project.title}, archivedAt: ${project.archivedAt}`);
-    });
     return archivedProjects;
   } catch (error) {
     console.error('Error getting archived projects:', error);
@@ -911,13 +808,11 @@ export async function archiveProject(projectId, userId) {
 
     // Archive the project
     const archivedAt = Date.now();
-    console.log(`[FirebaseService] Archiving project ${projectId} at timestamp: ${archivedAt}`);
     await updateDocument(COLLECTIONS.USER_PROJECTS, projectId, {
       isActive: false,
       status: 'archived',
       archivedAt: archivedAt
     });
-    console.log(`[FirebaseService] Project ${projectId} archived successfully`);
 
     // If this was the active project, clear user's activeProjectId
     const user = await getDocumentById(COLLECTIONS.USERS, userId);
@@ -980,10 +875,8 @@ export async function createAIGeneratedProject(userId, userName, topic, aiProjec
     let templateId;
     if (existingTemplateId) {
       templateId = existingTemplateId;
-      console.log(`[FirebaseService] Using existing template: ${templateId}`);
     } else {
       templateId = await createAITemplate(aiProject, topic);
-      console.log(`[FirebaseService] Created new template: ${templateId}`);
     }
     
     // Create user project
@@ -1110,7 +1003,6 @@ export async function getUserProjectsWithTemplates(userId) {
 // Get unused templates for a specific topic and user
 export async function getUnusedTemplatesForTopic(topic, userId) {
   try {
-    console.log(`[FirebaseService] Looking for unused templates for topic: ${topic}, user: ${userId}`);
     
     const templates = await getDocuments(COLLECTIONS.PROJECT_TEMPLATES, { 
       topic: topic,
@@ -1123,7 +1015,6 @@ export async function getUnusedTemplatesForTopic(topic, userId) {
       return !usedBy.includes(userId);
     });
     
-    console.log(`[FirebaseService] Found ${unusedTemplates.length} unused templates for topic ${topic}`);
     return unusedTemplates;
   } catch (error) {
     console.error('[FirebaseService] Error getting unused templates:', error);
@@ -1134,7 +1025,6 @@ export async function getUnusedTemplatesForTopic(topic, userId) {
 // Get least-used templates for a specific topic
 export async function getLeastUsedTemplatesForTopic(topic, limit = 3) {
   try {
-    console.log(`[FirebaseService] Looking for least-used templates for topic: ${topic}`);
     
     const templates = await getDocuments(COLLECTIONS.PROJECT_TEMPLATES, { 
       topic: topic,
@@ -1145,8 +1035,6 @@ export async function getLeastUsedTemplatesForTopic(topic, limit = 3) {
     const sortedTemplates = templates
       .sort((a, b) => (a.usageCount || 0) - (b.usageCount || 0))
       .slice(0, limit);
-    
-    console.log(`[FirebaseService] Found ${sortedTemplates.length} least-used templates for topic ${topic}`);
     return sortedTemplates;
   } catch (error) {
     console.error('[FirebaseService] Error getting least-used templates:', error);
@@ -1157,7 +1045,6 @@ export async function getLeastUsedTemplatesForTopic(topic, limit = 3) {
 // Update template usage when a template is used
 export async function updateTemplateUsage(templateId, userId) {
   try {
-    console.log(`[FirebaseService] Updating template usage for template: ${templateId}, user: ${userId}`);
     
     const template = await getDocumentById(COLLECTIONS.PROJECT_TEMPLATES, templateId);
     if (!template) {
@@ -1179,7 +1066,6 @@ export async function updateTemplateUsage(templateId, userId) {
       lastUsed: Date.now()
     });
     
-    console.log(`[FirebaseService] Updated template usage: ${usageCount + 1} total uses`);
   } catch (error) {
     console.error('[FirebaseService] Error updating template usage:', error);
     throw error;

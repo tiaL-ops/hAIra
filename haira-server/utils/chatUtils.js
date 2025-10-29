@@ -52,42 +52,29 @@ export function decideResponders(content, currentDay, agents) {
   const lowerContent = content.toLowerCase();
   const isAlexActive = agents.alex.activeDays.includes(currentDay);
   
-  console.log(`[chatUtils] decideResponders called:`);
-  console.log(`[chatUtils]   content: "${content}"`);
-  console.log(`[chatUtils]   currentDay: ${currentDay}`);
-  console.log(`[chatUtils]   Alex active days:`, agents.alex.activeDays);
-  console.log(`[chatUtils]   isAlexActive: ${isAlexActive}`);
-  
   // Priority 1: Direct @-mentions
   if (lowerContent.includes('@rasoa')) {
-    console.log(`[chatUtils]   → @Rasoa mentioned, returning ['rasoa']`);
     return { agents: ['rasoa'], alexMentioned: false };
   }
   if (lowerContent.includes('@rakoto')) {
-    console.log(`[chatUtils]   → @Rakoto mentioned, returning ['rakoto']`);
     return { agents: ['rakoto'], alexMentioned: false };
   }
   if (lowerContent.includes('@alex')) {
-    console.log(`[chatUtils]   → @Alex mentioned!`);
     if (isAlexActive) {
-      console.log(`[chatUtils]   → Alex IS active on day ${currentDay}, returning ['alex']`);
       return { agents: ['alex'], alexMentioned: true };
     }
     // Alex mentioned but not active - teammates respond
-    console.log(`[chatUtils]   → Alex NOT active on day ${currentDay}, returning ['rasoa', 'rakoto']`);
     return { agents: ['rasoa', 'rakoto'], alexMentioned: true };
   }
   
   // Priority 2: Default probability-based response
   const respondingAgents = getDefaultResponseAgents();
-  console.log(`[chatUtils]   → No @-mention, using probability. Raw agents:`, respondingAgents);
   
   // Filter out Alex if not his active day
   const filtered = isAlexActive 
     ? respondingAgents 
     : respondingAgents.filter(id => id !== 'alex');
   
-  console.log(`[chatUtils]   → Filtered agents:`, filtered);
   return { agents: filtered, alexMentioned: false };
 }
 

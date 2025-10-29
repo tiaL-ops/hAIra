@@ -16,7 +16,6 @@ const FieldValue = firebaseAvailable ? admin.firestore.FieldValue : null;
  * @returns {Promise<number>} Number of teammates created
  */
 export async function initializeTeammates(projectId, userId, userName) {
-  console.log(`🔄 Initializing teammates for project: ${projectId}`);
   
   const batch = db.batch();
   let count = 0;
@@ -118,8 +117,6 @@ export async function initializeTeammates(projectId, userId, userName) {
     
     // Commit the batch
     await batch.commit();
-    
-    console.log(`✅ Initialized ${count} teammates (${count - 1} AI agents + 1 human)`);
     return count;
     
   } catch (error) {
@@ -136,7 +133,6 @@ export async function initializeTeammates(projectId, userId, userName) {
  * @returns {Promise<Object>} Migration result with counts
  */
 export async function migrateTeamToTeammates(projectId) {
-  console.log(`🔄 Migrating team array to teammates subcollection for project: ${projectId}`);
   
   try {
     // 1. Fetch project document
@@ -150,7 +146,6 @@ export async function migrateTeamToTeammates(projectId) {
     
     // Check if team array exists
     if (!projectData.team || projectData.team.length === 0) {
-      console.log('⚠️  No team array found, skipping migration');
       return { migrated: 0, skipped: true };
     }
     
@@ -162,7 +157,6 @@ export async function migrateTeamToTeammates(projectId) {
       .get();
     
     if (!existingTeammates.empty) {
-      console.log('⚠️  Teammates subcollection already exists, skipping migration');
       return { migrated: 0, skipped: true, reason: 'already_migrated' };
     }
     
@@ -177,7 +171,6 @@ export async function migrateTeamToTeammates(projectId) {
       const type = isAI ? 'ai' : 'human';
       
       if (!teammateId) {
-        console.warn('⚠️  Skipping team member with no ID:', member);
         continue;
       }
       
@@ -239,8 +232,6 @@ export async function migrateTeamToTeammates(projectId) {
     await batch.commit();
     
     const totalMigrated = migratedCount.ai + migratedCount.human;
-    console.log(`✅ Migrated ${totalMigrated} teammates (${migratedCount.ai} AI agents, ${migratedCount.human} human(s))`);
-    console.log(`   Team array preserved at userProjects/${projectId}/team`);
     
     return {
       migrated: totalMigrated,
@@ -356,7 +347,6 @@ export async function updateTeammateStats(projectId, teammateId, updates) {
  */
 export async function syncTeamArrayFromTeammates(projectId) {
   try {
-    console.log(`🔄 Syncing team array from teammates subcollection for project: ${projectId}`);
     
     // Fetch all teammates
     const teammatesSnapshot = await db.collection('userProjects')
@@ -365,7 +355,6 @@ export async function syncTeamArrayFromTeammates(projectId) {
       .get();
     
     if (teammatesSnapshot.empty) {
-      console.log('⚠️  No teammates found in subcollection');
       return;
     }
     
@@ -406,7 +395,6 @@ export async function syncTeamArrayFromTeammates(projectId) {
         teamUpdatedAt: Date.now()
       });
     
-    console.log(`✅ Synced team array with ${team.length} members`);
     
   } catch (error) {
     console.error(`Error syncing team array for project ${projectId}:`, error);
@@ -543,7 +531,6 @@ export async function resetDailyMessageQuotas(projectId) {
     }
     
     await batch.commit();
-    console.log(`✅ Reset daily message quotas for project ${projectId}`);
     
   } catch (error) {
     console.error(`Error resetting daily quotas for project ${projectId}:`, error);

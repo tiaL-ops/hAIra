@@ -14,7 +14,6 @@ const axiosWithRetry = async (config, maxRetries = 3, delay = 1000) => {
       const isNetworkError = error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED';
       
       if (isNetworkError && !isLastRetry) {
-        console.log(`[Retry ${i + 1}/${maxRetries}] Network error, retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
@@ -210,9 +209,6 @@ function Submission() {
         // Filter AI teammates
         const aiTeammates = team.filter(member => member.type === 'ai');
         
-        console.log('📥 Teammates loaded from backend:', teammates);
-        console.log('🤖 AI teammates:', aiTeammates);
-        
         // Set team context with the actual teammates
         setTeamContext(team);
         
@@ -296,12 +292,9 @@ function Submission() {
           return isAITask && isTodoStatus;
         }) || [];
         
-        console.log('[Submission] All tasks:', response.data.tasks);
-        console.log('[Submission] Filtered pending AI tasks:', aiTasks);
         setPendingTasks(aiTasks);
       }
     } catch (err) {
-      console.error('[Submission] Error fetching pending tasks:', err);
     }
   };
 
@@ -325,11 +318,9 @@ function Submission() {
           }
         );
         
-        console.log('Comments auto-saved successfully');
         setCommentSaveStatus("Comments saved ✓");
         setTimeout(() => setCommentSaveStatus(""), 2000);
       } catch (err) {
-        console.error("Comments save error", err);
         setCommentSaveStatus("Comments save failed");
         setTimeout(() => setCommentSaveStatus(""), 3000);
       }
@@ -342,21 +333,17 @@ function Submission() {
   useEffect(() => {
     // Don't auto-save if no project ID, already submitted, or no content
     if (!id || submitted) {
-      console.log('Auto-save skipped: no id or already submitted');
       return;
     }
 
     // Don't auto-save empty content on initial load
     if (!reportContent.trim() && saveStatus === "Auto-saving…") {
-      console.log('Auto-save skipped: empty content on initial load');
       return;
     }
 
-    console.log('Auto-save triggered for content:', reportContent.substring(0, 50) + '...');
 
     const timeout = setTimeout(async () => {
       try {
-        console.log('Auto-saving...');
         setSaveStatus("Saving...");
         const token = await getIdTokenSafely();
         
@@ -371,10 +358,8 @@ function Submission() {
           }
         );
         
-        console.log('Auto-save successful');
         setSaveStatus("Saved ✓");
       } catch (err) {
-        console.error("Draft save error", err);
         setSaveStatus("Save failed");
       }
     }, 5000);
@@ -410,7 +395,6 @@ function Submission() {
 
   // Handle text selection from text editor
   function handleTextSelection(selectionData) {
-    console.log('handleTextSelection called with:', selectionData);
     if (selectionData && selectionData.text) {
       setSelectionRange(selectionData);
       setSelectedText(selectionData.text);
@@ -423,7 +407,6 @@ function Submission() {
   // Update the existing handleCommentResolve function
 // Update the existing handleCommentResolve function
     function handleCommentResolve(commentId) {
-      console.log('Resolving comment:', commentId);
       
       // Update comment as resolved
       setComments(prev => 
@@ -437,28 +420,23 @@ function Submission() {
       // Remove highlight for this comment
       setHighlightedRanges(prev => {
         const updated = prev.filter(range => range.commentId !== commentId);
-        console.log('Removed highlight for comment:', commentId, 'Remaining highlights:', updated);
         return updated;
       });
       
       // Also remove highlight from editor immediately
       setTimeout(() => {
         if (editorRef.current) {
-          console.log('Removing highlight from editor for comment:', commentId);
-          const success = editorRef.current.commands.removeHighlightByCommentId(commentId);
-          console.log('Highlight removal success:', success);
+            const success = editorRef.current.commands.removeHighlightByCommentId(commentId);
         }
       }, 100);
     }
 
   // Handle adding new comment
   function handleAddComment(text) {
-    console.log('Adding comment with text:', text);
     
     let currentSelection = selectionRange;
     if (!currentSelection) {
       currentSelection = captureCurrentSelection();
-      console.log('Captured selection:', currentSelection);
     }
     
     const newComment = {
@@ -472,7 +450,6 @@ function Submission() {
       selection: currentSelection,
     };
     
-    console.log('New comment:', newComment);
     setComments(prev => [newComment, ...prev]);
     
     // If there's a selection, add it to highlighted ranges
@@ -485,24 +462,19 @@ function Submission() {
         end: currentSelection.end,
         text: currentSelection.text
       };
-      console.log('Adding highlight:', newHighlight);
       setHighlightedRanges(prev => {
         const updated = [...prev, newHighlight];
-        console.log('Updated highlightedRanges:', updated);
         return updated;
       });
       
       // Also try to apply the highlight immediately
       setTimeout(() => {
         if (editorRef.current) {
-          console.log('Manually applying highlight immediately...');
           editorRef.current.commands.setTextSelection({ from: currentSelection.start, to: currentSelection.end });
           const success = editorRef.current.commands.setHighlight({ commentId: newComment.id });
-          console.log('Manual highlight success:', success);
         }
       }, 200);
-    } else {
-      console.log('No selection found, not adding highlight');
+    } else {  
     }
     
     setSelectionRange(null); // Clear selection after adding comment
@@ -687,7 +659,6 @@ function Submission() {
       } catch (error) {
         console.error('Error updating editor:', error);
         // Fallback: just update the content state
-        console.log('Using fallback content update');
       }
     }
     
@@ -710,20 +681,13 @@ function Submission() {
   }
 
   // Handle AI task assignment
-  async function handleAssignAITask(aiType, taskType, sectionName, isExistingTask = false, existingTaskId = null) {
-    console.log('handleAssignAITask called:', { aiType, taskType, sectionName, isExistingTask, existingTaskId });
+  async function handleAssignAITask(aiType, taskType, sectionName, isExistingTask = false, existingTaskId = null) { 
   
     try {
-      // Debug: Log the aiType and available keys
-      console.log('🔍 Debug aiType:', aiType);
-      console.log('🔍 Debug AI_TEAMMATES keys:', Object.keys(aiAgents.AI_TEAMMATES));
-      console.log('🔍 Debug AI_TEAMMATES[aiType]:', aiAgents.AI_TEAMMATES[aiType]);
-      
       const aiTeammate = {
         ...(aiAgents.AI_TEAMMATES[aiType] || aiAgents.AI_TEAMMATES.rasoa),
         id: aiType // Ensure id is preserved
       };
-      console.log('🔍 Debug selected aiTeammate:', aiTeammate);
       
       // Create task description based on task type and section
       let taskDescription = '';
@@ -737,10 +701,8 @@ function Submission() {
       
       // Only create task if NOT clicking an existing pending task
       if (taskDescription && !isExistingTask) {
-        console.log('[handleAssignAITask] Creating NEW task in Kanban');
         await syncTasksToKanban([{ description: taskDescription, assignedTo: aiType }], false, 'todo'); // Create as "todo"
       } else if (isExistingTask) {
-        console.log('[handleAssignAITask] Task already exists - will just update to done after execution');
       }
   
       // Execute the AI task
@@ -760,7 +722,6 @@ function Submission() {
       
       // Update task to "done" in Kanban after completion
       if (taskDescription) {
-        console.log('[handleAssignAITask] Updating task to done');
         // If we have the existing task id, send it so server updates by id (more reliable)
         const payloadTask = existingTaskId ? { id: existingTaskId, description: taskDescription, assignedTo: aiType } : { description: taskDescription, assignedTo: aiType };
         await syncTasksToKanban([ payloadTask ], false, 'done'); // Update to "done"
@@ -770,7 +731,6 @@ function Submission() {
         await fetchPendingTasks(token);
       }
     } catch (error) {
-      console.error('AI task assignment failed:', error);
       if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
         setAiFeedback(`🔌 Connection failed. Please refresh the page and try again.`);
       } else {
@@ -782,20 +742,14 @@ function Submission() {
   // Sync tasks to Kanban
   async function syncTasksToKanban(tasks, showAlert = false, status = 'done') {
     if (!tasks || tasks.length === 0) {
-      console.warn('[syncTasks] No tasks provided');
       if (showAlert) {
         alert("No tasks found to sync.");
       }
       return null;
     }
     
-    console.log('[syncTasks] ===== SYNC CALL =====');
-    console.log('[syncTasks] Status:', status);
-    console.log('[syncTasks] Tasks:', JSON.stringify(tasks, null, 2));
-    
     try {
       const token = await getIdTokenSafely();
-      console.log('[syncTasks] Token obtained:', !!token);
       
       const response = await axiosWithRetry({
         method: 'post',
@@ -808,13 +762,9 @@ function Submission() {
         timeout: 10000
       });
       
-      console.log('[syncTasks] ✅ Response:', response.data);
-      console.log('[syncTasks] ===== END SYNC =====');
       return response.data;
     } catch (err) {
-      console.error('[syncTasks] ❌ Error:', err.response?.data || err.message);
       if (err.code === 'ERR_NETWORK' || err.code === 'ECONNREFUSED') {
-        console.error('[syncTasks] ❌ Network connection failed after retries. Please check if server is running.');
       }
       throw err;
     }

@@ -33,7 +33,6 @@ function AuthProvider({ children }) {
       if (serverFirebaseAvailable) {
         // Use Firebase auth
         setStorageMode('firebase');
-        console.log('🔥 Using Firebase authentication');
         
         const unsubscribe = auth.onAuthStateChanged((user) => {
           setCurrentUser(user);
@@ -43,7 +42,6 @@ function AuthProvider({ children }) {
       } else {
         // Use localStorage fallback
         setStorageMode('localStorage');
-        console.log('💾 Using localStorage fallback for authentication');
         
         // Check localStorage for existing user
         const checkLocalStorageUser = () => {
@@ -81,7 +79,6 @@ function AuthProvider({ children }) {
             }
             
             // AUTO-LOGIN: If no user exists in localStorage, create default test user
-            console.log('💾 No user found - auto-creating test user');
             const defaultUser = {
               uid: 'test-user',
               email: 'hello@test.com',

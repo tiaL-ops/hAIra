@@ -394,16 +394,12 @@ Respond with JSON format:
         const proofreadContext = `You are a grammar expert. Provide clear, helpful corrections.`;
         
         let aiResponse;
-        try {
-            console.log('🚀 Making Gemini API call...');
+        try { 
             aiResponse = await callGemini(grammarPrompt, proofreadContext);
-            console.log('✅ Gemini response received:', aiResponse?.substring(0, 200) + '...');
         } catch (aiError) {
             console.error('❌ Gemini API call failed:', aiError.message || aiError);
-            console.log('🚀 Falling back to OpenAI API...');
             try {
             aiResponse = await callOpenAI(grammarPrompt, proofreadContext);
-            console.log('✅ OpenAI response received:', aiResponse?.substring(0, 200) + '...');
             } catch (fallbackError) {
             console.error('❌ Both Gemini and OpenAI calls failed:', fallbackError.message || fallbackError);
             aiResponse = "⚠️ Sorry, both AI services are currently unavailable.";
@@ -453,15 +449,11 @@ Respond with JSON format:
         
         let aiResponse;
         try {
-            console.log('🚀 Making Gemini API call...');
             aiResponse = await callGemini(summaryPrompt, summarizeContext);
-            console.log('✅ Gemini response received:', aiResponse?.substring(0, 200) + '...');
         } catch (aiError) {
             console.error('❌ Gemini API call failed:', aiError.message || aiError);
-            console.log('🚀 Falling back to OpenAI API...');
             try {
             aiResponse = await callOpenAI(summaryPrompt, summarizeContext);
-            console.log('✅ OpenAI response received:', aiResponse?.substring(0, 200) + '...');
             } catch (fallbackError) {
             console.error('❌ Both Gemini and OpenAI calls failed:', fallbackError.message || fallbackError);
             aiResponse = "⚠️ Sorry, both AI services are currently unavailable.";
@@ -592,15 +584,12 @@ Do not include anything else.
 
     try {
         // Make sure project exists
-        console.log(`From Submission: Making sure the project exists...`)
         await ensureProjectExists(id, userId);
 
         // generate AI Grades and Feedback
-        console.log(`From Submission: generating AI grades and feedback...`)
         const aiResponseGrade = await generateGradeResponse(content, SYSTEM_INSTRUCTION);
         // Parse AI response to JSON
         const grade = parseAIResponseToJson(aiResponseGrade)
-        console.log(`From Submission: AI Grades and Feedback ready.`)
 
         // Submit: Persists Final Report and Feedback, clear draft
         await updateUserProject(id, content, grade, 'submitted');
@@ -610,7 +599,6 @@ Do not include anything else.
             draftReport: null
         });
         
-        console.log(`From Submission: User Project ${id} updated by ${userId}`)
 
         res.status(201).json({
             success: true,
@@ -634,8 +622,6 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
     const { aiType, sectionName, currentContent, projectTitle } = req.body;
     const userId = req.user.uid;
 
-    console.log('AI Write request received:', { id, aiType, sectionName, userId });
-    console.log('🔧 AI Service: Will use server-side OpenAI (GPT-4o-mini) - NOT Chrome API');
 
     if (!aiType) {
         return res.status(400).json({ error: 'AI type is required' });
@@ -679,39 +665,23 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
         // Try Chrome Write API first, fallback to Gemini
         let aiResponse;
        
-        console.log('🤖 Calling AI for writing task...');
-        console.log('🔧 AI Service: OpenAI (GPT-4o-mini)');
-        console.log('📝 Task prompt:', taskPrompt.substring(0, 200) + '...');
-        console.log('⚙️ AI config:', aiConfig);
-        
         const writingContext = `You are ${aiTeammate.name}, a ${aiTeammate.role}. ${aiTeammate.personality}`;
-        console.log('👤 Writing context:', writingContext);
         
         // Use centralized AI service with automatic fallback (Gemini first, then OpenAI)
         try {
-            console.log('🚀 Making AI call with centralized service...');
             aiResponse = await generateAIContribution(taskPrompt, aiConfig, writingContext);
-            console.log('✅ AI response received:', aiResponse?.substring(0, 200) + '...');
         } catch (aiError) {
             console.error('❌ AI service call failed:', aiError.message || aiError);
             aiResponse = "⚠️ Sorry, AI service is currently unavailable.";
         }
 
-        console.log('🧹 Cleaning AI response...');
         const cleanedResponse = cleanAIResponse(aiResponse);
-        console.log('✅ Cleaned response:', cleanedResponse?.substring(0, 200) + '...');
-        
-        console.log('🔄 Converting to HTML...');
         const htmlResponse = convertMarkdownToHTML(cleanedResponse);
-        console.log('✅ HTML response:', htmlResponse?.substring(0, 200) + '...');
         
         const aiName = aiTeammate.name;
         const prefixedResponse = `[${aiName}] ${htmlResponse}`;
-        console.log('📤 Final prefixed response:', prefixedResponse?.substring(0, 200) + '...');
 
-        console.log('💬 Generating completion message...');
         const completionMessage = await generateCompletionMessage(aiType, 'write');
-        console.log('✅ Completion message:', completionMessage);
 
         // Log activity
         const activityLog = {
@@ -738,15 +708,6 @@ router.post('/:id/ai/write', verifyFirebaseToken, async (req, res) => {
             completionMessage: completionMessage,
             timestamp: Date.now()
         };
-        
-        console.log('📤 Sending final response to client:', {
-            success: finalResponse.success,
-            aiType: finalResponse.aiType,
-            responseLength: finalResponse.response?.length,
-            responsePreview: finalResponse.response?.substring(0, 100) + '...',
-            completionMessage: finalResponse.completionMessage
-        });
-
         res.json(finalResponse);
 
     } catch (err) {
@@ -760,8 +721,6 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;
     const { aiType, currentContent } = req.body;
     const userId = req.user.uid;
-
-    console.log('AI Review request received:', { id, aiType, userId });
 
     if (!aiType) {
         return res.status(400).json({ error: 'AI type is required' });
@@ -805,21 +764,14 @@ router.post('/:id/ai/review', verifyFirebaseToken, async (req, res) => {
 
         let aiResponse;
         try {
-            console.log('🚀 Making AI call with centralized service...');
             aiResponse = await generateAIContribution(taskPrompt, aiConfig, reviewContext);
-            console.log('✅ AI response received:', aiResponse?.substring(0, 200) + '...');
         } catch (aiError) {
             console.error('❌ AI service call failed:', aiError.message || aiError);
             aiResponse = "⚠️ Sorry, AI service is currently unavailable.";
         }
 
-        console.log('🧹 Cleaning AI response...');
         const cleanedResponse = cleanAIResponse(aiResponse);
-        console.log('✅ Cleaned response:', cleanedResponse?.substring(0, 200) + '...');
-        
-        console.log('🔄 Converting to HTML...');
         const plainTextResponse = convertMarkdownToPlainText(cleanedResponse);
-        console.log('✅ Plain text response:', plainTextResponse?.substring(0, 200) + '...');
         
         const aiName = aiTeammate.name;
         const prefixedResponse = `[${aiName}] ${plainTextResponse}`;
@@ -863,8 +815,6 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
     const { aiType, currentContent } = req.body;
     const userId = req.user.uid;
 
-    console.log('AI Suggest request received:', { id, aiType, userId });
-
     if (!aiType) {
         return res.status(400).json({ error: 'AI type is required' });
     }
@@ -907,9 +857,7 @@ router.post('/:id/ai/suggest', verifyFirebaseToken, async (req, res) => {
         
         let aiResponse;
         try {
-            console.log('🚀 Making AI call with centralized service...');
             aiResponse = await generateAIContribution(taskPrompt, aiConfig, suggestionContext);
-            console.log('✅ AI response received:', aiResponse?.substring(0, 200) + '...');
         } catch (aiError) {
             console.error('❌ AI service call failed:', aiError.message || aiError);
             aiResponse = "⚠️ Sorry, AI service is currently unavailable.";
@@ -1018,8 +966,6 @@ router.post('/:id/word-contributions/calculate-user', verifyFirebaseToken, async
         const { content } = req.body;
         const userId = req.user.uid;
 
-        console.log('Calculating user word count from content');
-
         // Ensure project exists
         await ensureProjectExists(projectId, userId);
 
@@ -1101,8 +1047,6 @@ router.post('/:id/word-contributions/calculate-user', verifyFirebaseToken, async
             wordContributions: wordContributions,
             wordContributionsUpdatedAt: Date.now()
         });
-
-        console.log(`Updated user word count: ${userWordCount} words`);
 
         res.json({ 
             success: true, 
@@ -1202,8 +1146,6 @@ router.get('/:id/contributions/analysis', verifyFirebaseToken, async (req, res) 
         const { id: projectId } = req.params;
         const userId = req.user.uid;
 
-        console.log('📊 Analyzing contributions from existing project data');
-
         // Ensure project exists
         await ensureProjectExists(projectId, userId);
 
@@ -1225,8 +1167,6 @@ router.get('/:id/contributions/analysis', verifyFirebaseToken, async (req, res) 
 
         // Analyze contributions from existing data
         const contributions = analyzeContributionsFromData(projectData);
-
-        console.log('📊 Data-driven contributions analysis:', contributions);
 
         res.json({
             success: true,
@@ -1267,38 +1207,11 @@ function analyzeContributionsFromData(projectData) {
     
     const completedUserTasks = userTasks.filter(task => task.status === 'done' || task.status === 'completed');
     const completedAITasks = aiTasks.filter(task => task.status === 'done' || task.status === 'completed');
-    
-    // Debug logging for tasks
-    console.log('📊 Task Analysis Debug:');
-    console.log(`Total tasks: ${tasks.length}`);
-    console.log(`User tasks: ${userTasks.length} (completed: ${completedUserTasks.length})`);
-    console.log(`AI tasks (excluding mandatory): ${aiTasks.length} (completed: ${completedAITasks.length})`);
-    console.log('Sample tasks:', tasks.slice(0, 3).map(task => ({
-        title: task.title || task.text,
-        assignedTo: task.assignedTo,
-        taskType: task.taskType || task.type,
-        status: task.status,
-        isAI: aiAgentNames.includes(task.assignedTo?.toLowerCase()),
-        isMandatoryAI: mandatoryAITaskTypes.includes(task.taskType || task.type)
-    })));
-    
     // Analyze chat participation
     const totalChatMessages = chatMessages.length;
     const userChatMessages = chatMessages.filter(msg => 
         msg.senderType === 'human'
     );
-    
-    // Debug logging for chat messages
-    console.log('📊 Chat Analysis Debug:');
-    console.log(`Total chat messages (all): ${totalChatMessages}`);
-    console.log(`User chat messages: ${userChatMessages.length}`);
-    console.log(`AI chat messages: ${totalChatMessages - userChatMessages.length}`);
-    console.log('Sample chat messages:', chatMessages.slice(0, 5).map(msg => ({
-        senderType: msg.senderType,
-        senderId: msg.senderId,
-        senderName: msg.senderName,
-        text: (msg.text || msg.content || '').substring(0, 50)
-    })));
     
     // Calculate contribution percentages
     const totalTasks = tasks.length;
@@ -1477,8 +1390,6 @@ router.get('/:id/contributions/realtime', verifyFirebaseToken, async (req, res) 
         const { id: projectId } = req.params;
         const userId = req.user.uid;
 
-        console.log('Getting real-time contributions for submission page');
-
         // Ensure project exists
         await ensureProjectExists(projectId, userId);
 
@@ -1499,9 +1410,6 @@ router.get('/:id/contributions/realtime', verifyFirebaseToken, async (req, res) 
             .filter(teammate => teammate.type === 'ai')
             .map(teammate => teammate.id || teammate.name?.toLowerCase())
             .filter(agentId => agentId); // Remove any undefined values
-
-        console.log('Project teammates:', projectTeammates);
-        console.log('Participating AI agents:', participatingAgents);
 
         // Ensure participating AI agents are initialized
         participatingAgents.forEach(agentId => {
@@ -1575,8 +1483,6 @@ router.get('/:id/contributions/realtime', verifyFirebaseToken, async (req, res) 
             }
         });
 
-        console.log('Real-time contributions:', contributions);
-
         res.json({
             success: true,
             contributions: contributions,
@@ -1598,19 +1504,15 @@ router.get('/:id/contributions/realtime', verifyFirebaseToken, async (req, res) 
 router.post('/:id/ai/completion-message', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;
     const { aiType, taskType } = req.body;
-    const userId = req.user.uid;
-
-    console.log('Completion message request received:', { id, aiType, taskType, userId });
+    const userId = req.user.uid;    
 
     if (!aiType || !taskType) {
         return res.status(400).json({ error: 'AI type and task type are required' });
     }
 
     try {
-        // Ensure project exists
         await ensureProjectExists(id, userId);
         
-        // Generate completion message
         const completionMessage = await generateCompletionMessage(aiType, taskType);
         
         res.json({
@@ -1634,8 +1536,6 @@ router.post('/:id/ai/completion-message', verifyFirebaseToken, async (req, res) 
 router.post('/:id/ai/grade', verifyFirebaseToken, async (req, res) => {
     const { id } = req.params;
     const userId = req.user.uid;
-    
-    console.log('AI Grading request received:', { id, userId });
     
     try {
         // Ensure project exists and user has access
@@ -1695,8 +1595,6 @@ router.post('/:id/reflection', verifyFirebaseToken, async (req, res) => {
     const { reflection, submittedAt } = req.body;
     const userId = req.user.uid;
     
-    console.log('Reflection submission received:', { id, userId, reflectionKeys: Object.keys(reflection) });
-    
     if (!reflection || typeof reflection !== 'object') {
         return res.status(400).json({ 
             success: false, 
@@ -1747,8 +1645,6 @@ router.post('/:id/reflection', verifyFirebaseToken, async (req, res) => {
                 activityLogs: projectData.activityLogs
             });
         }
-        
-        console.log('Reflection saved successfully for project:', id);
         
         res.json({
             success: true,
@@ -1804,8 +1700,6 @@ router.post('/:id/ai-content-reflection', verifyFirebaseToken, async (req, res) 
     const { aiTeammate, aiContent, modifiedContent, studentDecision, reflection, timestamp } = req.body;
     const userId = req.user.uid;
     
-    console.log('AI Content Reflection received:', { id, userId, aiTeammate, studentDecision });
-    
     if (!aiTeammate || !aiContent || !studentDecision) {
         return res.status(400).json({ 
             success: false, 
@@ -1820,13 +1714,8 @@ router.post('/:id/ai-content-reflection', verifyFirebaseToken, async (req, res) 
         });
     }
     
-    try {
-        // Ensure project exists and user has access
-        await ensureProjectExists(id, userId);
-        
-        // Note: Contribution tracking is now handled by data-driven analysis
-        // No need for complex word-level difference calculations
-
+    try {           
+        await ensureProjectExists(id, userId);  
         // Prepare reflection data
         const reflectionData = {
             id: `reflection_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -1848,10 +1737,7 @@ router.post('/:id/ai-content-reflection', verifyFirebaseToken, async (req, res) 
         // Initialize aiContentReflections array if it doesn't exist
         const aiContentReflections = projectData.aiContentReflections || [];
         aiContentReflections.push(reflectionData);
-        
-        // Note: AI content reflection decisions are mandatory, so no contribution points awarded
-        console.log(`📝 AI Content Reflection: ${studentDecision} by user for ${aiTeammate.name} (mandatory action - no contribution points)`);
-        
+               
         // Update project with new reflection
         await updateDocument(COLLECTIONS.USER_PROJECTS, id, {
             aiContentReflections: aiContentReflections,
@@ -1874,9 +1760,7 @@ router.post('/:id/ai-content-reflection', verifyFirebaseToken, async (req, res) 
                 activityLogs: projectData.activityLogs
             });
         }
-        
-        console.log('AI Content Reflection saved successfully for project:', id);
-        
+                
         res.json({
             success: true,
             message: 'AI content reflection saved successfully',

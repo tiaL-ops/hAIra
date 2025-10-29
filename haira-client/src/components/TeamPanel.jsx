@@ -81,14 +81,10 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
   };
 
   const handleAIClick = (teammate) => {
-    console.log('TeamPanel handleAIClick called:', { teammate });
     setSelectedTeammate(teammate);
   };
 
   const handleAssignTask = (aiType, taskType, sectionName) => {
-    console.log('🎯 TeamPanel: Task assignment initiated');
-    console.log('📋 TeamPanel handleAssignTask called:', { aiType, taskType, sectionName });
-    
     // Map task type from modal to TASK_TYPES
     let mappedTaskType;
     switch (taskType) {
@@ -104,10 +100,6 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
       default:
         mappedTaskType = aiAgents.TASK_TYPES.WRITE_SECTION;
     }
-    
-    console.log('🔄 TeamPanel: Mapped task type:', mappedTaskType);
-    console.log('📤 TeamPanel: Calling onAssignTask with:', { aiType, mappedTaskType, sectionName });
-    
     onAssignTask(aiType, mappedTaskType, sectionName);
     setSelectedTeammate(null);
   };
@@ -145,10 +137,6 @@ export default function TeamPanel({ onAssignTask, loadingAIs = new Set(), teamMe
         { id: 'brown', type: 'ai', ...aiAgents.AI_TEAMMATES.brown },
         { id: 'elza', type: 'ai', ...aiAgents.AI_TEAMMATES.elza },
       ];
-
-  // Debug: Log the AI teammates being created
-  console.log('🔍 TeamPanel: aiTeammates created:', aiTeammates);
-  console.log('🔍 TeamPanel: AI_TEAMMATES keys:', Object.keys(aiAgents.AI_TEAMMATES));
 
   if (loading) {
     return (

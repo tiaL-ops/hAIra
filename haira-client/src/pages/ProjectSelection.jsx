@@ -293,13 +293,11 @@ export default function ProjectSelection() {
         }
       });
       
-      console.log('Fix projects response:', response.data);
       alert(`Fixed ${response.data.fixed} projects! Most recent project is now active.`);
       
       // Refresh the page to show fixed projects
       window.location.reload();
     } catch (err) {
-      console.error('Error fixing projects:', err);
       alert('Failed to fix projects. Please try again.');
     }
   };

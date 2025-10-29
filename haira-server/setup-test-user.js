@@ -3,7 +3,6 @@ import { setDocument, addDocument } from './services/databaseService.js';
 
 async function setupTestUser() {
   try {
-    console.log('🚀 Creating test user and project...');
     
     const testUserId = 'test-user';
     
@@ -26,7 +25,6 @@ async function setupTestUser() {
     };
     
     await setDocument('users', testUserId, userData);
-    console.log('✅ Test user created');
     
     // Create test project
     const projectData = {
@@ -41,17 +39,9 @@ async function setupTestUser() {
     };
     
     const project = await addDocument('userProjects', projectData);
-    console.log('✅ Test project created:', project.id);
     
     // Update user's active project
     await setDocument('users', testUserId, { activeProjectId: project.id });
-    console.log('✅ User active project set');
-    
-    console.log('\n🎉 Setup complete!');
-    console.log('📧 Email: hello@test.com');
-    console.log('🔑 Password: password');
-    console.log('📁 Project ID:', project.id);
-    console.log('\n👉 Now you can login and start using the app!');
     
     process.exit(0);
   } catch (error) {
