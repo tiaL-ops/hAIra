@@ -15,7 +15,6 @@ async function checkServerFirebaseAvailability() {
     const response = await fetch(`${backendHost}/api/config`);
     const config = await response.json();
     serverFirebaseAvailable = config.firebaseAvailable;
-    console.log(`📡 Server storage mode: ${config.storageMode}`);
     return serverFirebaseAvailable;
   } catch (error) {
     console.warn('⚠️ Could not reach server, assuming localStorage mode:', error);
@@ -46,17 +45,13 @@ async function initializeFirebaseClient() {
       app = initializeApp(firebaseConfig);
       auth = getAuth(app);
       db = getFirestore(app);
-      
-      console.log('🔥 Firebase client initialized successfully');
     } catch (error) {
-      console.warn('⚠️ Firebase client initialization failed, falling back to localStorage:', error);
       auth = getAuthService();
       db = getFirestoreService();
       app = null;
     }
   } else {
     // Server doesn't have Firebase, use localStorage
-    console.log('💾 Server using localStorage - client will use localStorage mode');
     auth = getAuthService();
     db = getFirestoreService();
     app = null;

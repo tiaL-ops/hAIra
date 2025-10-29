@@ -43,25 +43,19 @@ export default function EditorArea({ content = '', onChange, editable = true, ed
 
   // Apply highlights when highlightedRanges change
   useEffect(() => {
-    console.log('EditorArea: highlightedRanges changed:', highlightedRanges);
     if (!editor || !highlightedRanges.length) return
 
-    console.log('EditorArea: Applying highlights...');
     
     // Don't clear existing highlights - just add new ones
     // editor.commands.unsetHighlight()
 
     // Apply new highlights one by one
     highlightedRanges.forEach((range, index) => {
-      console.log(`EditorArea: Applying highlight ${index}:`, range);
       if (range.start < range.end) {
         // Use setTimeout to ensure highlights are applied sequentially
         setTimeout(() => {
-          console.log(`EditorArea: Setting selection from ${range.start} to ${range.end}`);
           editor.commands.setTextSelection({ from: range.start, to: range.end })
-          console.log(`EditorArea: Setting highlight with commentId ${range.commentId}`);
           const success = editor.commands.setHighlight({ commentId: range.commentId })
-          console.log(`EditorArea: Highlight command success:`, success);
           
           // Don't clear selection immediately - let the highlight stay
           // editor.commands.setTextSelection({ from: 0, to: 0 })
@@ -87,7 +81,6 @@ export default function EditorArea({ content = '', onChange, editable = true, ed
                   const highlightElement = target.classList.contains('text-highlight') ? target : target.closest('.text-highlight');
                   const commentId = highlightElement.getAttribute('data-comment-id');
                   if (commentId && onHighlightClick) {
-                    console.log('Highlight clicked, commentId:', commentId);
                     onHighlightClick(commentId);
                   }
                 }

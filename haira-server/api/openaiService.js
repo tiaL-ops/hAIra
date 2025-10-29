@@ -7,7 +7,6 @@ let openai = null;
 
 function getOpenAIClient() {
   if (!openai && process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim() !== '') {
-    console.log('🔧 Initializing OpenAI client...');
     openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });

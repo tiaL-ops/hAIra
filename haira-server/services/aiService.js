@@ -20,23 +20,17 @@ const summaryCache = new Map();
 export async function generateAIResponse(userContent, contextualPrompt) {
   const config = getAIConfig();
   const primaryAPI = getPrimaryAPI();
-  const fallbackAPI = getFallbackAPI();
-
-  console.log(`🚀 AI Service: Using ${config.description}`);
-  console.log(`   Primary API: ${primaryAPI || 'None'}`);
-  console.log(`   Fallback API: ${fallbackAPI || 'None'}`);
+  const fallbackAPI = getFallbackAPI(); 
 
   // Try primary API first
   if (primaryAPI === 'openai' && isAPIAvailable('openai')) {
     try {
-      console.log('🚀 Making OpenAI API call (primary)...');
       return await callOpenAI(userContent, contextualPrompt);
     } catch (error) {
       console.error('[AI Service] OpenAI API call failed:', error.message || error);
       
       // Try fallback if available
       if (fallbackAPI === 'gemini' && isAPIAvailable('gemini')) {
-        console.log('🚀 Falling back to Gemini API...');
         try {
           return await callGemini(userContent, contextualPrompt);
         } catch (fallbackError) {
@@ -49,14 +43,12 @@ export async function generateAIResponse(userContent, contextualPrompt) {
     }
   } else if (primaryAPI === 'gemini' && isAPIAvailable('gemini')) {
     try {
-      console.log('🚀 Making Gemini API call (primary)...');
       return await callGemini(userContent, contextualPrompt);
     } catch (error) {
       console.error('[AI Service] Gemini API call failed:', error.message || error);
       
       // Try fallback if available
       if (fallbackAPI === 'openai' && isAPIAvailable('openai')) {
-        console.log('🚀 Falling back to OpenAI API...');
         try {
           return await callOpenAI(userContent, contextualPrompt);
         } catch (fallbackError) {
@@ -85,7 +77,6 @@ export async function generateGradeResponse(userSubmission, systemInstruction) {
   // Try primary API first
   if (primaryAPI === 'openai' && isAPIAvailable('openai')) {
     try {
-      console.log('🚀 Making OpenAI API call for grading (primary)...');
       // OpenAI doesn't have a direct grade function, so we use generateAIResponse
       return await callOpenAI(userSubmission, systemInstruction);
     } catch (error) {
@@ -93,7 +84,6 @@ export async function generateGradeResponse(userSubmission, systemInstruction) {
       
       // Try fallback if available
       if (fallbackAPI === 'gemini' && isAPIAvailable('gemini')) {
-        console.log('🚀 Falling back to Gemini API for grading...');
         try {
           return await callGeminiGrade(userSubmission, systemInstruction);
         } catch (fallbackError) {
@@ -106,14 +96,12 @@ export async function generateGradeResponse(userSubmission, systemInstruction) {
     }
   } else if (primaryAPI === 'gemini' && isAPIAvailable('gemini')) {
     try {
-      console.log('🚀 Making Gemini API call for grading (primary)...');
       return await callGeminiGrade(userSubmission, systemInstruction);
     } catch (error) {
       console.error('[AI Service] Gemini grading API call failed:', error.message || error);
       
       // Try fallback if available
       if (fallbackAPI === 'openai' && isAPIAvailable('openai')) {
-        console.log('🚀 Falling back to OpenAI API for grading...');
         try {
           return await callOpenAI(userSubmission, systemInstruction);
         } catch (fallbackError) {
@@ -142,14 +130,12 @@ export async function generateDeliverablesResponse(title, systemInstruction) {
   // Try primary API first
   if (primaryAPI === 'openai' && isAPIAvailable('openai')) {
     try {
-      console.log('🚀 Making OpenAI API call for deliverables (primary)...');
       return await callOpenAI(title, systemInstruction);
     } catch (error) {
       console.error('[AI Service] OpenAI deliverables API call failed:', error.message || error);
       
       // Try fallback if available
       if (fallbackAPI === 'gemini' && isAPIAvailable('gemini')) {
-        console.log('🚀 Falling back to Gemini API for deliverables...');
         try {
           return await callGeminiDeliverables(title, systemInstruction);
         } catch (fallbackError) {
@@ -162,14 +148,12 @@ export async function generateDeliverablesResponse(title, systemInstruction) {
     }
   } else if (primaryAPI === 'gemini' && isAPIAvailable('gemini')) {
     try {
-      console.log('🚀 Making Gemini API call for deliverables (primary)...');
       return await callGeminiDeliverables(title, systemInstruction);
     } catch (error) {
       console.error('[AI Service] Gemini deliverables API call failed:', error.message || error);
       
       // Try fallback if available
       if (fallbackAPI === 'openai' && isAPIAvailable('openai')) {
-        console.log('🚀 Falling back to OpenAI API for deliverables...');
         try {
           return await callOpenAI(title, systemInstruction);
         } catch (fallbackError) {
@@ -199,14 +183,12 @@ export async function generateAIContribution(userInput, personaConfig, systemIns
   // Try primary API first
   if (primaryAPI === 'openai' && isAPIAvailable('openai')) {
     try {
-      console.log('🚀 Making OpenAI API call for contribution (primary)...');
       return await callOpenAIContribution(userInput, personaConfig, systemInstruction);
     } catch (error) {
       console.error('[AI Service] OpenAI contribution API call failed:', error.message || error);
       
       // Try fallback if available
       if (fallbackAPI === 'gemini' && isAPIAvailable('gemini')) {
-        console.log('🚀 Falling back to Gemini API for contribution...');
         try {
           return await callGeminiContribution(userInput, personaConfig, systemInstruction);
         } catch (fallbackError) {
@@ -219,14 +201,12 @@ export async function generateAIContribution(userInput, personaConfig, systemIns
     }
   } else if (primaryAPI === 'gemini' && isAPIAvailable('gemini')) {
     try {
-      console.log('🚀 Making Gemini API call for contribution (primary)...');
       return await callGeminiContribution(userInput, personaConfig, systemInstruction);
     } catch (error) {
       console.error('[AI Service] Gemini contribution API call failed:', error.message || error);
       
       // Try fallback if available
       if (fallbackAPI === 'openai' && isAPIAvailable('openai')) {
-        console.log('🚀 Falling back to OpenAI API for contribution...');
         try {
           return await callOpenAIContribution(userInput, personaConfig, systemInstruction);
         } catch (fallbackError) {
@@ -254,14 +234,12 @@ export async function generateAIProject(prompt) {
   // Try primary API first
   if (primaryAPI === 'openai' && isAPIAvailable('openai')) {
     try {
-      console.log('🚀 Making OpenAI API call for project generation (primary)...');
       return await callOpenAIProject(prompt);
     } catch (error) {
       console.error('[AI Service] OpenAI project API call failed:', error.message || error);
       
       // Try fallback if available
       if (fallbackAPI === 'gemini' && isAPIAvailable('gemini')) {
-        console.log('🚀 Falling back to Gemini API for project generation...');
         try {
           return await generateProjectWithGemini(prompt);
         } catch (fallbackError) {
@@ -274,14 +252,12 @@ export async function generateAIProject(prompt) {
     }
   } else if (primaryAPI === 'gemini' && isAPIAvailable('gemini')) {
     try {
-      console.log('🚀 Making Gemini API call for project generation (primary)...');
       return await generateProjectWithGemini(prompt);
     } catch (error) {
       console.error('[AI Service] Gemini project API call failed:', error.message || error);
       
       // Try fallback if available
       if (fallbackAPI === 'openai' && isAPIAvailable('openai')) {
-        console.log('🚀 Falling back to OpenAI API for project generation...');
         try {
           return await callOpenAIProject(prompt);
         } catch (fallbackError) {
@@ -413,7 +389,6 @@ export function getConversationSummary(projectId, currentDay, recentChats) {
   
   // Check cache
   if (summaryCache.has(cacheKey) && recentChats.length % 10 !== 0) {
-    console.log(`[AI Service] ♻️  Using cached summary for ${cacheKey}`);
     return summaryCache.get(cacheKey);
   }
   
@@ -424,7 +399,6 @@ export function getConversationSummary(projectId, currentDay, recentChats) {
     .join('\n');
   
   summaryCache.set(cacheKey, summary);
-  console.log(`[AI Service] ✅ Generated new summary for ${cacheKey}`);
   
   return summary;
 }
@@ -489,69 +463,17 @@ export async function generateContextAwareResponse(agentId, projectId, userId, c
   };
   
   try {
-    console.log(`[AI Service] Generating context-aware response for ${agentId}`);
-    console.log(`[AI Service] Project: ${projectId}, User: ${userId}, Day: ${currentDay}`);
-    
     // Get comprehensive context
     const context = await getAgentContext(projectId, userId, currentDay, agentId);
     
-    // Log context details
-    console.log(`[AI Service] ✅ Context received for ${agentId}:`, {
-      projectName: context.projectName,
-      totalTasks: context.allTasks.length,
-      myTasks: context.myTasks.length,
-      teammateTasks: Object.keys(context.teammateTasks).length,
-      userTasks: context.userTasks.length,
-      unassignedTasks: context.unassignedTasks.length,
-      conversationHistory: context.conversationHistory.length,
-      previousDaysContext: context.previousDaysContext.length,
-      potentialTasks: context.potentialTasks?.length || 0,
-      actionItems: context.actionItems?.length || 0,
-      keyTopics: context.keyTopics?.length || 0,
-      hasEnhancedContext: !!context.enhancedConversationSummary
-    });
-    
-    // CRITICAL: Verify tasks are in context
-    if (context.allTasks.length === 0) {
-      console.log(`[AI Service] ⚠️⚠️⚠️ NO TASKS IN CONTEXT for ${agentId}!`);
-    } else {
-      console.log(`[AI Service] 🎯 Tasks in context for ${agentId}:`);
-      context.allTasks.forEach((task, idx) => {
-        console.log(`[AI Service]   ${idx + 1}. "${task.description || task.title}" [${task.status}] -> ${task.assignedTo}`);
-      });
-    }
-    
     // Build enhanced prompt with full awareness
     const enhancedPrompt = buildEnhancedPrompt(agentId, context, userMessage);
-    
-    console.log(`[AI Service] ✅ Enhanced prompt built for ${agentId}:`);
-    console.log(`[AI Service]    - Prompt length: ${enhancedPrompt.length} characters`);
-    console.log(`[AI Service]    - Tasks in prompt: ${context.allTasks.length}`);
-    console.log(`[AI Service]    - Conversation messages: ${context.conversationHistory.length}`);
-    
-    // Log a snippet of the task section in the prompt
-    if (context.allTasks.length > 0) {
-      const taskSection = enhancedPrompt.match(/=== ALL PROJECT TASKS ===([\s\S]*?)(?:===|$)/)?.[1] || '';
-      if (taskSection) {
-        console.log(`[AI Service] Task section preview (first 500 chars):`, taskSection.substring(0, 500));
-      }
-    }
-    
-    // Log the COMPLETE task section to verify it's there
-    const taskSectionMatch = enhancedPrompt.match(/=== ALL PROJECT TASKS FROM FIRESTORE ===([\s\S]*?)(?:===|$)/);
-    if (taskSectionMatch) {
-      console.log(`[AI Service] 🔍 FULL TASK SECTION BEING SENT TO AI:`);
-      console.log(taskSectionMatch[0].substring(0, 1000));
-    } else {
-      console.log(`[AI Service] ⚠️⚠️⚠️ NO TASK SECTION FOUND IN PROMPT!`);
-    }
-    
+
     // Generate response using centralized AI service with fallback
     let response;
     try {
       response = await generateAIResponse(userMessage, enhancedPrompt);
     } catch (error) {
-      console.log(`[AI Service] AI API failed, using mock response for ${agentId}:`, error.message);
       // Mock response when AI APIs are not available
       const mockResponses = {
         'steve': `Let's break down the technical challenges and find practical solutions. What specific technical aspect would you like to tackle first?`,
@@ -564,9 +486,6 @@ export async function generateContextAwareResponse(agentId, projectId, userId, c
       };
       response = mockResponses[agentId] || `I'm here to help with your project. What would you like to work on?`;
     }
-    
-    console.log(`[AI Service] ✅ Generated response for ${agentId} with context awareness`);
-    console.log(`[AI Service] Response preview:`, response.substring(0, 100) + '...');
     
     return response;
     
@@ -599,7 +518,6 @@ export async function triggerAgentResponse(projectId, agentId, triggerMessage) {
   };
   
   try {
-    console.log(`[AI Service] 🤖 Triggering response for ${agentId} in project ${projectId}`);
     
     // 1. Fetch project data
     const projectData = await getDocumentById('userProjects', projectId);
@@ -661,8 +579,6 @@ export async function triggerAgentResponse(projectId, agentId, triggerMessage) {
       timestamp: responseMessage.timestamp,
       type: responseMessage.type
     });
-    
-    console.log(`[AI Service] ✅ ${agentId} responded successfully`);
     
     return responseMessage;
     

@@ -36,17 +36,10 @@ router.post('/:id/kanban', verifyFirebaseToken, async (req, res) => {
     const { title, deliverables } = req.body;
     const userId = req.user.uid;
 
-    console.log('[KanbanRoutes] POST /:id/kanban - Saving tasks');
-    console.log('[KanbanRoutes] Project ID:', id);
-    console.log('[KanbanRoutes] Title:', title);
-    console.log('[KanbanRoutes] Deliverables:', JSON.stringify(deliverables, null, 2));
 
     try {
-        console.log("From Kanban: Making sure the project exists...")
         await ensureProjectExists(id, userId);
-        console.log("From Kanban: Store deliverables");
         const savedTasks = await addTasks(id, userId, title, 'todo', deliverables);
-        console.log('[KanbanRoutes] Tasks saved successfully:', savedTasks.length, 'tasks');
 
         res.status(201).json({
             success: true,
@@ -95,7 +88,6 @@ The user will provide a project title.
 `;
 
     try {
-        console.log("From Kanban: looking for deliverables")
         const aiResponse = await generateDeliverablesResponse(title, SYSTEM_INSTRUCTION);
 
         const cleaned = aiResponse
@@ -194,9 +186,6 @@ router.post("/:id/sync-tasks", verifyFirebaseToken, async (req, res) => {
         const { tasks, status = 'done' } = req.body; // Accept status parameter (defaults to 'done')
         const userId = req.user?.uid || 'system';
         
-        console.log('[KanbanRoutes] Syncing tasks with status:', status);
-        console.log('[KanbanRoutes] Tasks to sync:', tasks);
-
         if (!tasks || !Array.isArray(tasks)) {
             return res.status(400).json({ 
                 success: false,
@@ -214,15 +203,6 @@ router.post("/:id/sync-tasks", verifyFirebaseToken, async (req, res) => {
         }
         
         const existingTasks = projectData.tasks || [];
-        
-        console.log('[KanbanRoutes] Existing tasks:', existingTasks.length);
-        console.log('[KanbanRoutes] Existing tasks details:', JSON.stringify(existingTasks.map(t => ({
-            id: t.id,
-            description: t.description,
-            assignedTo: t.assignedTo,
-            status: t.status
-        })), null, 2));
-        console.log('[KanbanRoutes] Incoming tasks:', JSON.stringify(tasks, null, 2));
         
         // Find which tasks need to be created and which need to be updated
         const newTasks = [];
@@ -243,21 +223,9 @@ router.post("/:id/sync-tasks", verifyFirebaseToken, async (req, res) => {
                 );
             }
             
-            console.log('[KanbanRoutes] Processing task:', {
-                incomingDesc: task.description,
-                incomingAssignedTo: task.assignedTo,
-                targetStatus: status,
-                foundExisting: !!existingTask,
-                existingId: existingTask?.id,
-                existingStatus: existingTask?.status,
-                existingAssignedTo: existingTask?.assignedTo,
-                willUpdate: existingTask && existingTask.status !== status
-            });
-            
             if (existingTask) {
                 // Task exists - update to provided status if different
                 if (existingTask.status !== status) {
-                    console.log('[KanbanRoutes] ✅ UPDATING task', existingTask.id, 'from', existingTask.status, '→', status);
                     await updateTask(
                         id, 
                         existingTask.id, 
@@ -269,11 +237,9 @@ router.post("/:id/sync-tasks", verifyFirebaseToken, async (req, res) => {
                     );
                     updatedTasks.push(existingTask.id);
                 } else {
-                    console.log('[KanbanRoutes] ⏭️ Task already has status:', status);
                 }
             } else {
                 // Task doesn't exist - create it with provided status
-                console.log('[KanbanRoutes] ➕ CREATING new task with status:', status);
                 newTasks.push({
                     deliverable: task.description,
                     assignedTo: task.assignedTo,
@@ -286,7 +252,6 @@ router.post("/:id/sync-tasks", verifyFirebaseToken, async (req, res) => {
         let createdTasks = [];
         if (newTasks.length > 0) {
             createdTasks = await addTasks(id, userId, projectData.project.title, status, newTasks);
-            console.log('[KanbanRoutes] Created new tasks:', createdTasks.length, 'with status:', status);
         }
 
         res.status(200).json({
@@ -296,7 +261,6 @@ router.post("/:id/sync-tasks", verifyFirebaseToken, async (req, res) => {
             message: `Synced ${createdTasks.length + updatedTasks.length} tasks to Kanban`
         });
     } catch (err) {
-        console.error('[KanbanRoutes] Error syncing tasks:', err);
         res.status(500).json({ 
             success: false,
             error: err.message 

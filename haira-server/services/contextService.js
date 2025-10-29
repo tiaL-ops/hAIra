@@ -17,49 +17,21 @@ import { formatTasksForAI as formatTasksFromMemory, getProjectTasks, getProjectI
  * @returns {Promise<Object>} Complete context object
  */
 export async function getAgentContext(projectId, userId, currentDay, agentId) {
-  console.log(`[ContextService] Building context for ${agentId} on project ${projectId}, day ${currentDay}`);
   
   try {
-    // 1. Check if we have cached context for today (DISABLED - function not implemented)
-    // const cachedContext = getDailyContext(projectId, currentDay);
-    // if (cachedContext && (Date.now() - cachedContext.lastUpdated) < 300000) { // 5 minutes
-    //   console.log(`[ContextService] ⚠️ Using cached context for ${agentId} - tasks: ${cachedContext.allTasks?.length || 0}`);
-    //   return getEnhancedContextCache(projectId, currentDay, agentId);
-    // }
-    console.log(`[ContextService] 🔧 Fetching fresh context (caching disabled)`);
-    
-    
-    // 2. Get project data and tasks from Firebase
+    // Get project data and tasks from Firebase
     const projectData = await getProjectWithTasks(projectId, userId);
     
     if (!projectData) {
-      console.log(`[ContextService] ❌ No project data found for ${projectId}`);
       return buildEmptyContext(agentId, currentDay);
     }
     
-    console.log(`[ContextService] ✅ Project data loaded from Firestore:`);
-    console.log(`[ContextService]    - Project: ${projectData.project?.title || projectData.project?.name || 'Untitled'}`);
-    console.log(`[ContextService]    - Tasks: ${projectData.tasks?.length || 0}`);
     
-    // CRITICAL CHECK: Verify tasks exist
-    if (!projectData.tasks || projectData.tasks.length === 0) {
-      console.log(`[ContextService] ⚠️⚠️⚠️ NO TASKS FETCHED FROM FIRESTORE!`);
-      console.log(`[ContextService] projectData:`, JSON.stringify(projectData, null, 2));
-    } else {
-      console.log(`[ContextService] ✅ ${projectData.tasks.length} tasks fetched from Firestore:`);
-      projectData.tasks.forEach((task, idx) => {
-        console.log(`[ContextService]    ${idx + 1}. "${task.description || task.title}" [${task.status}] -> ${task.assignedTo}`);
-      });
-    }
     
-    // 3. Get conversation history from memory (enhanced context)
+    // Get conversation history from memory (enhanced context)
     const conversationHistory = getConversationHistory(projectId, currentDay, 15);
     const previousDaysContext = getPreviousDaysContext(projectId, currentDay);
     const multiDaySummary = getMultiDaySummary(projectId, currentDay, 2);
-    
-    console.log(`[ContextService] ✅ Memory-based conversation context:`);
-    console.log(`[ContextService]    - Current day messages: ${conversationHistory.length}`);
-    console.log(`[ContextService]    - Previous days context: ${previousDaysContext.length}`);
     
     const conversationSummary = conversationHistory.length > 0 
       ? conversationHistory.map(msg => `${msg.senderName || 'Unknown'}: ${msg.content || ''}`).join('\n')
@@ -75,27 +47,14 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
       keyTopics: []
     };
     
-    // 4. Organize tasks by assignee (enhanced with memory)
+    // Organize tasks by assignee (enhanced with memory)
     const tasksByAssignee = organizeTasksByAssignee(projectData.tasks);
     
     // Get additional task context from memory
-    const memoryTasks = getProjectTasks(projectId);
-    const memoryProjectInfo = getProjectInfo(projectId);
     const formattedTasksForAI = formatTasksFromMemory(projectId);
     
-    console.log(`[ContextService] ✅ Task memory context:`);
-    console.log(`[ContextService]    - Memory tasks: ${memoryTasks.length}`);
-    console.log(`[ContextService]    - Memory project: ${memoryProjectInfo.title || 'Unknown'}`);
-    console.log(`[ContextService]    - Formatted for AI: ${formattedTasksForAI.length} chars`);
     
-    // Debug logging for tasks
-    console.log(`[ContextService] Project ${projectId} - Total tasks: ${projectData.tasks.length}`);
-    console.log(`[ContextService] Tasks by assignee:`, JSON.stringify(tasksByAssignee, null, 2));
-    console.log(`[ContextService] Agent ${agentId} tasks:`, tasksByAssignee[agentId] || []);
-    
-    // 5. Build agent-specific context
-    console.log(`[ContextService] 🏗️ Building context object with ${projectData.tasks?.length || 0} tasks`);
-    
+    // Build agent-specific context
     const context = {
       // Project information
       projectId,
@@ -140,21 +99,6 @@ export async function getAgentContext(projectId, userId, currentDay, agentId) {
       assignmentSummary: buildAssignmentSummary(tasksByAssignee, agentId)
     };
     
-    console.log(`[ContextService] ✅ Context built successfully for ${agentId}:`);
-    console.log(`[ContextService]    - Total tasks: ${context.allTasks.length}`);
-    console.log(`[ContextService]    - My tasks (${agentId}): ${context.myTasks.length}`);
-    console.log(`[ContextService]    - User tasks: ${context.userTasks.length}`);
-    console.log(`[ContextService]    - Unassigned tasks: ${context.unassignedTasks.length}`);
-    console.log(`[ContextService]    - Conversation history: ${context.conversationHistory.length} messages`);
-    console.log(`[ContextService]    - Previous days context: ${context.previousDaysContext.length} messages`);
-    
-    // Log what the AI agent will see
-    if (context.allTasks.length > 0) {
-      console.log(`[ContextService] Tasks that ${agentId} can see:`);
-      context.allTasks.forEach((task, idx) => {
-        console.log(`[ContextService]    ${idx + 1}. [${task.status || 'todo'}] ${task.title || task.text} -> ${task.assignedTo || 'unassigned'}`);
-      });
-    }
     
     return context;
     
@@ -182,10 +126,7 @@ function organizeTasksByAssignee(tasks) {
     unassigned: []
   };
   
-  console.log(`[ContextService] Organizing ${tasks?.length || 0} tasks...`);
-  
   if (!tasks || tasks.length === 0) {
-    console.log(`[ContextService] No tasks to organize`);
     return organized;
   }
   
@@ -193,54 +134,30 @@ function organizeTasksByAssignee(tasks) {
     const assignee = (task.assignedTo || 'unassigned').toLowerCase().trim();
     const taskTitle = task.title || task.text || 'No title';
     
-    console.log(`[ContextService] Task ${index + 1}: "${taskTitle}" -> assignedTo: "${assignee}"`);
-    
     // Direct agent name match
     if (assignee === 'brown' || assignee.includes('brown')) {
       organized.brown.push(task);
-      console.log(`[ContextService] ✅ Assigned to Brown`);
     } else if (assignee === 'elza' || assignee.includes('elza')) {
       organized.elza.push(task);
-      console.log(`[ContextService] ✅ Assigned to Elza`);
     } else if (assignee === 'kati' || assignee.includes('kati')) {
       organized.kati.push(task);
-      console.log(`[ContextService] ✅ Assigned to Kati`);
     } else if (assignee === 'steve' || assignee.includes('steve')) {
       organized.steve.push(task);
-      console.log(`[ContextService] ✅ Assigned to Steve`);
     } else if (assignee === 'sam' || assignee.includes('sam')) {
       organized.sam.push(task);
-      console.log(`[ContextService] ✅ Assigned to Sam`);
     } else if (assignee === 'rasoa' || assignee.includes('rasoa')) {
       organized.rasoa.push(task);
-      console.log(`[ContextService] ✅ Assigned to Rasoa`);
     } else if (assignee === 'rakoto' || assignee.includes('rakoto')) {
       organized.rakoto.push(task);
-      console.log(`[ContextService] ✅ Assigned to Rakoto`);
     } else if (assignee === 'user' || assignee === 'human' || assignee.length > 20) {
       // Long user IDs (Firebase UIDs)
       organized.user.push(task);
-      console.log(`[ContextService] ✅ Assigned to User`);
     } else if (assignee === 'unassigned' || assignee === '') {
       organized.unassigned.push(task);
-      console.log(`[ContextService] ✅ Unassigned`);
     } else {
       // Unknown assignee - treat as unassigned
-      organized.unassigned.push(task);
-      console.log(`[ContextService] ⚠️ Unknown assignee "${assignee}" - marking as unassigned`);
+      organized.unassigned.push(task);  
     }
-  });
-  
-  console.log(`[ContextService] Final organization:`, {
-    brown: organized.brown.length,
-    elza: organized.elza.length,
-    kati: organized.kati.length,
-    steve: organized.steve.length,
-    sam: organized.sam.length,
-    rasoa: organized.rasoa.length,
-    rakoto: organized.rakoto.length,
-    user: organized.user.length,
-    unassigned: organized.unassigned.length
   });
   
   return organized;

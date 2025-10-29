@@ -20,7 +20,6 @@ const axiosWithRetry = async (config, maxRetries = 3, delay = 1000) => {
       const isNetworkError = error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED';
       
       if (isNetworkError && !isLastRetry) {
-        console.log(`[Retry ${i + 1}/${maxRetries}] Network error, retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
@@ -148,9 +147,6 @@ function Kanban() {
           priority: task.priority || 1
         }));
         
-        console.log('[Kanban] Saving tasks:', tasksToSave);
-        console.log('[Kanban] Project title:', projectData.title);
-        
         const response = await axiosWithRetry({
           method: 'post',
           url: `${backend_host}/api/project/${id}/kanban`,
@@ -173,7 +169,6 @@ function Kanban() {
         alert('Tasks saved successfully!');
       } catch (error) {
         const msg = 'data could not be stored to database';
-        console.log(msg);
         alert(msg);
       }
     };

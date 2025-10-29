@@ -55,8 +55,6 @@ export default function ContributionTracker({ projectId, showContributions = tru
           'Content-Type': 'application/json'
         }
       });
-      
-      console.log("User word count calculated successfully");
     } catch (err) {
       console.error("Error calculating user word count:", err);
     }
@@ -91,9 +89,6 @@ export default function ContributionTracker({ projectId, showContributions = tru
           
           setContributions(contributions);
           setTotalContribution(response.data.analysis?.scores?.userContributionScore + response.data.analysis?.scores?.aiContributionScore || 0);
-          
-          console.log('📊 Loaded data-driven contributions:', contributions);
-          console.log('📊 Analysis details:', response.data.analysis);
         }
       } catch (err) {
         console.error("Error loading interaction contributions:", err);

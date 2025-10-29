@@ -48,9 +48,7 @@ export const Highlight = Mark.create({
   addCommands() {
     return {
       setHighlight: (attributes) => ({ commands, state, dispatch }) => {
-        console.log('HighlightExtension: setHighlight called with:', attributes);
         const { from, to } = state.selection;
-        console.log('HighlightExtension: Selection from', from, 'to', to);
         
         if (dispatch) {
           const tr = state.tr.addMark(from, to, state.schema.marks.highlight.create(attributes));
@@ -66,7 +64,6 @@ export const Highlight = Mark.create({
         return commands.unsetMark(this.name)
       },
       removeHighlightByCommentId: (commentId) => ({ state, dispatch }) => {
-        console.log('HighlightExtension: removeHighlightByCommentId called with:', commentId);
         
         if (dispatch) {
           const tr = state.tr;
@@ -86,7 +83,6 @@ export const Highlight = Mark.create({
           
           if (hasChanges) {
             dispatch(tr);
-            console.log('HighlightExtension: Highlight removed for commentId:', commentId);
             return true;
           }
         }

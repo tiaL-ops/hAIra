@@ -39,9 +39,6 @@ export default function AIToolbar({ onSummarize, onProofread, onSubmit, submitti
           </div>
         )}
         
-        {/* Debug: Show if saveStatus is received */}
-        {console.log('AIToolbar received saveStatus:', saveStatus)}
-        
         {/* Submit Button */}
         {onSubmit && (
           <button

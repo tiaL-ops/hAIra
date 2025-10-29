@@ -6,8 +6,7 @@ dotenv.config();
 let ai = null;
 
 function getGeminiClient() {
-  if (!ai && process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim() !== '') {
-    console.log('🔧 Initializing Gemini client...');
+  if (!ai && process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim() !== '') {    
     ai = new GoogleGenAI(process.env.GEMINI_API_KEY);
   }
   return ai;

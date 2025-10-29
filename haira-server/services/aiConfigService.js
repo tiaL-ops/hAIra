@@ -22,13 +22,9 @@ export function initializeAIConfig() {
   const hasOpenAIKey = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim() !== '';
   const hasGeminiKey = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim() !== '';
 
-  console.log('🔧 AI Configuration Check:');
-  console.log(`   - OpenAI Key Present: ${hasOpenAIKey ? '✅' : '❌'}`);
-  console.log(`   - Gemini Key Present: ${hasGeminiKey ? '✅' : '❌'}`);
 
   if (hasOpenAIKey) {
     // Dev/Deployed Mode: Use OpenAI
-    console.log('🚀 Mode Production: Using OpenAI API');
     aiConfig = {
       mode: 'openai',
       primary: 'openai',
@@ -37,7 +33,6 @@ export function initializeAIConfig() {
     };
   } else if (hasGeminiKey) {
     // Local Mode: Use Gemini only
-    console.log('🚀 Mode Local: Using Gemini API only');
     aiConfig = {
       mode: 'gemini',
       primary: 'gemini',
@@ -46,7 +41,6 @@ export function initializeAIConfig() {
     };
   } else {
     // No API keys available
-    console.log('❌ Mode None: No API Keys - Both OpenAI and Gemini keys missing');
     aiConfig = {
       mode: 'none',
       primary: null,
@@ -55,7 +49,6 @@ export function initializeAIConfig() {
     };
   }
 
-  console.log(`📋 AI Config: ${aiConfig.description}`);
   return aiConfig;
 }
 
@@ -69,7 +62,6 @@ export function getOpenAIClient() {
   }
 
   if (!openaiClient) {
-    console.log('🔧 Initializing OpenAI client...');
     openaiClient = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
@@ -88,7 +80,6 @@ export function getGeminiClient() {
   }
 
   if (!geminiClient) {
-    console.log('🔧 Initializing Gemini client...');
     geminiClient = new GoogleGenAI(process.env.GEMINI_API_KEY);
   }
 
@@ -148,7 +139,6 @@ export function resetAIConfig() {
   aiConfig = null;
   openaiClient = null;
   geminiClient = null;
-  console.log('🔄 AI Configuration reset');
 }
 
 // Initialize configuration on module load

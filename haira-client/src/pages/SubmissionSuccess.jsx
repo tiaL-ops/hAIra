@@ -24,7 +24,6 @@ const axiosWithRetry = async (config, maxRetries = 3, delay = 1000) => {
       const isNetworkError = error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED';
       
       if (isNetworkError && !isLastRetry) {
-        console.log(`[Retry ${i + 1}/${maxRetries}] Network error, retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
@@ -99,7 +98,6 @@ function SubmissionSuccess() {
       });
 
       const data = response.data;
-      console.log('AI Grading Response:', data);
       
       if (data.success) {
         setAiGrades(data.grades);
@@ -117,7 +115,6 @@ function SubmissionSuccess() {
         setError(data.error || 'AI grading failed');
       }
     } catch (error) {
-      console.error('AI Grading Error:', error);
       setError(`AI grading failed: ${error.message}`);
     } finally {
       setGradingLoading(false);
@@ -192,7 +189,6 @@ function SubmissionSuccess() {
         }
         
       } catch (err) {
-        console.error("Error fetching submission data:", err);
         setError("Failed to load submission results");
       } finally {
         setLoading(false);

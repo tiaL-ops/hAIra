@@ -14,10 +14,6 @@ import * as LocalStorageService from './localStorageService.js';
 // Get Firebase availability flag
 const { firebaseAvailable } = FirebaseService;
 
-console.log(firebaseAvailable ? 
-  '🔥 Database Service: Using Firebase' : 
-  '💾 Database Service: Using localStorage fallback');
-
 // Helper function to route to correct service
 function getService() {
   return firebaseAvailable ? FirebaseService : LocalStorageService;

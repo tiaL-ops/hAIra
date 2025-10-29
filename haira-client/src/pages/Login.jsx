@@ -23,7 +23,6 @@ export default function Login() {
   // Auto-login test user when Firebase is not available
   useEffect(() => {
     if (!serverFirebaseAvailable) {
-      console.log('💾 No Firebase detected - auto-logging in test user');
       
       // Create test user in localStorage
       const testUser = {
@@ -72,7 +71,6 @@ export default function Login() {
               language: 'en'
             }
           });
-          console.log('User document created in Firestore');
         } else {
           // Update name if it changed
           const currentData = userDoc.data();
@@ -103,7 +101,6 @@ export default function Login() {
           // Only update if there are changes
           if (Object.keys(updates).length > 0) {
             await setDoc(userRef, updates, { merge: true });
-            console.log('User document updated in Firestore');
           }
         }
       } else {
@@ -126,7 +123,6 @@ export default function Login() {
         
         // Store in localStorage
         localStorage.setItem(`__localStorage_user_data_users_${user.uid}`, JSON.stringify(userData));
-        console.log('User document created in localStorage');
       }
     } catch (err) {
       console.error('Error creating/updating user document:', err);
@@ -168,7 +164,6 @@ export default function Login() {
         // Create user document in Firestore
         await createUserDocument(userCredential.user, name);
 
-        console.log('Sign up successful:', userCredential.user);
         navigate('/projects'); // Redirect to project selection page
       } else {
         // Use localStorage fallback
@@ -193,11 +188,9 @@ export default function Login() {
         // Dispatch custom event to notify AuthProvider
         window.dispatchEvent(new CustomEvent('localStorageAuthChange'));
         
-        console.log('Sign up successful (localStorage):', mockUser);
         navigate('/projects');
       }
     } catch (err) {
-      console.error('Sign up error:', err);
       switch (err.code) {
         case 'auth/email-already-in-use':
           setError('This email is already registered. Try logging in instead.');
@@ -233,7 +226,6 @@ export default function Login() {
         // Ensure user document exists (in case it was deleted)
         await createUserDocument(userCredential.user, userCredential.user.displayName);
 
-        console.log('Sign in successful:', userCredential.user);
         navigate('/projects'); // Redirect to project selection page
       } else {
         // Use localStorage fallback
@@ -258,11 +250,9 @@ export default function Login() {
         // Dispatch custom event to notify AuthProvider
         window.dispatchEvent(new CustomEvent('localStorageAuthChange'));
         
-        console.log('Sign in successful (localStorage):', mockUser);
         navigate('/projects');
       }
     } catch (err) {
-      console.error('Sign in error:', err);
       switch (err.code) {
         case 'auth/user-not-found':
           setError('No account found with this email.');
@@ -301,7 +291,6 @@ export default function Login() {
         // Create or update user document in Firestore
         await createUserDocument(userCredential.user, userCredential.user.displayName);
 
-        console.log('Google sign in successful:', userCredential.user);
         navigate('/projects'); // Redirect to project selection page
       } else {
         // Use localStorage fallback
@@ -326,11 +315,9 @@ export default function Login() {
         // Dispatch custom event to notify AuthProvider
         window.dispatchEvent(new CustomEvent('localStorageAuthChange'));
         
-        console.log('Google sign in successful (localStorage):', mockUser);
         navigate('/projects');
       }
     } catch (err) {
-      console.error('Google sign in error:', err);
       switch (err.code) {
         case 'auth/popup-closed-by-user':
           setError('Sign in cancelled.');
