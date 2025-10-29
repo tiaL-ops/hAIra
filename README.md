@@ -24,7 +24,7 @@ The platform aims to enhance critical thinking, collaboration, and AI literacy. 
   * React
   * Node.js
   * Express
-  * Firebase
+
 
 -----
 
@@ -35,12 +35,12 @@ While the hAIra source code is released under a free and open license (**GNU GPL
 To enable the core AI teammate and grading features, you must obtain and use API keys for:
 
 
-  * **Google Gemini** or * **OpenAI** 
+  * **Google Gemini** or **OpenAI** 
   * **Firebase Service Account Key**
 
-Without these keys, the application can still run , but in a limited **localStorage Mode** but will not execute the multi-agent collaboration and  that are part of the project's educational goals. We encourage contributors to explore and develop free alternatives.
+Without these keys, the application can still run , but in a limited **localStorage Mode** .It will not execute the multi-agent collaboration and  that are part of the project's educational goals. We encourage contributors to explore and develop free alternatives.
 
-Instructions to get the keys are below in #### configuration section.
+Instructions to get the keys are below in 'Configuration' section.
 
 -----
 
@@ -136,10 +136,17 @@ Instructions to get the keys are below in #### configuration section.
 
 #### Required for AI Features
 
-  - At least 22G free space for chrome API client side 
-  OR
-  - `OPENAI_API_KEY`: Your OpenAI API key for AI-powered features (fallback or primary)
-  - `GEMINI_API_KEY`: Your Google Gemini API key (fallback or primary)
+
+You must configure at least one of the following:
+
+**1. Server-Side AI**
+* `GEMINI_API_KEY`: Your Google Gemini API key.
+* `OPENAI_API_KEY`: Your OpenAI API key.(fallback)
+
+**2. Client-Side Chrome AI (Gemini Nano)**
+* Requires a compatible Chrome browser (v138+) with AI flags enabled.
+* Requires a one-time model download.
+
   
 
 #### Optional Firebase Configuration
@@ -203,10 +210,13 @@ hAIra includes built-in support for Chrome's native AI APIs, providing a local f
 The app supports multiple AI providers with automatic fallback:
 
 **AI Mode Detection:**
+- Chrome AI (Client-Side): The app will always try to use the built-in Chrome AI (Gemini Nano) first if the browser supports it.
 
-  - If both keys are present: Uses OpenAI as primary, Gemini as fallback
-  - If only Gemini key is present: Uses Gemini only
-  - If no keys are present: AI features will be disabled
+- Gemini (Server-Side): If Chrome AI is unavailable, it will fall back to using Gemini (if a GEMINI_API_KEY is provided).
+
+- OpenAI (Server-Side): If both Chrome AI and Gemini are unavailable, it will use OpenAI as the final fallback (if an OPENAI_API_KEY is provided).
+
+- No AI: If all the above are unavailable, AI features will be disabled.
 
 -----
 
