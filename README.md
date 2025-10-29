@@ -34,11 +34,13 @@ While the hAIra source code is released under a free and open license (**GNU GPL
 
 To enable the core AI teammate and grading features, you must obtain and use API keys for:
 
-  * **OpenAI**
-  * **Google Gemini**
+
+  * **Google Gemini** or * **OpenAI** 
   * **Firebase Service Account Key**
 
-Without these keys, the application can run in a limited **localStorage Mode** but will not execute the multi-agent collaboration and feedback features that are central to the project's educational goals. We encourage contributors to explore and develop free alternatives.
+Without these keys, the application can still run , but in a limited **localStorage Mode** but will not execute the multi-agent collaboration and  that are part of the project's educational goals. We encourage contributors to explore and develop free alternatives.
+
+Instructions to get the keys are below in #### configuration section.
 
 -----
 
@@ -55,7 +57,7 @@ Without these keys, the application can run in a limited **localStorage Mode** b
 1.  **Clone the repository**
 
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/tiaL-ops/hAIra.git
     cd hAIra
     ```
 
@@ -115,20 +117,10 @@ Without these keys, the application can run in a limited **localStorage Mode** b
 
 5.  **Start the application**
 
-    **Terminal 1 - Start the server:**
+    **Both server and client will start at:**
 
     ```bash
-    cd haira-server
-    npm run dev
-    # or
     npm start
-    ```
-
-    **Terminal 2 - Start the client:**
-
-    ```bash
-    cd haira-client
-    npm run dev
     ```
 
 6.  **Access the application**
@@ -144,8 +136,11 @@ Without these keys, the application can run in a limited **localStorage Mode** b
 
 #### Required for AI Features
 
-  - `OPENAI_API_KEY`: Your OpenAI API key for AI-powered features
+  - At least 22G free space for chrome API client side 
+  OR
+  - `OPENAI_API_KEY`: Your OpenAI API key for AI-powered features (fallback or primary)
   - `GEMINI_API_KEY`: Your Google Gemini API key (fallback or primary)
+  
 
 #### Optional Firebase Configuration
 
