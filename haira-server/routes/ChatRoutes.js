@@ -84,14 +84,8 @@ async function generateIntelligentSignOff(lastMessage, projectId, currentDay) {
 async function generateAgentResponseWithContext(projectId, agentId, userMessage, currentDay, userId) {
   // main problem HERE IS THAT GENERATE RESPONSE IS NOT GETTING ENOUGH CONTEXT
   try {
-    console.log("🥳 Time tio get an awmnser, what we know:")
-console.log({
-  projectId: projectId,
-  agentID: agentId,
-  userMessage: userMessage,
-  dayWeAre: currentDay,
-  userId: userId
-});
+   // console.log("🥳 Time tio get an awmnser, what we know:")
+
 
     const agentName = AI_AGENTS[agentId]?.name || agentId;
     let aiResponse;
@@ -99,7 +93,7 @@ console.log({
     // Try enhanced context first
     if (USE_ENHANCED_CONTEXT) {
       try {
-        console.log(`🔥🔥🔥🔥🔥🔥[Context] Generating enhanced context response for ${agentName}`);
+       // console.log(`🔥🔥🔥🔥🔥🔥[Context] Generating enhanced context response for ${agentName}`);
         aiResponse = await generateContextAwareResponse(
           agentId, 
           projectId, 
@@ -114,7 +108,7 @@ console.log({
     
     // Fallback: Standard context method
     if (!aiResponse) {
-      console.log(` 😿😿😿😿😿😿😿😿😿 Standart ${agentName}`);
+   
       // Get recent messages
       const recentMessages = await querySubcollection('userProjects', projectId, 'chatMessages', {
         orderBy: [{ field: 'timestamp', direction: 'desc' }],
@@ -123,7 +117,7 @@ console.log({
       
       // Get conversation from memory
       const memoryConversation = getConversationSummary(projectId, currentDay);
-      console.log("🫡🫡🫡🫡🫡🫡🫡MEMORY CONVERSATION: ", memoryConversation)
+  
       const dbConv = recentMessages.reverse().map(c => `${c.senderName}: ${c.content}`).join('\n');
       const conversationContext = memoryConversation || dbConv;
       
@@ -145,7 +139,7 @@ console.log({
         conversationSummary: conversationContext, 
         currentDay 
       }, recentMessages);
-      console.log("🤖🤖🤖🤖🤖 PROMPT SENT TO THE AI: ", prompt)
+      
       aiResponse = await generateAIResponse(userMessage.content, prompt);
       aiResponse = trimToSentences(aiResponse, 50);
     }
@@ -307,7 +301,7 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
       timestamp: Date.now(),
       type: 'message'
     };
-    console.log("POPOOO HERE IS THE MESSAGE: ", message)
+
     await addSubdocument('userProjects', projectId, 'chatMessages', null, message);
 
     // 6. Store in memory for AI context
@@ -462,7 +456,7 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
 
   // 🎲 Pick one random AI teammate
   const selectedTeammate = aiTeammates[Math.floor(Math.random() * aiTeammates.length)];
-  console.log("🎯 Selected AI teammate:", selectedTeammate.name);
+
 
   try {
     const availabilityCheck = await isTeammateAvailable(projectId, selectedTeammate.id);
