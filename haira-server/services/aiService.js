@@ -468,6 +468,7 @@ export async function generateContextAwareResponse(agentId, projectId, userId, c
     
     // Build enhanced prompt with full awareness
     const enhancedPrompt = buildEnhancedPrompt(agentId, context, userMessage);
+    console.log('🌹🌹🌹🌹🌹🌹🌹 here is the enhance Prompt',enhancedPrompt)
 
     // Generate response using centralized AI service with fallback
     let response;

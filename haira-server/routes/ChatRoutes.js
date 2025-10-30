@@ -82,13 +82,24 @@ async function generateIntelligentSignOff(lastMessage, projectId, currentDay) {
  * Generate context-aware AI response (inline - replaces triggerAgentResponse)
  */
 async function generateAgentResponseWithContext(projectId, agentId, userMessage, currentDay, userId) {
+  // main problem HERE IS THAT GENERATE RESPONSE IS NOT GETTING ENOUGH CONTEXT
   try {
+    console.log("🥳 Time tio get an awmnser, what we know:")
+console.log({
+  projectId: projectId,
+  agentID: agentId,
+  userMessage: userMessage,
+  dayWeAre: currentDay,
+  userId: userId
+});
+
     const agentName = AI_AGENTS[agentId]?.name || agentId;
     let aiResponse;
     
     // Try enhanced context first
     if (USE_ENHANCED_CONTEXT) {
       try {
+        console.log(`🔥🔥🔥🔥🔥🔥[Context] Generating enhanced context response for ${agentName}`);
         aiResponse = await generateContextAwareResponse(
           agentId, 
           projectId, 
@@ -103,6 +114,7 @@ async function generateAgentResponseWithContext(projectId, agentId, userMessage,
     
     // Fallback: Standard context method
     if (!aiResponse) {
+      console.log(` 😿😿😿😿😿😿😿😿😿 Standart ${agentName}`);
       // Get recent messages
       const recentMessages = await querySubcollection('userProjects', projectId, 'chatMessages', {
         orderBy: [{ field: 'timestamp', direction: 'desc' }],
@@ -294,7 +306,7 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
       timestamp: Date.now(),
       type: 'message'
     };
-
+    console.log("POPOOO HERE IS THE MESSAGE: ", message)
     await addSubdocument('userProjects', projectId, 'chatMessages', null, message);
 
     // 6. Store in memory for AI context
@@ -315,6 +327,7 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
         currentDay: currentDay,
         userId: projectDoc.userId
       });
+      
     } catch (taskError) {
       console.error('[Memory] Error updating task memory:', taskError);
     }
