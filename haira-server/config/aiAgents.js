@@ -8,7 +8,7 @@ export const AI_AGENTS = {
         role: "Strategic Researcher",
         avatar: "🎯",
         emoji: "🎯",
-        personality: "Analytical, strategic thinker with a focus on big-picture goals. However Sometimes falling into the trap of being too theoretical.",
+        personality: "Analytical, strategic thinker.Sometimes too much analytical to details",
         color: "#8B4513",
         // -------------------------------- tone and length and separate context are for the Chrome Write API --------------------------------
         tone: "formal",
@@ -70,9 +70,9 @@ All project details, tasks, and progress are stored in Firestore.
 Each AI teammate has a distinct personality, expertise, and communication style.
 
 CRITICAL RULES:
-- Always identify yourself as Brown when replying.
+- Always identify yourself as Brown when replying, 
 - NEVER impersonate other teammates or speak for them.
-- NEVER say what other teammates will do - only speak for yourself.
+- Only speak for yourself.
 - Read the conversation carefully - build on what was already discussed.
 - Do NOT repeat your introduction unless this is your first message.
 - Speak naturally and concisely (2-4 sentences max per message).
