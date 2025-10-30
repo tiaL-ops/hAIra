@@ -123,6 +123,7 @@ console.log({
       
       // Get conversation from memory
       const memoryConversation = getConversationSummary(projectId, currentDay);
+      console.log("🫡🫡🫡🫡🫡🫡🫡MEMORY CONVERSATION: ", memoryConversation)
       const dbConv = recentMessages.reverse().map(c => `${c.senderName}: ${c.content}`).join('\n');
       const conversationContext = memoryConversation || dbConv;
       
@@ -144,7 +145,7 @@ console.log({
         conversationSummary: conversationContext, 
         currentDay 
       }, recentMessages);
-      
+      console.log("🤖🤖🤖🤖🤖 PROMPT SENT TO THE AI: ", prompt)
       aiResponse = await generateAIResponse(userMessage.content, prompt);
       aiResponse = trimToSentences(aiResponse, 50);
     }
@@ -451,94 +452,54 @@ router.post('/:id/chat', verifyFirebaseToken, async (req, res) => {
     }
 
     // 11. Auto-responses (no mentions) WITH CONTEXT
+    //SHOUL 
     const probabilityHandled = [];
     
     if (mentions.length === 0) {
-      
-      const allTeammates = await getTeammates(projectId);
-      const aiTeammates = allTeammates.filter(t => t.type === 'ai');
-      
-      for (const teammate of aiTeammates) {
-        const agentId = teammate.id;
-        
-        try {
-          const availabilityCheck = await isTeammateAvailable(projectId, agentId);
-          
-          if (availabilityCheck.available) {
-            
-            try {
-              // Generate response WITH CONTEXT
-              const aiResponse = await generateAgentResponseWithContext(
-                projectId, 
-                agentId, 
-                message, 
-                currentDay, 
-                userId
-              );
-              
-              const agentName = AI_AGENTS[agentId]?.name || teammate.name;
-              
-              const aiMessage = {
-                messageId: generateId(),
-                projectId: projectId,
-                senderId: agentId,
-                senderName: agentName,
-                senderType: 'ai',
-                content: aiResponse,
-                timestamp: Date.now(),
-                type: 'message'
-              };
-              
-              await addSubdocument('userProjects', projectId, 'chatMessages', null, aiMessage);
-              
-              storeMessage(projectId, currentDay, {
-                id: aiMessage.messageId,
-                senderId: agentId,
-                senderName: agentName,
-                content: aiResponse,
-                timestamp: aiMessage.timestamp,
-                type: 'message'
-              });
-              
-              await updateTeammateStats(projectId, agentId, {
-                'stats.messagesSent': getFieldValue()?.increment(1),
-                'state.lastActive': Date.now(),
-                'state.status': 'online'
-              });
-              
-              probabilityHandled.push({
-                teammateId: agentId,
-                name: agentName,
-                responded: true,
-                trigger: 'auto-response'
-              });
-              
-              
-            } catch (aiError) {
-              console.error(`❌ Auto-response error for ${teammate.name}:`, aiError);
-              probabilityHandled.push({
-                teammateId: agentId,
-                name: teammate.name,
-                responded: false,
-                error: 'Failed to generate response',
-                trigger: 'auto-response'
-              });
-            }
-          } else {
-            probabilityHandled.push({
-              teammateId: agentId,
-              name: teammate.name,
-              responded: false,
-              reason: availabilityCheck.reason,
-              trigger: 'auto-response'
-            });
-          }
-          
-        } catch (probError) {
-          console.error(`❌ Auto-response error for ${agentId}:`, probError);
-        }
-      }
-    }
+  const allTeammates = await getTeammates(projectId);
+  const aiTeammates = allTeammates.filter(t => t.type === 'ai');
+  if (aiTeammates.length === 0) return;
+
+  // 🎲 Pick one random AI teammate
+  const selectedTeammate = aiTeammates[Math.floor(Math.random() * aiTeammates.length)];
+  console.log("🎯 Selected AI teammate:", selectedTeammate.name);
+
+  try {
+    const availabilityCheck = await isTeammateAvailable(projectId, selectedTeammate.id);
+    if (!availabilityCheck.available) return;
+
+    const aiResponse = await generateAgentResponseWithContext(
+      projectId,
+      selectedTeammate.id,
+      message,
+      currentDay,
+      userId
+    );
+
+    const agentName = AI_AGENTS[selectedTeammate.id]?.name || selectedTeammate.name;
+    const aiMessage = {
+      messageId: generateId(),
+      projectId,
+      senderId: selectedTeammate.id,
+      senderName: agentName,
+      senderType: 'ai',
+      content: aiResponse,
+      timestamp: Date.now(),
+      type: 'message'
+    };
+
+    await addSubdocument('userProjects', projectId, 'chatMessages', null, aiMessage);
+    storeMessage(projectId, currentDay, aiMessage);
+
+    await updateTeammateStats(projectId, selectedTeammate.id, {
+      'stats.messagesSent': getFieldValue()?.increment(1),
+      'state.lastActive': Date.now(),
+      'state.status': 'online'
+    });
+  } catch (err) {
+    console.error("❌ AI teammate error:", err);
+  }
+}
 
     // 12. Intelligent sign-off on 7th message
     if (userMsgsToday === 6) {
