@@ -138,3 +138,4 @@ export function formatAgentResponse(agentName, response, isFirstMessage) {
   
   return `${agentName}: ${cleaned}`;
 }
+

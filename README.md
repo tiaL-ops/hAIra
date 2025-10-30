@@ -18,7 +18,7 @@ The platform aims to enhance critical thinking, collaboration, and AI literacy. 
 
 ## 💻 Tech Stack
 
-  * Chrome AI APIs (via client side)
+  * Chrome AI APIs : Writer , Proofreader, Summarizer (via client side)
   * Google's Gemini Developer API
   * Firebase
   * React
@@ -142,20 +142,55 @@ Instructions to get the keys are in the 'Configuration' section below..
 
 ## 🔧 Configuration
 
-### Environment Variables
+### Environment Variables (Server-Side)
 
-#### Required for AI Features
+Create a `.env` file in the `haira-server` directory.
+
+#### **Required for AI Chat Agents **
+
+To enable the core multi-agent chat , you must provide at least one of the following server-side keys:
+
+* `GEMINI_API_KEY`: Your Google Gemini API key. **(Primary)**
+* `OPENAI_API_KEY`: Your OpenAI API key. **(Fallback)**
+
+#### **Optional Firebase Configuration**
+
+* `FIREBASE_PROJECT_ID`: Your Firebase project ID
+* `FIREBASE_CLIENT_EMAIL`: Firebase service account email
+* `FIREBASE_PRIVATE_KEY`: Firebase service account private key
+
+#### **Server Configuration**
+
+* `NODE_ENV`: Environment mode (development/production)
+* `PORT`: Server port (default: 3002)
+
+---
+
+### Chrome AI API Integration (Client-Side)
+
+hAIra can also use your browser's built-in AI (Gemini Nano) for on-device features like writing assistance and proofreading. This runs **entirely on your machine** and does not require server-side API keys.
+
+#### **Prerequisites for Chrome AI**
+
+1.  **Compatible Browser:** Google Chrome (version 138 or higher).
+2.  **Enable AI Model:** The first time you use the feature, Chrome will download the on-device model.
+3.  **Enable Chrome Flags:** You must manually enable the experimental AI flags:
+    * `chrome://flags/#prompt-api-for-gemini-nano` (Set to **Enabled**)
+    * `chrome://flags/#optimization-guide-on-device-model` (Set to **Enabled**)
+    * `chrome://flags/#writer-api chrome://flags/#proofreader-api chrome://flags/#summarizer-api`
 
 
-You must configure at least one of the following:
+4.  **Relaunch Chrome:** You must restart your browser after enabling the flags.
 
-**1. Server-Side AI**
-* `GEMINI_API_KEY`: Your Google Gemini API key.
-* `OPENAI_API_KEY`: Your OpenAI API key.(fallback)
+#### **Automatic Fallback Logic**
 
-**2. Client-Side Chrome AI (Gemini Nano)**
-* Requires a compatible Chrome browser (v138+) with AI flags enabled.
-* Requires a one-time model download.
+The app uses a clear priority system to power its AI features:
+
+1.  **Client-Side (Chrome AI):** Used first for all on-device tasks (like writing/proofreading) if available.
+2.  **Server-Side (Gemini):** Used for all multi-agent chat/grading, and as a fallback if Chrome AI is unavailable.
+3.  **Server-Side (OpenAI):** Used as the final fallback if Gemini is unavailable.
+
+
 
   
 
