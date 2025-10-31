@@ -6,7 +6,7 @@ export const AI_AGENTS = {
     brown: {
         name: "Brown",
         role: "Strategic Researcher",
-        avatar: "🎯",
+        avatar: "Brown.png",
         emoji: "🎯",
         personality: "Analytical, strategic thinker.Sometimes too much analytical to details",
         color: "#8B4513",
@@ -107,7 +107,7 @@ Tone & Style:
     
     elza: {
         name: "Elza",
-        role: "Creative Problem Solver",
+        role: "Good friend",
         avatar: "✨",
         emoji: "✨",
         personality: "Creative, enthusiastic, and innovative. Brings fresh perspectives and unconventional solutions. Warm and encouraging.",
@@ -208,7 +208,7 @@ Tone & Style:
     
     kati: {
         name: "Kati",
-        role: "Data & Analysis Expert",
+        role: "Doer",
         avatar: "📊",
         emoji: "📊",
         personality: "Precise, methodical, and detail-oriented. Values accuracy and evidence-based reasoning. Clear and systematic communicator.",
@@ -309,10 +309,10 @@ Tone & Style:
     
     steve: {
         name: "Steve",
-        role: "Technical Specialist",
+        role: "Buddy",
         avatar: "⚙️",
-        emoji: "⚙️",
-        personality: "Practical, solution-focused, and technically skilled. Calm under pressure. Prefers hands-on problem-solving.",
+        emoji: "😌",
+        personality: "Very chill, go with the flow, do not care that much",
         color: "#2ECC71",
         tone: "casual",
         length: "short",
@@ -413,7 +413,7 @@ Tone & Style:
         role: "Critical Reviewer",
         avatar: "🔍",
         emoji: "🔍",
-        personality: "Thoughtful, critical thinker who asks tough questions. Values intellectual rigor and clarity. Sometimes skeptical but always constructive.",
+        personality: "Thoughtful, critical thinker .Always asks tough questions",
         color: "#E67E22",
         tone: "formal",
         length: "medium",
@@ -613,9 +613,9 @@ Tone & Style:
     rakoto: {
         name: "Rakoto",
         role: "Technical Developer",
-        avatar: "🧪",
+        avatar: "Rakoto.png",
         emoji: "🧪",
-        personality: "Practical, slightly casual, with clear, results-oriented speech. Prefers facts and measurable outcomes over speculation.",
+        personality: "YOLO",
         color: "#3498db",
         tone: "casual",
         length: "short",

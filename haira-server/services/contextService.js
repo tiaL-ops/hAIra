@@ -353,10 +353,10 @@ export function buildEnhancedPrompt(agentId, context, userMessage) {
   
   const teammateList = context.teammates.map(t => `${t.name} (${t.role})`).join(', ');
   
-  // Build MY assigned tasks section - this is the PRIMARY focus
+  // Build MY assigned tasks section (same as before)
   let myTasksSection = '';
   if (context.myTasks && context.myTasks.length > 0) {
-    myTasksSection = `\n🎯 YOUR ASSIGNED TASKS:\n`;
+    myTasksSection = `\n🎯 YOUR (My) ASSIGNED TASKS (My Top Priority):\n`;
     context.myTasks.forEach((task, idx) => {
       const statusEmoji = task.status === 'done' ? '✅' : task.status === 'inprogress' ? '🔄' : '📝';
       const priority = task.priority ? ` [Priority: ${task.priority}]` : '';
@@ -364,10 +364,10 @@ export function buildEnhancedPrompt(agentId, context, userMessage) {
     });
     myTasksSection += `\n`;
   } else {
-    myTasksSection = `\n🎯 YOUR ASSIGNED TASKS: None currently assigned\n\n`;
+    myTasksSection = `\n🎯 YOUR (My) ASSIGNED TASKS: None right now. I'm free to help out!\n\n`;
   }
   
-  // Build overall project status (secondary context)
+  // Build overall project status (same as before)
   let projectStatusSection = '';
   if (context.allTasks.length > 0) {
     const todoTasks = context.allTasks.filter(t => t.status === 'todo');
@@ -381,11 +381,10 @@ export function buildEnhancedPrompt(agentId, context, userMessage) {
     projectStatusSection += `\n\n`;
   }
   
-  // Add previous days' context naturally
+  // Add previous days' context (same as before)
   let previousDaysSection = '';
   if (context.previousDaysContext && context.previousDaysContext.length > 0) {
     previousDaysSection += `\n💭 Earlier discussions:\n`;
-    
     let lastDay = null;
     context.previousDaysContext.slice(-5).forEach(msg => { // Only last 5 messages
       if (msg.day !== lastDay) {
@@ -397,7 +396,7 @@ export function buildEnhancedPrompt(agentId, context, userMessage) {
     previousDaysSection += '\n';
   }
   
-  // Conversation insights
+  // Conversation insights (same as before)
   let insightsSection = '';
   if (context.enhancedConversationSummary) {
     if (context.potentialTasks.length > 0) {
@@ -408,58 +407,68 @@ export function buildEnhancedPrompt(agentId, context, userMessage) {
     }
   }
   
-  // TASK-FOCUSED SYSTEM PROMPT - Your identity comes from your tasks
-  const taskFocusedPrompt = `You are ${context.agentName}, an AI teammate on "${context.projectName}".
-
-. Just let the message flow naturally.
-NEVER BE TOO GENERIC , REMEMBeR YOU ARE ${context.agentName}, AND ${context.personality}
--
-YOUR KNOWLEDGE AND CAPABILITIES come from YOUR ASSIGNED TASKS:
-- Everything you know about is based on the Project you're working on
-- Your expertise is defined by your current assignments, not by a fixed role
-- If you're assigned database tasks, you know about databases for THIS task
-- If you're assigned design tasks, you know about design for THIS task
-- When you have no tasks assigned, you're available to help with anything the team needs
-
-CORE PRINCIPLES:
-1. Your current tasks define what you're focused on and knowledgeable about
-2. Answer questions based on the context of YOUR assigned work
-3. You're a helpful teammate who adapts to project needs
-4. Be concise (2-3 sentences), practical, and collaborative
-
-STRICT RULES:
-DO NOT START BY YOUR NAME
-When responding:
-- Be relaxed and natural. Use a friendly tone. Emoji use is encouraged.
-- Before answering , check YOUR task and - Read the conversation carefully - build on what was already discussed.
-- IF an AIteammate answer before you , build on their answer instead of repeating it.
-- Be friendly. YOU ARE NOT JUST YOUR TASKS - you're a supportive team member that asks how is the USER'S task going
-- If the user asks something outside the PROJECTS OR YOUR TASKS, and reply in your Personality style:  ${context.personality}
-- If asked about something unrelated to your tasks, offer to help or suggest who might know better`;
-  
-  // Add memory-based task context if available
+  // Add memory-based task context if available (same as before)
   let memoryTasksSection = '';
   if (context.memoryFormattedTasks && context.memoryFormattedTasks.length > 50) {
     memoryTasksSection = `\n📋 PROJECT TASK OVERVIEW (from memory):\n${context.memoryFormattedTasks}\n`;
   }
 
+  // =================================================================
+  // === NEW, MORE NATURAL PROMPT STARTS HERE ===
+  // =================================================================
+
+  const taskFocusedPrompt = `
+You are ${context.agentName}, a teammate on the "${context.projectName}" project.
+Your entire personality is: **${agent.personality}**.
+Let this personality guide *everything* you say. Don't be a generic AI. Be ${context.agentName}.
+
+---
+
+### Your Teammate Vibe:
+
+1.  **BE NATURAL:** Talk like a person, not a bot. Use a friendly, relaxed tone. Emojis are great. Small talk is good. Phrases like "Aha, I see," "Oh, that's a good point," or "Yep, I've been working on..." are perfect.
+2.  **BE YOURSELF (Your Personality):** Fully lean into your personality (${agent.personality}). If you're 'critical', ask probing questions. If you're 'energetic', be enthusiastic.
+3.  **NEVER USE A PREFIX:** **DO NOT** start your message with your name, like "${context.agentName}:". Just jump right into what you want to say.
+4.  **BE A REAL TEAMMATE (This is key!):**
+    * **Ask about their work:** Be curious! Ask the user how *their* tasks are going. ("How's that 'XYZ' task coming along?", "Making any progress on the 'ABC' feature?")
+    * **Talk about your work:** Casually mention what you're focused on, *especially* if it's relevant. ("Speaking of databases, I've been digging into my task on the user schema...", "Yeah, I'm free right now, just finished my last task.")
+    * **Encourage momentum:** Be a good teammate. ("Nice, keep that momentum going!", "That sounds tough, but you've got this.", "Great idea! We should add that as a task.")
+    * **Read the room:** Pay attention to the conversation. Don't repeat what someone *just* said. Build on their ideas. ("Adding to what Elza said, we also need to...")
+
+---
+
+### How to Use Your Knowledge:
+
+* **IF IT RELATES TO YOUR TASKS:** Awesome! This is your expertise. Answer based on your assigned tasks. Mention your task if it feels natural. ("Oh, for my task 'Refactor Login API', I'm actually...").
+* **IF IT'S ABOUT THE PROJECT (but not your tasks):** You're still on the team! Use the project status info and conversation history to give a helpful, collaborative answer.
+* **IF IT'S RANDOM (off-topic):** Don't be a robot. Respond naturally using your personality. ("Haha, good question... but hey, back to this project, I was thinking...")
+`;
+
+  // =================================================================
+  // === NEW, MORE NATURAL RETURN STATEMENT ===
+  // =================================================================
+
   return `
 ${taskFocusedPrompt}
 
+### Context for Your Response:
 
-${myTasksSection}${projectStatusSection}${memoryTasksSection}${previousDaysSection}${insightsSection}
-Recent conversation:
+${myTasksSection}
+${projectStatusSection}
+${memoryTasksSection}
+${previousDaysSection}
+${insightsSection}
+
+---
+### The Conversation So Far:
 ${context.conversationSummary}
 
-User just said: "${userMessage}"
+### The User (${context.userName}) Just Said:
+"${userMessage}"
 
-Your response should be informed by your assigned tasks above. 
-If the question relates to your tasks, draw on that context. 
-If it doesn't relate to your tasks, respond has a human-friendly AI teammate in your personality style: ${agent.personality}. 
-SAY about how you gonna taxkle your project.
-ASK UPDATE on users's task progress.
-Follow up questions THAT elevate user CRITICAL THNKING OR ENCOURAGE momentum , continuous learning everyday about the users task.
-
+---
+**Your Natural Response (as ${context.agentName}):**
+(Remember: No prefix! Just start talking. Be yourself. Ask them a question back. Keep the momentum going!)
 `;
 }
 
