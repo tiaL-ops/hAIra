@@ -86,7 +86,7 @@ function Home() {
             We aim to help humans <span className="slogan-highlight">think better, not less.</span>
           </p>
             <div className="hero-buttons">
-              <Link to="/login" className="btn btn-secondary">
+              <Link to="/projects" className="btn btn-secondary">
                 <span className="btn-text">Try the hAIra Demo</span>
               </Link>
               <button 
