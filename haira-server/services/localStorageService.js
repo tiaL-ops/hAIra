@@ -864,3 +864,34 @@ export async function updateTemplateUsage(templateId, userId) {
   
   return _asyncDelay(null);
 }
+
+// Delete a project and all its subcollections
+export async function deleteProject(projectId, userId) {
+  try {
+    const db = _getDb();
+    
+    // Verify user owns the project
+    const project = db[COLLECTIONS.USER_PROJECTS]?.[projectId];
+    if (!project || project.userId !== userId) {
+      throw new Error('Project not found or access denied');
+    }
+
+    // Delete the project (including all its subcollections since they're nested)
+    delete db[COLLECTIONS.USER_PROJECTS][projectId];
+    
+    // If this was the active project, clear user's activeProjectId
+    if (db[COLLECTIONS.USERS]?.[userId]?.activeProjectId === projectId) {
+      if (!db[COLLECTIONS.USERS][userId]) {
+        db[COLLECTIONS.USERS][userId] = { id: userId };
+      }
+      db[COLLECTIONS.USERS][userId].activeProjectId = null;
+    }
+    
+    _saveDb(db);
+    
+    return _asyncDelay({ success: true, message: 'Project deleted successfully' });
+  } catch (error) {
+    console.error('[LocalStorage] Error deleting project:', error);
+    throw error;
+  }
+}

@@ -1,6 +1,9 @@
 // AI service layer - handles LLM interactions and context building
 import { generateAIResponse as callOpenAI, generateAIContribution as callOpenAIContribution, generateAIProject as callOpenAIProject } from '../api/openaiService.js';
 import { generateAIResponse as callGemini, generateGradeResponse as callGeminiGrade, generateDeliverablesResponse as callGeminiDeliverables, generateAIContribution as callGeminiContribution } from '../api/geminiService.js';
+
+
+
 import { AI_AGENTS } from '../config/aiAgents.js';
 import { getAgentContext, buildEnhancedPrompt } from './contextService.js';
 import { getAIConfig, getPrimaryAPI, getFallbackAPI, isAPIAvailable } from './aiConfigService.js';
@@ -18,14 +21,16 @@ const summaryCache = new Map();
  * @returns {Promise<string>} AI response text
  */
 export async function generateAIResponse(userContent, contextualPrompt) {
-  console.log('👘👘👘👘👘👘 here is the userContent',userContent)
+  //console.log('👘👘👘👘👘👘 here is the userContent')
   const config = getAIConfig();
   const primaryAPI = getPrimaryAPI();
   const fallbackAPI = getFallbackAPI(); 
 
+
   // Try primary API first
   if (primaryAPI === 'openai' && isAPIAvailable('openai')) {
     try {
+      console.log('😄 Using openAI')
       return await callOpenAI(userContent, contextualPrompt);
     } catch (error) {
       console.error('[AI Service] OpenAI API call failed:', error.message || error);
@@ -33,6 +38,7 @@ export async function generateAIResponse(userContent, contextualPrompt) {
       // Try fallback if available
       if (fallbackAPI === 'gemini' && isAPIAvailable('gemini')) {
         try {
+           console.log('😀 usin gemini')
           return await callGemini(userContent, contextualPrompt);
         } catch (fallbackError) {
           console.error('[AI Service] Gemini fallback API call failed:', fallbackError.message || fallbackError);
@@ -43,14 +49,14 @@ export async function generateAIResponse(userContent, contextualPrompt) {
       }
     }
   } else if (primaryAPI === 'gemini' && isAPIAvailable('gemini')) {
-    try {
+    try {console.log('😀 usin gemini')
       return await callGemini(userContent, contextualPrompt);
     } catch (error) {
       console.error('[AI Service] Gemini API call failed:', error.message || error);
       
       // Try fallback if available
       if (fallbackAPI === 'openai' && isAPIAvailable('openai')) {
-        try {
+        try {console.log('😀 usin openAI')
           return await callOpenAI(userContent, contextualPrompt);
         } catch (fallbackError) {
           console.error('[AI Service] OpenAI fallback API call failed:', fallbackError.message || fallbackError);
@@ -408,7 +414,7 @@ export async function generateContextAwareResponse(agentId, projectId, userId, c
     
     // Build enhanced prompt with full awareness
     const enhancedPrompt = buildEnhancedPrompt(agentId, context, userMessage);
-    console.log('🌹🌹🌹🌹🌹🌹🌹 here is the enhance Prompt',enhancedPrompt)
+    console.log('🌹🌹🌹🌹🌹🌹🌹 here is the enhance Prompt')
 
     // Generate response using centralized AI service with fallback
     let response;

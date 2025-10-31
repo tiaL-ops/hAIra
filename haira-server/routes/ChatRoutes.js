@@ -144,15 +144,14 @@ async function generateAgentResponseWithContext(projectId, agentId, userMessage,
       aiResponse = trimToSentences(aiResponse, 50);
     }
     
-    // Ensure response has agent name prefix
-  
+ 
     
     return aiResponse;
     
   } catch (error) {
     console.error(`❌ Error generating response for ${agentId}:`, error);
     const agentName = AI_AGENTS[agentId]?.name || agentId;
-    return `I'm having trouble responding right now. Let me get back to you!`;
+    return `${agentName}: I'm having trouble responding right now. Let me get back to you!`;
   }
 }
 

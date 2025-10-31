@@ -12,6 +12,13 @@
   "author": "",
   "license": "ISC",
   "description": "",
+  "nodemonConfig": {
+    "ignore": [
+      "local_data/**/*",
+      "*.json",
+      "node_modules"
+    ]
+  },
   "dependencies": {
     "@google/genai": "^1.25.0",
     "@google/generative-ai": "^0.24.1",
