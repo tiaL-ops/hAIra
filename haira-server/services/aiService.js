@@ -18,6 +18,7 @@ const summaryCache = new Map();
  * @returns {Promise<string>} AI response text
  */
 export async function generateAIResponse(userContent, contextualPrompt) {
+  console.log('👘👘👘👘👘👘 here is the userContent',userContent)
   const config = getAIConfig();
   const primaryAPI = getPrimaryAPI();
   const fallbackAPI = getFallbackAPI(); 
@@ -317,67 +318,6 @@ Example response:
 }
 
 /**
- * Build contextual prompt for an agent
- * @param {string} agentId - Agent identifier (alex, rasoa, rakoto)
- * @param {Object} projectInfo - Enhanced project information
- * @param {Array} conversationHistory - Recent conversation messages
- * @returns {string} Complete contextual prompt
- */
-export function buildContextualPrompt(agentId, projectInfo, conversationHistory) {
-  const agent = AI_AGENTS[agentId];
-  if (!agent) return '';
-  
-  const teammates = Object.keys(AI_AGENTS)
-    .filter(id => id !== agentId)
-    .map(id => AI_AGENTS[id].name)
-    .join(', ');
-  
-  const recentChat = conversationHistory
-    .slice(-8)
-    .map(msg => `${msg.senderName}: ${msg.content}`)
-    .join('\n') || 'No recent messages.';
-  
-  const roleDescription = agentId === 'alex' 
-    ? 'AI Project Manager (leads project, ensures coordination)'
-    : agentId === 'rasoa'
-    ? 'Planner (organizes tasks, manages Kanban)'
-    : 'Developer (executes assigned tasks)';
-  
-  return `
-AGENT IDENTITY:
-- Name: ${agent.name}
-- Role: ${roleDescription}
-- Teammates: ${teammates}
-
-PROJECT CONTEXT:
-- Project: ${projectInfo.name || 'Untitled Project'}
-- Duration: 7 days (Current Day: ${projectInfo.currentDay || 1})
-- Lead: ${projectInfo.userName || 'User'}
-- Alex (PM) is ${projectInfo.alexAvailable ? 'AVAILABLE' : 'NOT AVAILABLE'} today (active Days 1, 3, 6)
-
-${projectInfo.tasks || ''}
-
-CONVERSATION SUMMARY (Last 15 messages):
-${projectInfo.conversationSummary || 'No prior conversation.'}
-
-MOST RECENT EXCHANGE:
-${recentChat}
-${projectInfo.specialContext || ''}
-
-${agent.systemPrompt}
-
-
-
-GUIDELINES:
-
-- Respond naturally as if chatting with teammates
-- Keep tone brief, cooperative, and human
-- Reference tasks and progress when relevant
-- Build on previous conversation context
-`;
-}
-
-/**
  * Get or generate conversation summary with caching
  * @param {string} projectId - Project identifier
  * @param {number} currentDay - Current project day
@@ -468,7 +408,7 @@ export async function generateContextAwareResponse(agentId, projectId, userId, c
     
     // Build enhanced prompt with full awareness
     const enhancedPrompt = buildEnhancedPrompt(agentId, context, userMessage);
-    //console.log('🌹🌹🌹🌹🌹🌹🌹 here is the enhance Prompt',enhancedPrompt)
+    console.log('🌹🌹🌹🌹🌹🌹🌹 here is the enhance Prompt',enhancedPrompt)
 
     // Generate response using centralized AI service with fallback
     let response;

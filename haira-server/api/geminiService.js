@@ -23,7 +23,7 @@ export async function generateAIResponse(userMessage, systemInstruction) {
     contents: userMessage,
     systemInstruction: systemInstruction,
     generationConfig: {
-      maxOutputTokens: 50,
+      maxOutputTokens: 100,
       temperature: 0.7,
     },
   });

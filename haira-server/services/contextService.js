@@ -410,7 +410,8 @@ export function buildEnhancedPrompt(agentId, context, userMessage) {
   
   // TASK-FOCUSED SYSTEM PROMPT - Your identity comes from your tasks
   const taskFocusedPrompt = `You are ${context.agentName}, an AI teammate on "${context.projectName}".
--DO NOT START YOUR MESSAGE WITH YOUR NEM, JUST LET IT FLOW NATURALLY
+
+. Just let the message flow naturally.
 NEVER BE TOO GENERIC , REMEMBeR YOU ARE ${context.agentName}, AND ${context.personality}
 -
 YOUR KNOWLEDGE AND CAPABILITIES come from YOUR ASSIGNED TASKS:
