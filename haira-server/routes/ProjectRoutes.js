@@ -8,7 +8,7 @@ import {
   createAIGeneratedProject, getProjectWithTemplate,
   archiveProject, getArchivedProjects, getInactiveProjects,
   activateProject, getUnusedTemplatesForTopic, getLeastUsedTemplatesForTopic,
-  getDocumentById, updateTemplateUsage
+  getDocumentById, updateTemplateUsage, deleteProject
 } from '../services/databaseService.js';
 import { generateProjectForTopic, getOrCreateProjectTemplate } from '../services/aiProjectService.js';
 import { COLLECTIONS } from '../schema/database.js';
@@ -245,6 +245,7 @@ router.post('/:id/archive', verifyFirebaseToken, async (req, res) => {
   }
 });
 
+
 //create a new project
 router.post('/create', verifyFirebaseToken, async (req, res) => {
   try {
@@ -261,6 +262,7 @@ router.post('/create', verifyFirebaseToken, async (req, res) => {
     res.status(500).json({ error: error.message || 'Failed to create project' });
   }
 });
+
 
 // generate a new project
 router.post('/generate-project', verifyFirebaseToken, async (req, res) => {
@@ -411,5 +413,23 @@ router.get('/templates/:topic', verifyFirebaseToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch templates' });
   }
 });
+
+router.delete('/:id', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.uid;
+
+    await deleteProject(id, userId);
+
+    res.json({
+      success: true,
+      message: 'Project deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    res.status(500).json({ error: error.message || 'Failed to delete project' });
+  }
+});
+
 // Export the router so we can use it in index.js
 export default router;

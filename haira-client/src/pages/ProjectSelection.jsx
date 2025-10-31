@@ -144,6 +144,65 @@ export default function ProjectSelection() {
     }
   };
 
+
+  // Delete project
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+const [projectToDelete, setProjectToDelete] = useState(null);
+
+// Show delete confirmation modal
+const handleDeleteProject = (projectId) => {
+  setProjectToDelete(projectId);
+  setShowDeleteModal(true);
+};
+
+// Confirm delete action
+const confirmDeleteProject = async () => {
+  if (!projectToDelete) return;
+
+  try {
+    // Get token with fallback
+    let token;
+    if (serverFirebaseAvailable) {
+      try {
+        token = await auth.currentUser.getIdToken();
+      } catch (error) {
+        const storedUser = localStorage.getItem('__localStorage_current_user__');
+        const currentUser = storedUser ? JSON.parse(storedUser) : null;
+        token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+      }
+    } else {
+      const storedUser = localStorage.getItem('__localStorage_current_user__');
+      const currentUser = storedUser ? JSON.parse(storedUser) : null;
+      token = `mock-token-${currentUser?.uid || 'anonymous'}-${Date.now()}`;
+    }
+    
+    const response = await axios.delete(`${backend_host}/api/project/${projectToDelete}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (response.data.success) {
+      // Refresh projects
+      window.location.reload();
+    } else {
+      throw new Error('Failed to delete project');
+    }
+  } catch (err) {
+    console.error('Error deleting project:', err);
+    setError('Failed to delete project. Please try again.');
+  } finally {
+    setShowDeleteModal(false);
+    setProjectToDelete(null);
+  }
+};
+
+// Cancel delete action
+const cancelDeleteProject = () => {
+  setShowDeleteModal(false);
+  setProjectToDelete(null);
+};
+
   // Show archive confirmation modal
   const handleArchiveProject = (projectId) => {
     setProjectToArchive(projectId);
@@ -396,6 +455,13 @@ export default function ProjectSelection() {
                           >
                             📤 Submission
                           </button>
+                          <button 
+  onClick={() => handleDeleteProject(project.id)}
+  className="btn-action-large btn-delete"
+  title="Delete project permanently"
+>
+  🗑️ Delete
+</button>
                         </>
                       ) : (
                         <button 
@@ -405,6 +471,7 @@ export default function ProjectSelection() {
                         >
                           ⚡ Choose Teammates
                         </button>
+                        
                       )}
                     </div>
                   </div>
@@ -462,6 +529,17 @@ export default function ProjectSelection() {
           onOpenProject={handleOpenProject}
           onArchiveProject={handleArchiveProject}
         />
+        {/* Delete Project Modal */}
+        <ConfirmationModal
+  isOpen={showDeleteModal}
+  title="Delete Project"
+  message="Are you sure you want to delete this project permanently? This action cannot be undone."
+  confirmText="Delete"
+  cancelText="Cancel"
+  type="danger"
+  onConfirm={confirmDeleteProject}
+  onCancel={cancelDeleteProject}
+/>
 
         {/* Project Welcome Modal */}
         {showWelcome && newProject && (
