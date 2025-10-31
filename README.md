@@ -82,7 +82,7 @@ The app automatically switches between a cloud database and local storage:
     cd .. 
     ```
 
-3.  **Configure Server**
+3.  **Configure Server & Client **
 
       * Navigate to the server directory: `cd haira-server`
       * Create an environment file: `touch .env`
@@ -92,6 +92,12 @@ The app automatically switches between a cloud database and local storage:
         GEMINI_API_KEY="your_gemini_key_here"
         OPENAI_API_KEY="your_openai_key_here"
         ```
+
+        
+      * Navigate to the client directory: `cd haira-client
+      * Create an environment file: `touch .env`
+      * Add your API keys to the `.env` file (see `haira-client/.env.example` for all required variables).
+      
 
 4.  **Choose Storage Mode (Optional)**
 
@@ -117,6 +123,7 @@ The app automatically switches between a cloud database and local storage:
 
       * **Frontend:** `http://localhost:5173`
       * **Backend API:** `http://localhost:3002`
+  
 
 > **Note:** In `localStorage` mode, the app automatically logs you in with a default **`test-user`**.
 
