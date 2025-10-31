@@ -27,6 +27,7 @@ export async function generateAIResponse(userMessage, systemInstruction) {
       temperature: 0.7,
     },
   });
+  console.log('🌟 Gemini Response:');
   return response.text;
 }
 

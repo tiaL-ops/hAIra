@@ -4,6 +4,7 @@ node_modules
 .env.production
 .env.production.local
 config/serviceAccountKey.json
+config/serviceAccountKey1.json
 config/serviceAccountKeyProd.json
 local_data/
 .env.haira-prod

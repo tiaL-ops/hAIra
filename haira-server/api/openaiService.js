@@ -15,22 +15,35 @@ function getOpenAIClient() {
 }
 
 export async function generateAIResponse(userMessage, systemInstruction) {
+
+  
+  
   const client = getOpenAIClient();
+
+  
   if (!client) {
+    console.error('[OpenAI Service] ❌ NO CLIENT');
     throw new Error('OpenAI client not available. Please check your OPENAI_API_KEY environment variable.');
   }
 
-  const response = await client.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: systemInstruction },
-      { role: "user", content: userMessage }
-    ],
-    max_tokens: 300, // Increased from 100 to allow AI to list tasks and provide detailed responses
-    temperature: 0.7,
-  });
+
   
-  return response.choices[0].message.content;
+  try {
+    const response = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemInstruction },
+        { role: "user", content: userMessage }
+      ],
+      max_tokens: 300,
+      temperature: 0.7,
+    });
+   
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error('[OpenAI Service] ❌ API call FAILED:', error.message);
+    throw error;
+  }
 }
 
 export async function generateAIContribution(userMessage, personaConfig, systemInstruction) {
@@ -76,15 +89,26 @@ export async function generateAIProject(prompt) {
 
     const fullPrompt = `${systemPrompt}\n\nTopic: ${prompt}`;
     
-    const response = await client.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: fullPrompt }
-      ],
-      max_tokens: 500,
-      temperature: 0.7
-    });
+   console.log('[OpenAI Service] 📡 Making API call...');
+
+const response = await client.chat.completions.create({
+  model: "gpt-4o-mini",
+  messages: [
+    { role: "system", content: systemInstruction },
+    { role: "user", content: userMessage }
+  ],
+  max_tokens: 300,
+  temperature: 0.7,
+}).catch(error => {
+  console.error('[OpenAI Service] ❌ CATCH BLOCK - API error:', error.message);
+  console.error('[OpenAI Service] Error name:', error.name);
+  console.error('[OpenAI Service] Error code:', error.code);
+  console.error('[OpenAI Service] Error status:', error.status);
+  throw error; 
+});
+
+console.log('[OpenAI Service] ✅ API call SUCCESS');
+return response.choices[0].message.content;
     
     const text = response.choices[0].message.content;
     
