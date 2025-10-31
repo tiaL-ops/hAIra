@@ -2,8 +2,6 @@
 import { generateAIResponse as callOpenAI, generateAIContribution as callOpenAIContribution, generateAIProject as callOpenAIProject } from '../api/openaiService.js';
 import { generateAIResponse as callGemini, generateGradeResponse as callGeminiGrade, generateDeliverablesResponse as callGeminiDeliverables, generateAIContribution as callGeminiContribution } from '../api/geminiService.js';
 
-console.log('[AI Service] callOpenAI type:', typeof callOpenAI);
-console.log('[AI Service] callGemini type:', typeof callGemini);
 
 
 import { AI_AGENTS } from '../config/aiAgents.js';
