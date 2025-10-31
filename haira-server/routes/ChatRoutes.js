@@ -144,10 +144,7 @@ async function generateAgentResponseWithContext(projectId, agentId, userMessage,
       aiResponse = trimToSentences(aiResponse, 50);
     }
     
-    // Ensure response has agent name prefix
-    if (!aiResponse.startsWith(agentName + ':')) {
-      aiResponse = `${agentName}: ${aiResponse}`;
-    }
+ 
     
     return aiResponse;
     
