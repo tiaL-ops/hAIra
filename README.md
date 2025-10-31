@@ -1,4 +1,4 @@
-### Haira : A Human-AI teaming platform for developing research and collaboration skills.
+### 💌 Haira : A Human-AI teaming platform for developing research and collaboration skills.
 
 
 > The name hAIra is derived from the Malagasy word “hay raha,” which translates as "the ability to create and critique art".
@@ -9,7 +9,7 @@
   * **Fanamby Randri** (Data Scientist - Machine Learning Engineer)
 
 ---
-### Project Overview
+###  💌 Project Overview
 
 Generative AI is a great learning tool, but if we rely on it too much, it can make us think less and work together less. (Guilty ourselves :D) 
 hAIra is a web platform built to change that , it helps students elevate problem-solving skills by practicing short term work with Ideal and non-ideal AI as a partner.
@@ -21,7 +21,7 @@ Using Chrome’s built-in AI, Google’s Gemini API, and Firebase, hAIra creates
 
 ----
 
-### Tech Stack
+###  💌 Tech Stack
 
   * **AI (Client):** Chrome AI APIs (Writer, Proofreader, Summarizer)
   * **AI (Server):** Google's Gemini Developer API
@@ -32,7 +32,7 @@ Using Chrome’s built-in AI, Google’s Gemini API, and Firebase, hAIra creates
 
 ----
 
-### Core Features & Dependencies
+###  💌 Core Features & Dependencies
 
 hAIra is built with a "local-first" and "fallback" philosophy, ensuring it runs even without server-side keys.
 
@@ -54,7 +54,7 @@ The app automatically switches between a cloud database and local storage:
 
 ----
 
-### Quick Start
+###  💌 Quick Start
 
 #### Prerequisites
 
@@ -122,7 +122,7 @@ The app automatically switches between a cloud database and local storage:
 
 ----
 
-###  Project Structure
+###  💌  Project Structure
 
 ```
 hAIra/
@@ -144,7 +144,7 @@ hAIra/
 
 -----
 
-### Available Scripts
+###  💌 Available Scripts
 
 #### Root
 
@@ -169,7 +169,7 @@ npm run dev     # Start development server with nodemon
 
 -----
 
-### Deployment
+###  💌 Deployment
 
 #### Firebase Hosting (Recommended)
 
@@ -308,7 +308,7 @@ The app uses a flexible Firestore schema with the following collections and deta
 }
 ```
 
-###  API Documentation
+###  💌  API Documentation
 
 The hAIra backend provides a REST API for all frontend operations.
 
@@ -371,7 +371,7 @@ Most endpoints require a Firebase ID token in the `Authorization: Bearer ${token
 
 
 
-###  Contributing ( Welcome!)
+###  💌  Contributing ( Welcome!)
 
 1.  Fork the repository
 2.  Create a feature branch: `git checkout -b feature-name`
@@ -381,7 +381,7 @@ Most endpoints require a Firebase ID token in the `Authorization: Bearer ${token
 
 ----
 
-### License
+### 💌  License
 
 This project is licensed under the **GNU General Public License v3.0 or later (GPL-3.0+).**
 
@@ -416,6 +416,6 @@ lsof -ti:3002 | xargs kill -9
   * Check the server console logs for AI configuration status on startup.
   * Ensure your API accounts have sufficient credits.
 
-### Getting Help
+### 💌  Getting Help
 
 If you encounter issues, please check the console logs, verify your environment variables, and ensure all dependencies are installed before opening an issue.
