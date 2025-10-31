@@ -32,6 +32,7 @@ export const getDocuments = (...args) => getService().getDocuments(...args);
 export const querySubcollection = (...args) => getService().querySubcollection(...args);
 export const getSubdocuments = (...args) => getService().getSubdocuments(...args);
 export const getChatMessagesByUser = (...args) => getService().getChatMessagesByUser(...args);
+export const deleteProject = (...args) => getService().deleteProject(...args);
 
 // Chat functions
 export const addChat = (...args) => getService().addChat(...args);

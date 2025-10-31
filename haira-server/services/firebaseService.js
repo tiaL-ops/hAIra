@@ -1071,3 +1071,44 @@ export async function updateTemplateUsage(templateId, userId) {
     throw error;
   }
 }
+
+// Delete a project and all its subcollections
+export async function deleteProject(projectId, userId) {
+  try {
+    // Verify user owns the project
+    const project = await getDocumentById(COLLECTIONS.USER_PROJECTS, projectId);
+    if (!project || project.userId !== userId) {
+      throw new Error('Project not found or access denied');
+    }
+
+    const projectRef = db.collection(COLLECTIONS.USER_PROJECTS).doc(projectId);
+
+    // Delete all subcollections (tasks, chatMessages, teammates)
+    const subcollections = ['tasks', 'chatMessages', 'teammates'];
+    
+    for (const subcollection of subcollections) {
+      const subRef = projectRef.collection(subcollection);
+      const snapshot = await subRef.get();
+      
+      // Delete all documents in subcollection
+      const deletePromises = snapshot.docs.map(doc => doc.ref.delete());
+      await Promise.all(deletePromises);
+    }
+
+    // Delete the project document itself
+    await projectRef.delete();
+
+    // If this was the active project, clear user's activeProjectId
+    const user = await getDocumentById(COLLECTIONS.USERS, userId);
+    if (user && user.activeProjectId === projectId) {
+      await updateDocument(COLLECTIONS.USERS, userId, {
+        activeProjectId: null
+      });
+    }
+
+    return { success: true, message: 'Project deleted successfully' };
+  } catch (error) {
+    console.error('[FirebaseService] Error deleting project:', error);
+    throw error;
+  }
+}
