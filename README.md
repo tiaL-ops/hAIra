@@ -102,10 +102,8 @@ Instructions to get the keys are in the 'Configuration' section below..
     OPENAI_API_KEY=your_openai_api_key_here
     GEMINI_API_KEY=your_gemini_api_key_here
 
-    # Firebase Configuration (Optional - for production)
-    FIREBASE_PROJECT_ID=your_firebase_project_id
-    FIREBASE_CLIENT_EMAIL=your_firebase_client_email
-    FIREBASE_PRIVATE_KEY=your_firebase_private_key
+    #firebase (optional)
+    FIREBASE_SERVICE_ACCOUNT_PATH=config/serviceAccountKey.json
 
     # Server Configuration
     NODE_ENV=development
